@@ -1,0 +1,10 @@
+.gradle/
+build/
+local.properties
+core/target/
+*.apk
+.idea/
+graphify-out/
+# Built by scripts/build-core.sh
+app/src/main/jniLibs/
+app/src/main/java/uniffi/
