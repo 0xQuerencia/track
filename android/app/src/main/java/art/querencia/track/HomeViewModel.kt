@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import uniffi.track_core.CoreException
 import uniffi.track_core.Engine
+import uniffi.track_core.Insights
 import uniffi.track_core.TaskItem
 import uniffi.track_core.TodayView
 
@@ -21,6 +22,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _today = MutableStateFlow<TodayView?>(null)
     val today: StateFlow<TodayView?> = _today
+
+    private val _insights = MutableStateFlow<Insights?>(null)
+    val insights: StateFlow<Insights?> = _insights
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -39,6 +43,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _today.value = runCatching {
                 app.engine.today(LocalDate.now().toString(), LocalTime.now().hour.toUInt())
             }.getOrNull()
+            _insights.value = runCatching { app.engine.insights() }.getOrNull()
         }
     }
 

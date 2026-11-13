@@ -50,12 +50,14 @@ import kotlinx.coroutines.delay
 import uniffi.track_core.ChapterItem
 import uniffi.track_core.ExamItem
 import uniffi.track_core.HabitItem
+import uniffi.track_core.Insights
 import uniffi.track_core.TaskItem
 import uniffi.track_core.TodayView
 
 @Composable
 fun HomeScreen(
     today: TodayView?,
+    insights: Insights?,
     syncState: SyncState,
     contentPadding: PaddingValues,
     onSettings: () -> Unit,
@@ -74,6 +76,11 @@ fun HomeScreen(
         item { Reveal(2) { PrioritiesCard(today, onToggleTask, onAddTask) } }
         if (today.habits.isNotEmpty()) item { Reveal(3) { HabitsCard(today, onToggleHabit) } }
         item { Reveal(4) { StudyCard(today.studyChapter, today.focusMinutes.toInt()) } }
+        insights?.let { i ->
+            item { Reveal(5) { TrackCard { Text("FOCUS · 14 DAYS", TrackType.Label); TrendChart(i.focus) } } }
+            item { Reveal(6) { TrackCard { Text("STUDY · 14 DAYS", TrackType.Label); BarsChart(i.study) } } }
+            item { Reveal(7) { TrackCard { Text("MASTERY BY SUBJECT", TrackType.Label); Donut(i.mastery) } } }
+        }
     }
 }
 
