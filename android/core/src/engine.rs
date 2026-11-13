@@ -102,6 +102,26 @@ pub struct AckSummary {
     pub will_retry: u32,
 }
 
+#[derive(uniffi::Record)]
+pub struct DayPoint {
+    pub date: String,
+    pub value: f64,
+}
+
+#[derive(uniffi::Record)]
+pub struct LabelPoint {
+    pub label: String,
+    pub value: f64,
+}
+
+/// Chart series the server last sent: minutes per day and mastery per subject.
+#[derive(uniffi::Record)]
+pub struct Insights {
+    pub focus: Vec<DayPoint>,
+    pub study: Vec<DayPoint>,
+    pub mastery: Vec<LabelPoint>,
+}
+
 #[derive(uniffi::Object)]
 pub struct Engine {
     store: Mutex<Store>,
@@ -274,6 +294,9 @@ impl Engine {
             if let Some(t) = body["serverTime"].as_str() {
                 s.kv_set("last_sync", t)?;
             }
+            if body["insights"].is_object() {
+                s.kv_set("insights", &body["insights"].to_string())?;
+            }
             if let Some(date) = body["today"].as_str() {
                 let minutes = body["focusToday"]["minutes"].as_f64().unwrap_or(0.0);
                 s.kv_set("server_focus", &json!({"date": date, "minutes": minutes}).to_string())?;
@@ -405,6 +428,23 @@ impl Engine {
             pending_ops: store.pending_count()? as u32,
             last_sync: store.kv_get("last_sync")?,
         })
+    }
+
+    pub fn insights(&self) -> Res<Insights> {
+        let v: Value = self
+            .lock()
+            .kv_get("insights")?
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or(Value::Null);
+        let days = |key: &str| -> Vec<DayPoint> {
+            v[key].as_array().into_iter().flatten().filter_map(|p| {
+                Some(DayPoint { date: text(p, "date")?, value: num(p, "value").unwrap_or(0.0) })
+            }).collect()
+        };
+        let mastery = v["mastery"].as_array().into_iter().flatten().filter_map(|p| {
+            Some(LabelPoint { label: text(p, "name")?, value: num(p, "value").unwrap_or(0.0) })
+        }).collect();
+        Ok(Insights { focus: days("focus"), study: days("study"), mastery })
     }
 
     /// Every task, open first, for the full task list.

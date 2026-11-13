@@ -162,3 +162,20 @@ fn state_persists_across_reopen() {
     assert!(e.tasks(TODAY.into(), false).unwrap().iter().any(|t| t.title == "Kept"));
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn insights_round_trip_and_default_empty() {
+    let e = engine();
+    assert!(e.insights().unwrap().focus.is_empty());
+
+    let mut snap: serde_json::Value = serde_json::from_str(&snapshot()).unwrap();
+    snap["insights"] = json!({
+        "focus": [{"date": "2026-11-13", "value": 25}, {"date": "2026-11-14", "value": 40}],
+        "study": [{"date": "2026-11-14", "value": 90}],
+        "mastery": [{"name": "Physics", "value": 42.5}]
+    });
+    e.apply_pull(snap.to_string()).unwrap();
+    let i = e.insights().unwrap();
+    assert_eq!((i.focus.len(), i.study.len()), (2, 1));
+    assert_eq!((i.mastery[0].label.as_str(), i.mastery[0].value), ("Physics", 42.5));
+}
