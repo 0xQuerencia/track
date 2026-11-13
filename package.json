@@ -1,0 +1,46 @@
+{
+  "name": "track-web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.9.0",
+    "@hookform/resolvers": "latest",
+    "@number-flow/react": "^0.6.2",
+    "@tailwindcss/postcss": "latest",
+    "@tanstack/react-query": "latest",
+    "animejs": "^4.5.0",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "cn": "^0.5.2",
+    "d3-array": "^3.2.5",
+    "d3-scale": "^4.0.3",
+    "d3-shape": "^3.2.1",
+    "lucide-react": "latest",
+    "motion": "^14.10.1",
+    "next": "latest",
+    "radix-ui": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-hook-form": "latest",
+    "tailwind-merge": "latest",
+    "tailwindcss": "latest",
+    "tw-animate-css": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/d3-array": "^3.2.2",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-shape": "^3.2.0",
+    "@types/node": "26.6.6",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint-config-next": "latest",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+data/
+.env
+.env.*
+!.env.example
+.DS_Store
+graphify-out/
+.playwright-mcp/
