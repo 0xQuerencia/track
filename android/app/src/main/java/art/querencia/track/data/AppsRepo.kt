@@ -4,7 +4,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.net.Uri
 import android.provider.Settings
 import android.util.LruCache
@@ -34,6 +40,33 @@ class AppsRepo(private val context: Context) {
         activity = activityInfo.name,
         label = loadLabel(pm).toString(),
     )
+
+    private val monoIcons = LruCache<String, ImageBitmap>(160)
+
+    /**
+     * The app's themed-icon layer drawn in white, for the line-icon look. Null when the
+     * app doesn't ship one (or below Android 13); the UI then draws an outlined tile.
+     */
+    suspend fun monoIcon(packageName: String): ImageBitmap? {
+        if (Build.VERSION.SDK_INT < 33) return null
+        monoIcons.get(packageName)?.let { return it }
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val layer = (pm.getApplicationIcon(packageName) as? AdaptiveIconDrawable)?.monochrome
+                    ?: return@runCatching null
+                val s = 128
+                // Adaptive layers are 108dp with the visible 72dp in the middle: crop to that.
+                layer.mutate().apply {
+                    setTint(Color.WHITE)
+                    setTintMode(PorterDuff.Mode.SRC_IN)
+                    setBounds(-s / 4, -s / 4, s + s / 4, s + s / 4)
+                }
+                Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888)
+                    .also { layer.draw(Canvas(it)) }
+                    .asImageBitmap()
+            }.getOrNull()?.also { monoIcons.put(packageName, it) }
+        }
+    }
 
     suspend fun icon(packageName: String): ImageBitmap? {
         icons.get(packageName)?.let { return it }

@@ -16,6 +16,11 @@ class Prefs(context: Context) {
             if (v.isNullOrBlank()) remove("token") else putString("token", SecretStore.encrypt(v.trim()))
         }
 
+    /** Line-style (monochrome) icons instead of the app's coloured ones. */
+    var monoIcons: Boolean
+        get() = sp.getBoolean("mono", true)
+        set(v) = sp.edit { putBoolean("mono", v) }
+
     var hidden: Set<String>
         get() = sp.getStringSet("hidden", emptySet()) ?: emptySet()
         set(v) = sp.edit { putStringSet("hidden", v) }

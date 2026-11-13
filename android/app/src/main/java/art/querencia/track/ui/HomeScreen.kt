@@ -62,6 +62,7 @@ fun HomeScreen(
     onToggleTask: (TaskItem) -> Unit,
     onAddTask: (String) -> Unit,
     onToggleHabit: (HabitItem) -> Unit,
+    footer: @Composable () -> Unit = {},
 ) {
     LazyColumn(
         contentPadding = contentPadding,
@@ -74,6 +75,7 @@ fun HomeScreen(
         item { Reveal(2) { PrioritiesCard(today, onToggleTask, onAddTask) } }
         if (today.habits.isNotEmpty()) item { Reveal(3) { HabitsCard(today, onToggleHabit) } }
         item { Reveal(4) { StudyCard(today.studyChapter, today.focusMinutes.toInt()) } }
+        item { Reveal(5) { footer() } }
     }
 }
 

@@ -35,16 +35,33 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import art.querencia.track.data.AppEntry
 import art.querencia.track.data.AppsRepo
 import uniffi.track_core.TaskItem
 
+private class Loaded(val bitmap: ImageBitmap?)
+
+/**
+ * An app icon in the chosen style. In line mode, apps without a themed-icon layer get an
+ * outlined tile with their initial, so the list stays visually consistent.
+ */
 @Composable
-fun AppIcon(repo: AppsRepo, packageName: String, size: androidx.compose.ui.unit.Dp = 52.dp) {
-    val icon by produceState<ImageBitmap?>(null, packageName) { value = repo.icon(packageName) }
+fun AppIcon(repo: AppsRepo, packageName: String, size: androidx.compose.ui.unit.Dp = 52.dp, mono: Boolean = false, label: String = "") {
+    val loaded by produceState<Loaded?>(null, packageName, mono) {
+        value = Loaded(if (mono) repo.monoIcon(packageName) else repo.icon(packageName))
+    }
     Box(Modifier.size(size), contentAlignment = Alignment.Center) {
-        icon?.let { Image(it, contentDescription = null, modifier = Modifier.size(size)) }
+        val bitmap = loaded?.bitmap
+        when {
+            loaded == null -> {}
+            bitmap != null -> Image(bitmap, contentDescription = null, modifier = Modifier.size(size))
+            mono -> Box(
+                Modifier.size(size * 0.86f).border(1.6.dp, TrackColors.Foreground.copy(alpha = 0.85f), RoundedCornerShape(size * 0.28f)),
+                contentAlignment = Alignment.Center,
+            ) { Text(label.take(1).uppercase(), TrackType.Title.copy(fontSize = (size.value * 0.42f).sp)) }
+        }
     }
 }
 
@@ -58,6 +75,7 @@ fun AppDrawer(
     onLaunch: (AppEntry) -> Unit,
     onHide: (AppEntry) -> Unit,
     onToggleDock: (AppEntry) -> Unit,
+    mono: Boolean,
 ) {
     var query by remember { mutableStateOf("") }
     var menuFor by remember { mutableStateOf<AppEntry?>(null) }
@@ -120,7 +138,7 @@ fun AppDrawer(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    AppIcon(repo, app.packageName)
+                    AppIcon(repo, app.packageName, mono = mono, label = app.label)
                     Text(app.label, TrackType.Small.copy(color = TrackColors.Foreground, textAlign = TextAlign.Center), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }

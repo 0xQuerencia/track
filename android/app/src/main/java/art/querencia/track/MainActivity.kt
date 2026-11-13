@@ -18,6 +18,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import art.querencia.track.ui.ActionSheet
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -114,6 +121,8 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
     var hidden by remember { mutableStateOf(app.prefs.hidden) }
     var dockPins by remember { mutableStateOf(app.prefs.dock) }
     var overlay by remember { mutableStateOf(Overlay.None) }
+    var mono by remember { mutableStateOf(app.prefs.monoIcons) }
+    var menuFor by remember { mutableStateOf<AppEntry?>(null) }
 
     LaunchedEffect(packagesVersion) { apps = app.apps.load() }
     LaunchedEffect(homePresses) { overlay = Overlay.None }
@@ -121,7 +130,7 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
 
     val visible = apps.filter { it.packageName !in hidden }
     val dock = dockPins ?: app.apps.defaultDock(apps)
-    val dockEntries = dock.mapNotNull { pkg -> apps.firstOrNull { it.packageName == pkg } }.take(4)
+    val favorites = dock.mapNotNull { pkg -> visible.firstOrNull { it.packageName == pkg } }.take(7)
 
     fun saveDock(list: List<String>) {
         dockPins = list
@@ -132,20 +141,15 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
         HomeScreen(
             today = today,
             syncState = syncState,
-            contentPadding = PaddingValues(top = 56.dp, bottom = 120.dp),
+            contentPadding = PaddingValues(top = 56.dp, bottom = 96.dp),
             onSettings = { overlay = Overlay.Settings },
             onToggleTask = { t -> vm.change { e, _ -> e.setTaskStatus(t.id, "Done") } },
             onAddTask = { title -> vm.change { e, _ -> e.addTask(title, "Medium", null, null) } },
             onToggleHabit = { h -> vm.change { e, date -> e.toggleHabit(h.id, date) } },
+            footer = { Favorites(favorites, app, mono, onLaunch = app.apps::launch, onMenu = { menuFor = it }) },
         )
 
-        Dock(
-            entries = dockEntries,
-            app = app,
-            onLaunch = app.apps::launch,
-            onOpenDrawer = { overlay = Overlay.Drawer },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+        SwipeUpHandle(onOpen = { overlay = Overlay.Drawer }, modifier = Modifier.align(Alignment.BottomCenter))
 
         message?.let {
             LaunchedEffect(it) {
@@ -179,8 +183,9 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
                 onLaunch = { overlay = Overlay.None; app.apps.launch(it) },
                 onHide = { a -> hidden = hidden + a.packageName; app.prefs.hidden = hidden },
                 onToggleDock = { a ->
-                    saveDock(if (a.packageName in dock) dock - a.packageName else (dock + a.packageName).takeLast(4))
+                    saveDock(if (a.packageName in dock) dock - a.packageName else (dock + a.packageName).takeLast(7))
                 },
+                mono = mono,
             )
         }
         AnimatedVisibility(
@@ -194,43 +199,68 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
                 contentPadding = insets,
                 onSyncNow = vm::syncNow,
                 onUnhide = { a -> hidden = hidden - a.packageName; app.prefs.hidden = hidden },
+                mono = mono,
+                onMono = { mono = it; app.prefs.monoIcons = it },
                 onClose = { overlay = Overlay.None },
             )
         }
     }
+
+    menuFor?.let { a ->
+        ActionSheet(
+            title = a.label,
+            actions = listOf(
+                (if (a.packageName in dock) "Remove from favorites" else "Add to favorites") to {
+                    saveDock(if (a.packageName in dock) dock - a.packageName else (dock + a.packageName).takeLast(7))
+                },
+                "Hide from drawer" to { hidden = hidden + a.packageName; app.prefs.hidden = hidden },
+                "App info" to { app.apps.appInfo(a.packageName) },
+                "Uninstall" to { app.apps.uninstall(a.packageName) },
+            ),
+            onDismiss = { menuFor = null },
+        )
+    }
 }
 
 @Composable
-private fun Dock(
-    entries: List<AppEntry>,
-    app: TrackApp,
-    onLaunch: (AppEntry) -> Unit,
-    onOpenDrawer: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun Favorites(entries: List<AppEntry>, app: TrackApp, mono: Boolean, onLaunch: (AppEntry) -> Unit, onMenu: (AppEntry) -> Unit) {
+    if (entries.isEmpty()) return
+    Column(Modifier.padding(top = 8.dp)) {
+        Text("FAVORITES", TrackType.Label, Modifier.padding(bottom = 4.dp))
+        entries.forEach { e ->
+            Row(
+                Modifier.fillMaxWidth().pressable(onLongClick = { onMenu(e) }, scale = 0.98f) { onLaunch(e) }.padding(vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                AppIcon(app.apps, e.packageName, 32.dp, mono, e.label)
+                Text(e.label, TrackType.Title.copy(fontSize = 20.sp))
+            }
+        }
+    }
+}
+
+/** A thin handle at the bottom edge: swipe up (or tap) to open the app drawer. */
+@Composable
+private fun SwipeUpHandle(onOpen: () -> Unit, modifier: Modifier = Modifier) {
     var dragged by remember { mutableStateOf(0f) }
-    Row(
+    Box(
         modifier
             .fillMaxWidth()
-            .background(TrackColors.Background.copy(alpha = 0.92f))
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-            // Swiping up on the dock opens the drawer.
+            .height(56.dp)
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragStart = { dragged = 0f },
                     onVerticalDrag = { _, dy ->
                         dragged += dy
-                        if (dragged < -50f) { dragged = 0f; onOpenDrawer() }
+                        if (dragged < -40f) { dragged = 0f; onOpen() }
                     },
                 )
-            },
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
+            }
+            .pressable(scale = 1f, onClick = onOpen),
+        contentAlignment = Alignment.Center,
     ) {
-        entries.forEach { entry ->
-            Box(Modifier.pressable { onLaunch(entry) }.padding(6.dp)) { AppIcon(app.apps, entry.packageName, 50.dp) }
-        }
-        Box(Modifier.pressable(onClick = onOpenDrawer).padding(14.dp)) { GridIcon(TrackColors.Foreground, 26.dp) }
+        Box(Modifier.width(40.dp).height(4.dp).clip(CircleShape).background(TrackColors.MutedForeground.copy(alpha = 0.5f)))
     }
 }

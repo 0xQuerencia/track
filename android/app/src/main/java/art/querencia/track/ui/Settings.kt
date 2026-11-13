@@ -43,6 +43,8 @@ fun SettingsScreen(
     contentPadding: PaddingValues,
     onSyncNow: suspend () -> Result<Unit>,
     onUnhide: (AppEntry) -> Unit,
+    mono: Boolean,
+    onMono: (Boolean) -> Unit,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -87,6 +89,13 @@ fun SettingsScreen(
                     }
                 }
                 status?.let { Text(it, TrackType.Small.copy(color = if (it.startsWith("Connected")) TrackColors.Ring else TrackColors.Destructive)) }
+            }
+        }
+        item {
+            TrackCard {
+                Text("ICONS", TrackType.Label)
+                Text("Line icons use each app's themed icon in white. Apps without one get an outlined tile.", TrackType.Small)
+                Button(if (mono) "Style: Line (tap for Color)" else "Style: Color (tap for Line)") { onMono(!mono) }
             }
         }
         item {
