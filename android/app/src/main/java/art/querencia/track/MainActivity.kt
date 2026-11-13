@@ -18,14 +18,19 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.shape.RoundedCornerShape
+import art.querencia.track.ui.ActionSheet
+import art.querencia.track.ui.NiagaraHome
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
@@ -37,19 +42,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import art.querencia.track.data.AppEntry
 import art.querencia.track.ui.AppDrawer
-import art.querencia.track.ui.AppIcon
-import art.querencia.track.ui.GridIcon
 import art.querencia.track.ui.HomeScreen
 import art.querencia.track.ui.SettingsScreen
 import art.querencia.track.ui.TrackColors
 import art.querencia.track.ui.Text
 import art.querencia.track.ui.TrackType
-import art.querencia.track.ui.pressable
 
 private enum class Overlay { None, Drawer, Settings }
 
@@ -107,45 +108,72 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, homePresses: Int) {
     val today by vm.today.collectAsStateWithLifecycle()
+    val insights by vm.insights.collectAsStateWithLifecycle()
     val syncState by vm.syncState.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
 
     var apps by remember { mutableStateOf<List<AppEntry>>(emptyList()) }
     var hidden by remember { mutableStateOf(app.prefs.hidden) }
-    var dockPins by remember { mutableStateOf(app.prefs.dock) }
+    var pinned by remember { mutableStateOf(app.prefs.dock) }
     var overlay by remember { mutableStateOf(Overlay.None) }
+    var menuFor by remember { mutableStateOf<AppEntry?>(null) }
+    val pager = rememberPagerState(pageCount = { 2 })
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(packagesVersion) { apps = app.apps.load() }
-    LaunchedEffect(homePresses) { overlay = Overlay.None }
-    BackHandler(enabled = overlay != Overlay.None) { overlay = Overlay.None }
-
-    val visible = apps.filter { it.packageName !in hidden }
-    val dock = dockPins ?: app.apps.defaultDock(apps)
-    val dockEntries = dock.mapNotNull { pkg -> apps.firstOrNull { it.packageName == pkg } }.take(4)
-
-    fun saveDock(list: List<String>) {
-        dockPins = list
-        app.prefs.dock = list
+    LaunchedEffect(homePresses) {
+        overlay = Overlay.None
+        pager.animateScrollToPage(0)
+    }
+    BackHandler(enabled = overlay != Overlay.None || pager.currentPage != 0) {
+        if (overlay != Overlay.None) overlay = Overlay.None else scope.launch { pager.animateScrollToPage(0) }
     }
 
-    Box(Modifier.fillMaxSize().background(TrackColors.Background)) {
-        HomeScreen(
-            today = today,
-            syncState = syncState,
-            contentPadding = PaddingValues(top = 56.dp, bottom = 120.dp),
-            onSettings = { overlay = Overlay.Settings },
-            onToggleTask = { t -> vm.change { e, _ -> e.setTaskStatus(t.id, "Done") } },
-            onAddTask = { title -> vm.change { e, _ -> e.addTask(title, "Medium", null, null) } },
-            onToggleHabit = { h -> vm.change { e, date -> e.toggleHabit(h.id, date) } },
-        )
+    val visible = apps.filter { it.packageName !in hidden }
+    val favoritePkgs = pinned ?: app.apps.defaultDock(apps)
+    val favorites = favoritePkgs.mapNotNull { pkg -> visible.firstOrNull { it.packageName == pkg } }.take(7)
 
-        Dock(
-            entries = dockEntries,
-            app = app,
-            onLaunch = app.apps::launch,
-            onOpenDrawer = { overlay = Overlay.Drawer },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+    fun toggleFavorite(a: AppEntry) {
+        val next = if (a.packageName in favoritePkgs) favoritePkgs - a.packageName else (favoritePkgs + a.packageName).takeLast(7)
+        pinned = next
+        app.prefs.dock = next
+    }
+    fun hide(a: AppEntry) {
+        hidden = hidden + a.packageName
+        app.prefs.hidden = hidden
+    }
+
+    val bars = WindowInsets.systemBars.asPaddingValues()
+    Box(Modifier.fillMaxSize()) {
+        HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
+            if (page == 0) {
+                NiagaraHome(
+                    favorites = favorites,
+                    allApps = visible,
+                    repo = app.apps,
+                    today = today,
+                    resetSignal = homePresses,
+                    onLaunch = app.apps::launch,
+                    onAppMenu = { menuFor = it },
+                    onOpenDrawer = { overlay = Overlay.Drawer },
+                    onOpenDashboard = { scope.launch { pager.animateScrollToPage(1) } },
+                    onSettings = { overlay = Overlay.Settings },
+                )
+            } else {
+                Box(Modifier.fillMaxSize().background(TrackColors.Background)) {
+                    HomeScreen(
+                        today = today,
+                        insights = insights,
+                        syncState = syncState,
+                        contentPadding = PaddingValues(top = bars.calculateTopPadding() + 8.dp, bottom = bars.calculateBottomPadding() + 24.dp),
+                        onSettings = { overlay = Overlay.Settings },
+                        onToggleTask = { t -> vm.change { e, _ -> e.setTaskStatus(t.id, "Done") } },
+                        onAddTask = { title -> vm.change { e, _ -> e.addTask(title, "Medium", null, null) } },
+                        onToggleHabit = { h -> vm.change { e, date -> e.toggleHabit(h.id, date) } },
+                    )
+                }
+            }
+        }
 
         message?.let {
             LaunchedEffect(it) {
@@ -159,12 +187,12 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
                     .padding(top = 8.dp)
-                    .background(TrackColors.Destructive, androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                    .background(TrackColors.Destructive, RoundedCornerShape(4.dp))
                     .padding(horizontal = 14.dp, vertical = 9.dp),
             )
         }
 
-        val insets = PaddingValues(top = 56.dp, bottom = 24.dp)
+        val insets = PaddingValues(top = bars.calculateTopPadding(), bottom = bars.calculateBottomPadding())
         AnimatedVisibility(
             visible = overlay == Overlay.Drawer,
             enter = slideInVertically { it / 3 } + fadeIn(),
@@ -173,14 +201,13 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
             AppDrawer(
                 apps = visible,
                 repo = app.apps,
-                dock = dock,
+                favorites = favoritePkgs,
                 contentPadding = insets,
                 taskMatches = vm::searchTasks,
                 onLaunch = { overlay = Overlay.None; app.apps.launch(it) },
-                onHide = { a -> hidden = hidden + a.packageName; app.prefs.hidden = hidden },
-                onToggleDock = { a ->
-                    saveDock(if (a.packageName in dock) dock - a.packageName else (dock + a.packageName).takeLast(4))
-                },
+                onHide = ::hide,
+                onToggleFavorite = ::toggleFavorite,
+                onSettings = { overlay = Overlay.Settings },
             )
         }
         AnimatedVisibility(
@@ -198,39 +225,17 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
             )
         }
     }
-}
 
-@Composable
-private fun Dock(
-    entries: List<AppEntry>,
-    app: TrackApp,
-    onLaunch: (AppEntry) -> Unit,
-    onOpenDrawer: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var dragged by remember { mutableStateOf(0f) }
-    Row(
-        modifier
-            .fillMaxWidth()
-            .background(TrackColors.Background.copy(alpha = 0.92f))
-            .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-            // Swiping up on the dock opens the drawer.
-            .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onDragStart = { dragged = 0f },
-                    onVerticalDrag = { _, dy ->
-                        dragged += dy
-                        if (dragged < -50f) { dragged = 0f; onOpenDrawer() }
-                    },
-                )
-            },
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        entries.forEach { entry ->
-            Box(Modifier.pressable { onLaunch(entry) }.padding(6.dp)) { AppIcon(app.apps, entry.packageName, 50.dp) }
-        }
-        Box(Modifier.pressable(onClick = onOpenDrawer).padding(14.dp)) { GridIcon(TrackColors.Foreground, 26.dp) }
+    menuFor?.let { a ->
+        ActionSheet(
+            title = a.label,
+            actions = listOf(
+                (if (a.packageName in favoritePkgs) "Remove from favorites" else "Add to favorites") to { toggleFavorite(a) },
+                "Hide from home" to { hide(a) },
+                "App info" to { app.apps.appInfo(a.packageName) },
+                "Uninstall" to { app.apps.uninstall(a.packageName) },
+            ),
+            onDismiss = { menuFor = null },
+        )
     }
 }
