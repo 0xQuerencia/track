@@ -1,6 +1,6 @@
 # Track Launcher
 
-A fast Android home-screen launcher that doubles as the phone side of [Track](https://github.com/0xQuerencia/track), a self-hosted life dashboard. Your priorities, exam countdown, habits and next chapter live on the home screen and sync with your own server. Works offline and catches up when you reconnect.
+A fast Android home-screen launcher that doubles as the phone side of [Track](../web), a self-hosted life dashboard. Your priorities, exam countdown, habits and next chapter live on the home screen and sync with your own server. Works offline and catches up when you reconnect.
 
 - **Kotlin + Jetpack Compose** shell: home screen, dock, searchable app drawer (long-press to hide, pin, uninstall), settings. No Material library, no image loader, no DI framework.
 - **Rust core** (`core/`, exposed to Kotlin via UniFFI): local SQLite cache, an outbox of changes made offline, and the logic that builds the home screen. It does no networking; Kotlin moves JSON between your server and the core.
@@ -44,4 +44,4 @@ scripts/ build-core.sh
 
 ## License
 
-MIT. See `NOTICE.md` for font licenses.
+MIT (see the repo root). See `NOTICE.md` for font licenses.

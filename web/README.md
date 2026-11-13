@@ -4,7 +4,7 @@ A self-hosted personal "life operating system": study planning, focus sessions, 
 
 Built with Next.js (App Router), React 19, Tailwind v4, Anime.js and a small Bklit-style chart set. Data lives in Node's built-in `node:sqlite`, so there are no native modules to compile.
 
-The Android launcher that syncs with this app is a separate project: **[track-launcher](https://github.com/0xQuerencia/track-launcher)**.
+The Android launcher that syncs with this app lives in [`../android`](../android).
 
 ## What's in it
 
@@ -63,4 +63,4 @@ Used by the Android launcher; all routes need `Authorization: Bearer $TRACK_API_
 
 ## License
 
-MIT
+MIT (see the repo root).
