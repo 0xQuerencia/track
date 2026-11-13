@@ -1,0 +1,251 @@
+/* Styles the Anime.js layer depends on. Motion explains a change: something
+   arrived, moved, or was confirmed. Nothing loops except a status that is
+   actually live. */
+.landing-content,
+.page-motion,
+.page-motion .metric-card,
+.page-motion .dashboard-panel,
+.page-motion .ref-panel {
+  will-change: auto;
+}
+.wordmark-letter {
+  display: inline-block;
+}
+
+/* Tabs with a marker that travels. */
+.tabbar {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.tabbar-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.tabbar-tab:hover,
+.tabbar-tab[aria-selected="true"] {
+  color: var(--text-1);
+}
+.tabbar-count {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.tabbar-marker {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+}
+.tabbar-underline {
+  gap: 24px;
+  margin: 0 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+.tabbar-underline .tabbar-tab {
+  height: 40px;
+  padding: 0;
+}
+.tabbar-underline .tabbar-marker {
+  bottom: -1px;
+  left: 0;
+  width: 1px;
+  height: 2px;
+  background: var(--accent-ink);
+  transform-origin: 0 50%;
+}
+.tabbar-segmented {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0 0 16px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-1);
+}
+.tabbar-segmented .tabbar-tab {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 6px;
+}
+.tabbar-segmented .tabbar-marker {
+  inset: 0;
+  background: var(--surface-4);
+}
+
+/* Confirmation rows with a drawn mark. */
+.action-notice,
+.ref-notice.action-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-control);
+  background: var(--accent-wash);
+  color: var(--text-1);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.action-notice-mark {
+  flex: 0 0 16px;
+  margin-top: 2px;
+  stroke: var(--accent-ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.action-notice-error {
+  border-color: rgb(239 137 129 / 26%);
+  background: rgb(239 137 129 / 8%);
+}
+.action-notice-error .action-notice-mark {
+  stroke: var(--negative);
+}
+.action-notice-body {
+  min-width: 0;
+}
+
+/* Command palette. */
+.command-backdrop {
+  background: rgb(6 8 9 / 62%);
+}
+.command-dialog {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface-2);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 45%);
+  transform-origin: 50% 0;
+}
+.command-search-row {
+  min-height: 52px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-3);
+}
+.command-search-row input:focus {
+  outline: 0;
+}
+.command-results {
+  padding: 8px;
+}
+.command-result {
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: var(--radius-control);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.command-result:hover,
+.command-result[aria-selected="true"] {
+  border: 0;
+  background: var(--surface-3);
+}
+.command-result-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-2);
+}
+.command-result[aria-selected="true"] .command-result-icon {
+  color: var(--accent-ink);
+}
+.command-result-copy strong {
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 400;
+}
+.command-result-copy small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.command-result > svg {
+  color: var(--text-3);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+.command-result[aria-selected="true"] > svg {
+  opacity: 1;
+  transform: none;
+}
+.command-footer {
+  gap: 16px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 12px;
+}
+.command-footer span {
+  gap: 6px;
+}
+.command-status {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+/* A running job is live, so its dot is the one thing allowed to breathe. */
+@keyframes live-dot {
+  50% {
+    opacity: 0.35;
+  }
+}
+.status-live i {
+  animation: live-dot 1.6s var(--ease-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-live i {
+    animation: none;
+  }
+  .tabbar-marker,
+  .nav-indicator,
+  .nav-hover {
+    transition: none;
+  }
+}
+
+/* The old tab containers bled past their panel; the tab bar sits inside it. */
+.tabbar.program-tabs,
+.tabbar.quote-tabs,
+.tabbar.catalog-tabs {
+  margin: 0 0 20px;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+.tabbar-marker,
+.tabbar-count {
+  font-style: normal;
+}
+
+/* Before hydration the landing would paint finished and then replay. Cover it
+   until the entrance takes over; if scripts never run, it shows itself. */
+@keyframes landing-uncover {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .landing-content:not([data-ready])
+    :is(.wordmark-letter, .landing-subtitle, .signin-link) {
+    opacity: 0;
+    animation: landing-uncover 1ms linear 3s forwards;
+  }
+}

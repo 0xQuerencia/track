@@ -1,0 +1,66 @@
+/* Design tokens. One graphite ramp, three text roles, one sage accent.
+   Direction and pass order follow unslop by Damir Sokolovsky (@heydamir),
+   https://github.com/heydamir/unslop, CC BY 4.0. */
+:root,
+.dark {
+  /* Surfaces step up in lightness; depth comes from these steps and hairlines. */
+  --surface-0: #0d0f10;
+  --surface-1: #111315;
+  --surface-2: #16191a;
+  --surface-3: #1c2022;
+  --surface-4: #25292b;
+  --line: rgb(231 232 231 / 8%);
+  --line-strong: rgb(231 232 231 / 14%);
+
+  --text-1: #e9ebe9;
+  --text-2: #a7adac;
+  --text-3: #858c8b;
+
+  /* Sage is the ink of a "cleared" stamp: selection, links, the key figure. */
+  --accent-ink: #a9cbb3;
+  --accent-line: rgb(169 203 179 / 26%);
+  --accent-wash: rgb(169 203 179 / 9%);
+
+  --positive: #86cfa2;
+  --negative: #ef8981;
+  --warning: #d8b56c;
+
+  --radius-tag: 5px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+
+  --font-sans: var(--font-ui-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    var(--font-ui-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* One curve, a few durations. Mirrors lib/motion/motion-config.ts. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-enter: 420ms;
+
+  --sidebar-width: 248px;
+  --topbar-height: 60px;
+
+  --background: var(--surface-1);
+  --foreground: var(--text-1);
+  --card: var(--surface-2);
+  --card-foreground: var(--text-1);
+  --popover: var(--surface-3);
+  --popover-foreground: var(--text-1);
+  --primary: #e6e9e6;
+  --primary-foreground: #121516;
+  --secondary: var(--surface-4);
+  --secondary-foreground: var(--text-1);
+  --muted: var(--surface-3);
+  --muted-foreground: var(--text-2);
+  --accent: var(--surface-4);
+  --accent-foreground: var(--text-1);
+  --destructive: var(--negative);
+  --border: var(--line-strong);
+  --input: var(--line-strong);
+  --ring: var(--accent-ink);
+  --chart-1: var(--accent-ink);
+  --color-vis-1: var(--accent-ink);
+}

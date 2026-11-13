@@ -1,0 +1,300 @@
+/* Tables, rows and the values set inside them. Loaded after components.css. */
+/* ---------- Tables: header, hover, selection and focus each read apart ---------- */
+.ref-table-row {
+  min-height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-1);
+  font-size: 13px;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.ref-table-head {
+  min-height: 32px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+.ref-table-head .rich-primary,
+.ref-table-head .rich-glyph {
+  color: var(--text-3);
+}
+.ref-table-row.interactive:hover {
+  background: rgb(231 232 231 / 3%);
+}
+.ref-table-row.selected {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+.ref-table-row.selected > :first-child {
+  font-weight: 500;
+}
+.ref-table-row.interactive:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: -2px;
+}
+[data-slot="table"] th,
+.dashboard-table th {
+  height: 32px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-slot="table"] td,
+.dashboard-table td {
+  height: 40px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-1);
+  font-size: 13px;
+}
+[data-slot="table"] tr:last-child td,
+.dashboard-table tr:last-child td {
+  border-bottom: 0;
+}
+[data-slot="table-row"],
+.dashboard-table tbody tr {
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+[data-slot="table-body"] [data-slot="table-row"]:hover,
+.dashboard-table tbody tr:hover {
+  background: rgb(231 232 231 / 3%);
+}
+[data-slot="table"] th button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.dashboard-product-link {
+  color: var(--text-1);
+  text-decoration: none;
+}
+.dashboard-product-link:hover {
+  color: var(--accent-ink);
+}
+.change-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.change-pill[data-flat] {
+  color: var(--text-3);
+  font-family: var(--font-sans);
+}
+.dashboard-list-row {
+  min-height: 40px;
+  gap: 12px;
+  border-color: var(--line);
+  font-size: 13px;
+}
+.dashboard-list-row strong {
+  font-weight: 400;
+}
+.dashboard-list-row time {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.mini-rows > div {
+  min-height: 36px;
+  gap: 12px;
+  border-color: var(--line);
+  font-size: 13px;
+}
+.cost-lines > div {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  border-color: var(--line);
+  font-size: 13px;
+}
+.cost-lines > div > svg {
+  color: var(--text-3);
+}
+.cost-lines strong {
+  font-weight: 400;
+}
+.cost-lines .cost-total {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom: 0;
+}
+.cost-total b {
+  font-weight: 500;
+}
+.cost-total strong {
+  color: var(--accent-ink);
+  font-size: 18px;
+  font-weight: 500;
+}
+.quote-summary-values strong {
+  font-weight: 500;
+}
+.quote-summary-values .ref-pill {
+  justify-self: start;
+}
+.quote-builder-grid {
+  align-items: start;
+}
+.ref-panel ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.6;
+  list-style: disc;
+}
+.reviewer-note {
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.catalog-price {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 500;
+}
+.catalog-price small {
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+.chart-badge {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-tag);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+}
+.evidence-thumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.evidence-thumbs > span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+.evidence-thumbs small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.advanced-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.advanced-line:hover {
+  color: var(--text-1);
+}
+.country-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.country-detail-title > div {
+  flex: 1;
+  min-width: 0;
+}
+.country-detail-title .route-tag {
+  min-width: 40px;
+  height: 28px;
+  font-size: 13px;
+}
+.api-request h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.api-request h3 code {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 400;
+}
+.code-tabs b {
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+.code-block,
+.data-pre {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ref-search {
+  height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.ref-search:focus-within {
+  border-color: var(--accent-ink);
+}
+.ref-search svg {
+  color: var(--text-3);
+}
+.ref-search input {
+  font-size: 13px;
+}
+.ref-search input:focus {
+  outline: 0;
+}
+.ref-field > span {
+  color: var(--text-2);
+  font-size: 12px;
+}
+.ref-field button {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-3);
+  font-size: 13px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.ref-field button:hover {
+  border-color: rgb(231 232 231 / 22%);
+}
+.notice {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+}
+.empty,
+.dashboard-empty,
+.ref-empty {
+  color: var(--text-3);
+  font-size: 13px;
+}

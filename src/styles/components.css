@@ -1,0 +1,415 @@
+/* Component layer. Quiet chrome: neutral surfaces, hairlines, one accent.
+   Color and motion are saved for the content that carries meaning. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line);
+  }
+}
+
+/* ---------- Signature: the routing tag ---------- */
+.route-tag {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-tag);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.rich,
+.rich-route,
+.rich-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.rich > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rich-trend {
+  gap: 2px;
+}
+.rich-glyph {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+.rich-secondary,
+.mini-value {
+  color: var(--text-2);
+}
+.rich-code,
+.rich-scope {
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.rich-code.is-negative {
+  color: var(--negative);
+}
+.rich-scope {
+  padding: 2px 6px;
+  border-radius: var(--radius-tag);
+  background: var(--surface-3);
+  font-size: 12px;
+}
+.status-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.status-mark i {
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+.status-positive i {
+  background: var(--positive);
+}
+.status-pending i,
+.status-caution i {
+  background: var(--warning);
+}
+.status-negative i {
+  background: var(--negative);
+}
+.status-live i {
+  background: var(--accent-ink);
+}
+.check-mark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface-3);
+}
+.check-mark[data-checked] {
+  border-color: var(--accent-ink);
+  background: var(--accent-ink);
+  box-shadow: inset 0 0 0 2px var(--surface-3);
+}
+
+/* ---------- Buttons ---------- */
+.ref-button,
+.ref-select,
+.login-option,
+[data-slot="button"] {
+  border-radius: var(--radius-control);
+}
+.ref-button,
+.ref-select {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+.ref-button:hover:not(:disabled),
+.ref-select:hover {
+  border-color: rgb(231 232 231 / 22%);
+  background: var(--surface-3);
+}
+.ref-button:active:not(:disabled),
+.ref-select:active,
+[data-slot="button"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.ref-button.primary {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 500;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%);
+}
+.ref-button.primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: #f4f6f4;
+}
+.ref-button svg,
+.ref-select svg {
+  flex: 0 0 auto;
+  color: currentColor;
+  opacity: 0.72;
+}
+.ref-icon-button {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.ref-select {
+  font-weight: 400;
+}
+.ref-select .rich-secondary {
+  color: var(--text-3);
+}
+.ref-link,
+.dashboard-view-link,
+.table-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+  font-size: 13px;
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.ref-link:hover,
+.dashboard-view-link:hover,
+.table-link:hover {
+  color: var(--accent-ink);
+}
+.ref-link svg,
+.dashboard-view-link svg {
+  color: currentColor;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+.ref-link:hover svg,
+.dashboard-view-link:hover svg {
+  transform: translateX(2px);
+}
+.table-link {
+  color: var(--text-1);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+/* ---------- Tags: counts and meta are quiet text, not glowing pills ---------- */
+.ref-pill,
+.dashboard-fixture-tag,
+.coverage-gap-tag,
+.fetch-failure-tag,
+.attempt-state,
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-tag);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+}
+.ref-pill b {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+}
+.ref-pill-green {
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+.ref-pill-amber {
+  border-color: rgb(216 181 108 / 26%);
+  background: rgb(216 181 108 / 9%);
+  color: var(--warning);
+}
+.ref-pill-red,
+.fetch-failure-tag {
+  border-color: rgb(239 137 129 / 26%);
+  background: rgb(239 137 129 / 8%);
+  color: var(--negative);
+}
+.fetch-failure-tag,
+.endpoint-nav .ref-pill,
+.api-request h3 .ref-pill {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+button.ref-pill {
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+button.ref-pill:hover {
+  border-color: var(--line-strong);
+  color: var(--text-1);
+}
+.status.warn {
+  border-color: rgb(216 181 108 / 26%);
+  color: var(--warning);
+}
+.status.bad {
+  border-color: rgb(239 137 129 / 26%);
+  color: var(--negative);
+}
+.dashboard-fixture-tag {
+  margin-left: 8px;
+  color: var(--text-3);
+}
+
+/* ---------- Cards and panels ---------- */
+.metric-card,
+.ref-metric,
+.review-detail,
+.planning-summary {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+.dashboard-panel,
+.ref-panel,
+.ref-panel .ref-panel {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.ref-metrics {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.metric-card,
+.ref-metric {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  padding: 16px 20px;
+}
+.ref-metric {
+  flex: 1 1 0;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.ref-metric:last-child {
+  border-right: 0;
+}
+.ref-metric > div {
+  display: grid;
+  gap: 8px;
+}
+.metric-card-heading,
+.metric-card-heading span {
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.ref-metric strong span,
+.metric-card strong span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+.metric-card strong,
+.ref-metric strong {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.metric-card p,
+.ref-metric small {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.ref-metric small .rich {
+  gap: 6px;
+}
+.ref-panel,
+.dashboard-panel {
+  padding: 20px;
+}
+.ref-panel-heading,
+.dashboard-panel-heading {
+  margin-bottom: 16px;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.ref-panel-heading h2,
+.dashboard-panel-heading h2,
+.review-detail h2,
+.legacy-compat-panel > h2 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.ref-panel-heading p,
+.dashboard-panel-heading p {
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.ref-header,
+.dashboard-header {
+  margin-bottom: 24px;
+}
+.reference-page h1,
+.dashboard-page h1 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+.ref-header > div:first-child > p,
+.dashboard-header .lede,
+.lede {
+  margin: 6px 0 0;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ref-data-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.dashboard-data-note {
+  margin: -8px 0 20px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.range-label {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
