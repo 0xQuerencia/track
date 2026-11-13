@@ -4,7 +4,10 @@ import { getEntity } from "./entities";
 import { coerceValue, type Value } from "./form";
 import { deleteRow, insertRow, listRows, updateField } from "./crud";
 import {
+  focusMinutesByDay,
   focusTotals,
+  masteryBySubject,
+  studyMinutesByDay,
   habitsToday,
   nextExam,
   taskCounts,
@@ -74,6 +77,11 @@ export function pullSnapshot() {
     today: todayStr(),
     name: process.env.TRACK_NAME ?? null,
     focusToday: focusTotals(1),
+    insights: {
+      focus: focusMinutesByDay(14),
+      study: studyMinutesByDay(14),
+      mastery: masteryBySubject(),
+    },
     data,
   };
 }
