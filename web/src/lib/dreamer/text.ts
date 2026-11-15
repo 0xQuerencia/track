@@ -13,7 +13,7 @@ export function stem(word: string): string {
   if (value.length > 6 && value.endsWith("ing")) value = value.slice(0, -3);
   else if (value.length > 5 && value.endsWith("ed")) value = value.slice(0, -2);
   else if (value.length > 5 && value.endsWith("ers")) value = value.slice(0, -1);
-  else if (value.length > 4 && value.endsWith("es")) value = value.slice(0, -2);
+  else if (value.length > 4 && /(?:s|x|z|ch|sh)es$/.test(value)) value = value.slice(0, -2);
   else if (value.length > 3 && value.endsWith("s")) value = value.slice(0, -1);
   if (value.length > 5 && value.endsWith("e")) value = value.slice(0, -1);
   return value;
@@ -57,7 +57,7 @@ const RULES: readonly [InsightKind, RegExp][] = [
   ["commitment", /\b(i promised|i committed|i owe|must finish|deadline|by (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i],
   ["project_idea", /\bidea\s*:\s*|\b(i have an idea for|what if i built|could build a)\b/i],
   ["intention", /\b(i want to|i'd like to|i need to|i should|need to|should|plan to|going to|i will|i'll)\b/i],
-  ["problem", /\b(stuck|annoying|frustrat(?:ed|ing)|can't|cannot|problem|struggl\w*|keep (?:forgetting|getting|missing|running)|not working|too slow)\b/i],
+  ["problem", /\b(stuck|annoying|frustrat(?:ed|ing)|can't|cannot|problem|struggl\w*|keep (?:forgetting|getting|missing|running)|not working|too slow|(?:lost|losing|lose) (?:track|my)|scattered|messy|clunky|hard to (?:find|keep|track))\b/i],
   ["learning_goal", /\b(learn|study|understand|practice|practise)\b.{0,50}\b(need|want|should|more|better|how)\b/i],
   ["interest", /\b(i enjoy|i like|interested in|curious about|love working on)\b/i],
   ["improvement", /\b(workflow|process|routine|system)\b.{0,50}\b(improv|slow|annoy|repeat|friction|fix)\w*/i],

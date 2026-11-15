@@ -4,7 +4,7 @@ import { Page, Panel } from "@/components/track/page";
 import { getDb } from "@/lib/db";
 import { shortDay, todayStr } from "@/lib/dates";
 import { runDailyCycle } from "@/lib/dreamer/cycle";
-import { getAiDisclosurePreview, getSourcesPrivacy, latestRun, listBriefs, listGraphLinks, listInsights, listSourceRecords, listSuggestions } from "@/lib/dreamer/queries";
+import { getAiDisclosurePreview, getSourcesPrivacy, latestRun, listBriefs, countInsights, INSIGHT_PAGE_SIZE, listGraphLinks, listInsights, listSourceRecords, listSuggestions } from "@/lib/dreamer/queries";
 import { INSIGHT_KINDS } from "@/lib/dreamer/types";
 import {
   deleteAllDreamerAction,
@@ -28,7 +28,7 @@ const LABELS: Record<Tab, string> = {
   brief: "Brief", insights: "Insights", suggestions: "Suggestions", graph: "Graph", weekly: "Weekly", sources: "Sources & Privacy",
 };
 
-export default async function DreamerPage({ searchParams }: { searchParams: Promise<{ tab?: string; kind?: string; state?: string }> }) {
+export default async function DreamerPage({ searchParams }: { searchParams: Promise<{ tab?: string; kind?: string; state?: string; page?: string }> }) {
   const params = await searchParams;
   const activeTab: Tab = TABS.includes(params.tab as Tab) ? params.tab as Tab : "brief";
   const db = getDb();
@@ -46,7 +46,7 @@ export default async function DreamerPage({ searchParams }: { searchParams: Prom
         {TABS.map((tab) => <Link key={tab} href={`/dreamer?tab=${tab}`} aria-current={activeTab === tab ? "page" : undefined}>{LABELS[tab]}</Link>)}
       </nav>
       {activeTab === "brief" ? <BriefSection date={date} body={briefs[0]?.period_key === date ? briefs[0].body_md : null} run={latestDaily} disclosure={disclosure} aiEnabled={consentView.consent.enabled} sourcesEnabled={consentView.sources.some((source) => source.enabled)} /> : null}
-      {activeTab === "insights" ? <InsightSection kind={params.kind} state={params.state} /> : null}
+      {activeTab === "insights" ? <InsightSection kind={params.kind} state={params.state} page={params.page} /> : null}
       {activeTab === "suggestions" ? <SuggestionSection /> : null}
       {activeTab === "graph" ? <GraphSection /> : null}
       {activeTab === "weekly" ? <WeeklySection weekly={weekly} /> : null}
@@ -92,11 +92,15 @@ function aiNoticeFrom(notes: string): string | null {
   return notes.includes("AI enhancement unavailable") ? notes : null;
 }
 
-function InsightSection({ kind, state }: { kind?: string; state?: string }) {
+function InsightSection({ kind, state, page }: { kind?: string; state?: string; page?: string }) {
   const validKind = INSIGHT_KINDS.includes(kind as (typeof INSIGHT_KINDS)[number]) ? kind : undefined;
   const states = ["new", "accepted", "corrected", "dismissed", "outdated", "blocked"] as const;
   const validState = states.includes(state as (typeof states)[number]) ? state : undefined;
-  const insights = listInsights(getDb(), { kind: validKind, state: validState });
+  const total = countInsights(getDb(), { kind: validKind, state: validState });
+  const pageCount = Math.max(1, Math.ceil(total / INSIGHT_PAGE_SIZE));
+  const current = Math.min(pageCount, Math.max(1, Number.parseInt(page ?? "1", 10) || 1));
+  const insights = listInsights(getDb(), { kind: validKind, state: validState, page: current });
+  const pageHref = (target: number) => `/dreamer?${new URLSearchParams({ tab: "insights", ...(validKind ? { kind: validKind } : {}), ...(validState ? { state: validState } : {}), page: String(target) })}`;
   return (
     <Panel title="Candidate insights" description="Every inferred observation stays a hypothesis until you review it. Confidence is a local evidence score, not certainty.">
       <form method="get" action="/dreamer" className="dreamer-filter-form">
@@ -108,7 +112,7 @@ function InsightSection({ kind, state }: { kind?: string; state?: string }) {
       {insights.length === 0 ? <p className="tk-empty">No candidate insights yet. Add or enable journal, note or idea sources, then run Dreamer.</p> : (
         <div className="dreamer-cards">
           {insights.map((insight) => <article className="dreamer-card" key={insight.id}>
-            <header><p className="tk-kicker">{insight.kind.replaceAll("_", " ")} · {insight.state} · {Math.round(insight.confidence * 100)}% evidence score</p><h3>{insight.text}</h3>
+            <header><p className="tk-kicker">{insight.kind.replaceAll("_", " ")} · <span className="dreamer-state" data-state={insight.state}>{insight.state}</span> · {Math.round(insight.confidence * 100)}% evidence score</p><h3>{insight.text}</h3>
               {insight.origin === "ai" ? <p className="dreamer-ai-label">AI-drafted hypothesis</p> : null}
             </header>
             <p>{insight.uncertainty}</p>
@@ -116,23 +120,31 @@ function InsightSection({ kind, state }: { kind?: string; state?: string }) {
             <EvidenceList items={insight.evidence} />
             {insight.projects.length ? <p>Related project records: {insight.projects.map((project) => project.name).join(", ")}</p> : null}
             <div className="dreamer-actions">
-              {(["accepted", "dismissed", "outdated", "blocked"] as const).map((state) => <form action={reviewInsightAction} key={state}>
+              {(["accepted", "dismissed", "outdated"] as const).map((state) => <form action={reviewInsightAction} key={state}>
                 <input type="hidden" name="id" value={insight.id} /><input type="hidden" name="action" value={state} />
-                <button className="tk-button tk-ghost" type="submit">{state === "blocked" ? "Never use" : state[0]?.toUpperCase() + state.slice(1)}</button>
+                <button className="tk-button tk-ghost" type="submit">{state[0]?.toUpperCase() + state.slice(1)}</button>
               </form>)}
-              <form action={reviewInsightAction}>
-                <input type="hidden" name="id" value={insight.id} /><input type="hidden" name="action" value="delete" />
-                <button className="tk-button tk-ghost" type="submit">Delete derived data</button>
-              </form>
             </div>
-            <form action={reviewInsightAction} className="dreamer-correct-form">
-              <input type="hidden" name="id" value={insight.id} /><input type="hidden" name="action" value="corrected" />
-              <label>Correct this insight<textarea name="user_text" defaultValue={insight.state === "corrected" ? insight.text : insight.originalText} maxLength={3000} required /></label>
-              <button className="tk-button tk-ghost" type="submit">Save correction</button>
-            </form>
+            <details className="dreamer-more">
+              <summary>More: correct, never use, delete</summary>
+              <form action={reviewInsightAction} className="dreamer-correct-form">
+                <input type="hidden" name="id" value={insight.id} /><input type="hidden" name="action" value="corrected" />
+                <label>Correct this insight<textarea name="user_text" defaultValue={insight.state === "corrected" ? insight.text : insight.originalText} maxLength={3000} required /></label>
+                <button className="tk-button tk-ghost" type="submit">Save correction</button>
+              </form>
+              <div className="dreamer-actions">
+                <form action={reviewInsightAction}><input type="hidden" name="id" value={insight.id} /><input type="hidden" name="action" value="blocked" /><button className="tk-button tk-ghost" type="submit">Never use</button></form>
+                <form action={reviewInsightAction}><input type="hidden" name="id" value={insight.id} /><input type="hidden" name="action" value="delete" /><button className="tk-button tk-ghost" type="submit">Delete derived data</button></form>
+              </div>
+            </details>
           </article>)}
         </div>
       )}
+      {pageCount > 1 ? <nav className="dreamer-pager" aria-label="Insight pages">
+        {current > 1 ? <Link href={pageHref(current - 1)}>← Previous</Link> : <span />}
+        <span>Page {current} of {pageCount} · {total} insights</span>
+        {current < pageCount ? <Link href={pageHref(current + 1)}>Next →</Link> : <span />}
+      </nav> : null}
     </Panel>
   );
 }

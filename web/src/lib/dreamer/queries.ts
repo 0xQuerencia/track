@@ -32,7 +32,22 @@ function evidenceFor(db: DatabaseSync, table: "dreamer_insight_evidence" | "drea
   }));
 }
 
-export function listInsights(db: DatabaseSync, filters: { kind?: string; state?: string } = {}) {
+/** Actionable kinds first; recurring themes are the weakest signal and sort last. */
+export const KIND_PRIORITY_SQL = `CASE kind WHEN 'commitment' THEN 0 WHEN 'problem' THEN 1 WHEN 'improvement' THEN 2 WHEN 'intention' THEN 3
+  WHEN 'project_idea' THEN 4 WHEN 'unresolved_question' THEN 5 WHEN 'learning_goal' THEN 6 WHEN 'interest' THEN 7 WHEN 'observation' THEN 8 ELSE 9 END`;
+export const INSIGHT_PAGE_SIZE = 10;
+
+export function countInsights(db: DatabaseSync, filters: { kind?: string; state?: string } = {}): number {
+  const clauses: string[] = [];
+  const values: string[] = [];
+  if (filters.kind) { clauses.push("kind = ?"); values.push(filters.kind); }
+  if (filters.state) { clauses.push("review_state = ?"); values.push(filters.state); }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  return Number((db.prepare(`SELECT COUNT(*) AS n FROM dreamer_insights ${where}`).get(...values) as { n: number }).n);
+}
+
+export function listInsights(db: DatabaseSync, filters: { kind?: string; state?: string; page?: number } = {}) {
+  const offset = Math.max(0, Math.trunc((filters.page ?? 1) - 1)) * INSIGHT_PAGE_SIZE;
   const clauses: string[] = [];
   const values: string[] = [];
   if (filters.kind) { clauses.push("kind = ?"); values.push(filters.kind); }
@@ -40,7 +55,7 @@ export function listInsights(db: DatabaseSync, filters: { kind?: string; state?:
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   const rows = db.prepare(`SELECT id, kind, text, original_text, user_text, confidence, uncertainty_note,
       first_detected, last_confirmed, review_state, origin
-    FROM dreamer_insights ${where} ORDER BY confidence DESC, last_confirmed DESC, id DESC LIMIT 100`).all(...values) as Row[];
+    FROM dreamer_insights ${where} ORDER BY ${KIND_PRIORITY_SQL}, confidence DESC, last_confirmed DESC, id DESC LIMIT ${INSIGHT_PAGE_SIZE} OFFSET ${offset}`).all(...values) as Row[];
   return rows.map((row) => {
     const id = Number(row.id);
     const projects = db.prepare(`SELECT p.id, p.name FROM dreamer_insight_projects ip

@@ -5,7 +5,7 @@ import { closeTestDb, installTestDb } from "@/lib/testing/test-db";
 import { analyzeSources, recordSuggestionFeedback, setEntryEnabled, setExcludedValues } from "./engine";
 import { runDailyCycle, runWeeklyReflection } from "./cycle";
 import { enhanceThemesWithAi, type ChatJsonCaller } from "./layer-b";
-import { detectCandidates, termSimilarity } from "./text";
+import { detectCandidates, termSimilarity, tokenize } from "./text";
 import { seedFakeDreamerSources } from "./testing/fixture";
 
 let db: ReturnType<typeof installTestDb>;
@@ -165,4 +165,8 @@ describe("Dreamer Layer B injection", () => {
     assert.equal(result.attempted, false);
     assert.equal(calls, 0);
   });
+});
+
+it("stemmer keeps plural nouns like notes instead of collapsing to a stopword", () => {
+  assert.deepEqual(tokenize("chemistry notes").map((t) => t.term), ["chemistry", "note"]);
 });

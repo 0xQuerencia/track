@@ -34,7 +34,7 @@ function writeDailyBrief(db: DatabaseSync, input: {
       : `No meaningful insight or suggestion was supported on this first scan. The local scan processed ${processed} changed source${processed === 1 ? "" : "s"} and skipped ${unchanged} unchanged.`;
   } else {
     const insights = db.prepare(`SELECT text FROM dreamer_insights WHERE last_confirmed = ? AND review_state = 'new'
-      ORDER BY confidence DESC LIMIT 3`).all(date) as { text: string }[];
+      ORDER BY CASE kind WHEN 'commitment' THEN 0 WHEN 'problem' THEN 1 WHEN 'improvement' THEN 2 WHEN 'intention' THEN 3 WHEN 'project_idea' THEN 4 WHEN 'unresolved_question' THEN 5 ELSE 9 END, confidence DESC LIMIT 3`).all(date) as { text: string }[];
     const suggestions = db.prepare(`SELECT title FROM dreamer_suggestions WHERE cycle_id = ? ORDER BY id LIMIT 2`).all(runId) as { title: string }[];
     const parts = [
       `Dreamer found ${newInsights} candidate insight${newInsights === 1 ? "" : "s"}`,

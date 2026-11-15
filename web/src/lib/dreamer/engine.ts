@@ -208,6 +208,8 @@ function updateTfidf(db: DatabaseSync, cutoff: string): void {
   }
 }
 
+const MAX_THEMES = 12;
+
 function rebuildThemeInsights(db: DatabaseSync, now: string): number {
   const cutoff = rollingStart(now);
   const rows = db.prepare(`SELECT t.term, e.id AS evidence_id, e.date, e.polarity
@@ -217,9 +219,13 @@ function rebuildThemeInsights(db: DatabaseSync, now: string): number {
   const grouped = new Map<string, typeof rows>();
   for (const row of rows) grouped.set(row.term, [...(grouped.get(row.term) ?? []), row]);
   let created = 0;
-  for (const [term, evidence] of grouped) {
-    const dates = new Set(evidence.map((item) => item.date));
-    if (dates.size < 2) continue;
+  // Cap to the strongest themes so the review list is not flooded.
+  const topThemes = [...grouped.entries()]
+    .map(([term, evidence]) => ({ term, evidence, dates: new Set(evidence.map((item) => item.date)) }))
+    .filter((item) => item.dates.size >= 2)
+    .sort((a, b) => b.dates.size - a.dates.size)
+    .slice(0, MAX_THEMES);
+  for (const { term, evidence } of topThemes) {
     const signature = `theme:${term}`;
     const first = evidence.slice(0, 1)[0];
     if (ensureInsight(db, { kind: "recurring_theme", signature, text: `Recurring theme may include “${term}”.`, evidenceId: first.evidence_id, now })) created++;
@@ -247,12 +253,14 @@ function rebuildThemeInsights(db: DatabaseSync, now: string): number {
       pairs.set(key, [...(pairs.get(key) ?? []), top[i], top[j]]);
     }
   }
-  for (const [pair, pairRows] of pairs) {
+  const topPairs = [...pairs.entries()].map(([pair, pairRows]) => {
     const docsForPair = new Map<number, typeof termRows>();
     for (const row of pairRows) docsForPair.set(row.document_id, [...(docsForPair.get(row.document_id) ?? []), row]);
     const uniqueDocs = [...docsForPair.values()].filter((items) => new Set(items.map((item) => item.term)).size === 2);
     const dates = new Set(uniqueDocs.flatMap((items) => items.map((item) => item.date)));
-    if (dates.size < 2) continue;
+    return { pair, uniqueDocs, dates };
+  }).filter((item) => item.dates.size >= 2).sort((a, b) => b.dates.size - a.dates.size).slice(0, MAX_THEMES);
+  for (const { pair, uniqueDocs } of topPairs) {
     const parts = pair.split("+");
     const signature = `theme-pair:${pair}`;
     const allEvidence = uniqueDocs.map((items) => items[0]);

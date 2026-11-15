@@ -114,3 +114,11 @@
 @media (prefers-reduced-motion: reduce) {
   .dreamer-tabs a { transition: none; }
 }
+
+.dreamer-state { padding: 0.05rem 0.45rem; border: 1px solid var(--line); border-radius: var(--radius-tag); color: var(--text-1); }
+.dreamer-state[data-state="accepted"], .dreamer-state[data-state="corrected"] { border-color: var(--accent-ink); color: var(--accent-ink); }
+.dreamer-state[data-state="dismissed"], .dreamer-state[data-state="outdated"], .dreamer-state[data-state="blocked"] { color: var(--text-3); }
+.dreamer-more { margin-top: 0.6rem; }
+.dreamer-more > summary { cursor: pointer; color: var(--text-3); font-size: 0.85rem; }
+.dreamer-more > summary:hover { color: var(--text-1); }
+.dreamer-pager { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; color: var(--text-3); font-size: 0.85rem; }
