@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { finishPracticeAction, gradeAction, progressAction, setMistakeAction, undoAction } from "../vault-actions";
 import { MISTAKE_CATEGORIES, RATINGS, STATE_LABEL, type QState, type Rating } from "@/lib/qv/constants";
+import { MathText } from "@/components/track/math-text";
 import { StateBadge } from "../_components/qv/ui";
 import { ratingIcon } from "../_components/qv/ui";
 
@@ -142,7 +143,7 @@ export function Runner({ sessionId, modeLabel, questions, startIndex, startSecon
           // eslint-disable-next-line @next/next/no-img-element
           <img key={id} className="qv-run-img" src={`/api/study/image/${id}`} alt="Question screenshot" />
         ))}
-        {q.text ? <pre className="qv-run-text">{q.text}</pre> : null}
+        {q.text ? <MathText className="qv-run-text" text={q.text} /> : null}
 
         <div className="qv-reveal">
           {q.hint && !showHint && !done ? <button type="button" className="tk-button tk-ghost" onClick={() => setShowHint(true)}>Show my hint (counts as a hint)</button> : null}
@@ -152,7 +153,7 @@ export function Runner({ sessionId, modeLabel, questions, startIndex, startSecon
         {showSolution ? (
           <div className="qv-solution">
             {q.answer ? <p><strong>Answer:</strong> {q.answer}</p> : null}
-            {q.solution ? <pre className="qv-text">{q.solution}</pre> : null}
+            {q.solution ? <MathText className="qv-text qv-math" text={q.solution} /> : null}
             {!q.answer && !q.solution ? <p className="st-inline-note">No answer or solution saved for this question.</p> : null}
           </div>
         ) : null}
