@@ -1,0 +1,12 @@
+# Example systemd USER timer, paired with track-connector.service.
+# Install next to it, then: systemctl --user enable --now track-connector.timer
+[Unit]
+Description=Run the Track connector every 15 minutes
+
+[Timer]
+OnCalendar=*:0/15
+RandomizedDelaySec=60
+Persistent=true
+
+[Install]
+WantedBy=timers.target
