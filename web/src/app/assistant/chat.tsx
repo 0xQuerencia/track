@@ -19,25 +19,29 @@ const SUGGESTIONS = [
   "What should I focus on first?",
 ];
 
-function ActionRow({ action }: { action: Action }) {
-  if (action.status === "pending")
-    return (
-      <li className="asst-action" data-status="pending">
-        <span>{action.describe}</span>
-        <form action={applyAssistantActionAction}><input type="hidden" name="id" value={action.id} /><button className="tk-button tk-primary" type="submit">Do it</button></form>
-        <form action={rejectAssistantActionAction}><input type="hidden" name="id" value={action.id} /><button className="tk-button tk-ghost" type="submit">Skip</button></form>
-      </li>
-    );
-  if (action.status === "applied")
-    return (
-      <li className="asst-action" data-status="applied">
-        <span>{action.href ? <Link href={action.href}>{action.summary}</Link> : action.summary}</span>
-        <form action={undoAssistantActionAction}><input type="hidden" name="id" value={action.id} /><button className="tk-button tk-ghost" type="submit">Undo</button></form>
-      </li>
-    );
+const BADGE: Record<string, string> = { applied: "Done", pending: "Needs your OK", failed: "Failed", undone: "Undone", rejected: "Skipped" };
+
+function ChangeRow({ action }: { action: Action }) {
+  const text =
+    action.status === "applied" ? (action.href ? <Link href={action.href}>{action.summary}</Link> : action.summary)
+    : action.status === "failed" ? `${action.describe}: ${action.error ?? "could not be done"}`
+    : action.status === "undone" ? action.summary
+    : action.describe;
   return (
-    <li className="asst-action" data-status={action.status}>
-      <span>{action.status === "failed" ? `Could not do it: ${action.error ?? "failed"}` : action.status === "undone" ? `Undone: ${action.summary}` : `Skipped: ${action.describe}`}</span>
+    <li className="asst-change" data-status={action.status}>
+      <span className="asst-badge">{BADGE[action.status] ?? action.status}</span>
+      <span className="asst-change-text">{text}</span>
+      <span className="asst-change-actions">
+        {action.status === "pending" ? (
+          <>
+            <form action={applyAssistantActionAction}><input type="hidden" name="id" value={action.id} /><button className="asst-btn asst-btn-primary" type="submit">Do it</button></form>
+            <form action={rejectAssistantActionAction}><input type="hidden" name="id" value={action.id} /><button className="asst-btn" type="submit">Skip</button></form>
+          </>
+        ) : null}
+        {action.status === "applied" ? (
+          <form action={undoAssistantActionAction}><input type="hidden" name="id" value={action.id} /><button className="asst-btn" type="submit">Undo</button></form>
+        ) : null}
+      </span>
     </li>
   );
 }
@@ -47,36 +51,47 @@ export function AssistantChat({ messages }: { messages: Message[] }) {
   const form = useRef<HTMLFormElement>(null);
   const log = useRef<HTMLDivElement>(null);
   useEffect(() => { if (state?.ok) form.current?.reset(); }, [state]);
-  useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [messages.length]);
+  useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [messages.length, pending]);
+
+  const fill = (text: string) => {
+    const field = form.current?.elements.namedItem("text") as HTMLTextAreaElement | null;
+    if (field) { field.value = text; field.focus(); }
+  };
 
   return (
-    <div className="asst-chat">
-      <div className="asst-log" ref={log} aria-live="polite">
-        <p className="asst-msg" data-role="assistant">What are you about to do today? Tell me in your own words and I will set it up: tasks, events, logs, whatever you need.</p>
-        {messages.map((m) => (
-          <div key={m.id} className="asst-turn" data-role={m.role}>
-            <p className="asst-msg" data-role={m.role}>{m.text}</p>
-            {m.actions.length ? <ul className="asst-actions">{m.actions.map((a) => <ActionRow key={a.id} action={a} />)}</ul> : null}
-          </div>
-        ))}
-        {pending ? <p className="asst-msg asst-thinking" data-role="assistant">Working on it…</p> : null}
-      </div>
-      {messages.length === 0 ? (
-        <div className="asst-suggest">
-          {SUGGESTIONS.map((s) => (
-            <button key={s} type="button" className="tk-button tk-ghost" onClick={() => { const t = form.current?.elements.namedItem("text") as HTMLTextAreaElement | null; if (t) { t.value = s; t.focus(); } }}>{s}</button>
+    <section className="asst-chat" aria-label="Assistant chat">
+      <header className="asst-greet">
+        <h4>What are you about to do today?</h4>
+        <p>Tell me in your own words. I will add the tasks, events and logs for you, and you can undo anything.</p>
+      </header>
+
+      {messages.length > 0 || pending ? (
+        <div className="asst-log" ref={log} aria-live="polite">
+          {messages.map((m) => (
+            <div key={m.id} className="asst-turn" data-role={m.role}>
+              <p className="asst-bubble">{m.text}</p>
+              {m.actions.length ? <ul className="asst-changes" aria-label="Changes">{m.actions.map((a) => <ChangeRow key={a.id} action={a} />)}</ul> : null}
+            </div>
           ))}
+          {pending ? <div className="asst-turn" data-role="assistant"><p className="asst-bubble asst-thinking">Thinking<span aria-hidden="true">…</span></p></div> : null}
         </div>
-      ) : null}
-      <form action={send} ref={form} className="asst-form">
+      ) : (
+        <div className="asst-suggest">
+          {SUGGESTIONS.map((s) => <button key={s} type="button" className="asst-chip" onClick={() => fill(s)}>{s}</button>)}
+        </div>
+      )}
+
+      <form action={send} ref={form} className="asst-composer">
         <textarea
           name="text" rows={2} maxLength={1500} required
-          placeholder="e.g. I have physics revision till 4, then gym at 6, remind me to call mom tomorrow"
+          placeholder="e.g. Physics revision till 4, gym at 6 PM, remind me to call mom tomorrow"
+          aria-label="Message to the assistant"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
         />
         <button className="tk-button tk-primary" type="submit" disabled={pending}>{pending ? "…" : "Send"}</button>
       </form>
+      <p className="asst-hint">Enter to send · Shift+Enter for a new line</p>
       {state && !state.ok ? <p role="alert" className="asst-error">{state.message}</p> : null}
-    </div>
+    </section>
   );
 }

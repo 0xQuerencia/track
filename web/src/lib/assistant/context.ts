@@ -5,7 +5,7 @@ const clip = (value: unknown, max = 90): string => redactForAi(String(value ?? "
 
 /** The only personal data the assistant sends: short titles with ids, so it can refer to real records. */
 export function buildContext(db: DatabaseSync, today: string) {
-  const tasks = (db.prepare("SELECT id, title, due, priority FROM tasks WHERE status != 'Done' ORDER BY due IS NULL, due, id LIMIT 25").all() as
+  const tasks = (db.prepare("SELECT id, title, due, priority FROM tasks WHERE COALESCE(status, '') != 'Done' ORDER BY due IS NULL, due, id LIMIT 25").all() as
     { id: number; title: string; due: string | null; priority: string | null }[])
     .map((t) => ({ id: t.id, title: clip(t.title), due: t.due, priority: t.priority }));
   const events = (db.prepare("SELECT id, title, date, start_time FROM events WHERE date >= ? ORDER BY date, start_time LIMIT 15").all(today) as

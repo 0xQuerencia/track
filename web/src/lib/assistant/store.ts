@@ -34,7 +34,7 @@ export function addAction(db: DatabaseSync, messageId: number, action: Assistant
 /** One line a person can read before approving: what will change. */
 export function describeAction(action: AssistantAction, db?: DatabaseSync): string {
   if (action.type === "log_weight") return `Log weight ${action.weight_kg} kg`;
-  const label = action.entity.replaceAll("_", " ");
+  const label = (entityOf(action.entity)?.singular ?? action.entity.replaceAll("_", " ")).toLowerCase();
   if (action.type === "delete_record") return `Delete ${label} ${recordTitle(db, action.entity, action.id)}`;
   if (action.type === "update_record") {
     const changes = Object.entries(action.fields).slice(0, 4).map(([k, v]) => `${k}: ${String(v).slice(0, 40)}`).join(", ");

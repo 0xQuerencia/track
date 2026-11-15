@@ -20,12 +20,15 @@ export function AssistantPanel() {
   return (
     <div className="asst">
       <section className="asst-brief" aria-label="Daily brief">
-        <h3>Your brief</h3>
+        <header className="asst-brief-head">
+          <h3>Today&rsquo;s brief</h3>
+          <span>{new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</span>
+        </header>
         {brief.length === 0 ? <p className="tk-empty-small">Nothing scheduled and nothing overdue. A clear day.</p> : (
           <div className="asst-brief-grid">
             {brief.map((section) => (
-              <div key={section.title}>
-                <p className="tk-kicker">{section.title}</p>
+              <div key={section.title} className="asst-brief-card" data-kind={section.title.toLowerCase().replaceAll(" ", "-")}>
+                <p className="asst-brief-label">{section.title}</p>
                 <ul>{section.lines.map((line) => <li key={line.text}>{line.href ? <Link href={line.href}>{line.text}</Link> : line.text}</li>)}</ul>
               </div>
             ))}
@@ -45,7 +48,7 @@ export function AssistantPanel() {
           <AssistantChat messages={messagesForDay(db, date)} />
           <form action={setAutoApplyAction} className="asst-auto">
             <label><input type="checkbox" name="auto" defaultChecked={getAutoApply(db)} /> Apply adds and edits right away (deletes always ask)</label>
-            <button className="tk-button tk-ghost" type="submit">Save</button>
+            <button className="asst-btn" type="submit">Save</button>
           </form>
         </>
       )}
