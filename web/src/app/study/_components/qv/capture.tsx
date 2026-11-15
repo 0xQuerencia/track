@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ingestAction, languagesAction, saveDraftsAction } from "../../vault-actions";
+import { ingestAction, languagesAction, saveDraftsAction, setVaultAiAction } from "../../vault-actions";
 import { DIFFICULTIES, EXAM_CATEGORIES, QUESTION_TYPES, SOURCES } from "@/lib/qv/constants";
 import type { Draft } from "@/lib/qv/ingest";
 import type { ChapterChoice } from "./ui";
@@ -37,12 +37,13 @@ const blank = (over: Partial<Card> = {}): Card => ({
 
 function cardsFromDraft(d: Draft & { name: string }): Card[] {
   return d.parts.map((part) =>
-    blank({ imageIds: [d.imageId], name: d.name, status: d.status, confidence: d.confidence, warnings: d.warnings, error: d.error, duplicateOf: d.duplicateOf, text: part.text, qtype: part.qtype }),
+    blank({ imageIds: [d.imageId], name: d.name, status: d.status === "ok" && d.engine?.startsWith("ai:") ? "aiok" : d.status, confidence: d.confidence, warnings: d.warnings, error: d.error, duplicateOf: d.duplicateOf, text: part.text, qtype: part.qtype }),
   );
 }
 
 const STATUS_TEXT: Record<string, string> = {
   ok: "Text read from the screenshot",
+  aiok: "Read by the AI model",
   reused: "Same screenshot as before: text reused",
   empty: "No text found",
   failed: "OCR failed",
@@ -51,7 +52,7 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 /** Paste, drop, upload or type; review the text beside the screenshot; then save. Nothing is saved until you press Save. */
-export function Capture({ chapters }: { chapters: ChapterChoice[] }) {
+export function Capture({ chapters, ai }: { chapters: ChapterChoice[]; ai: { configured: boolean; enabled: boolean } }) {
   const [cards, setCards] = useState<Card[]>([]);
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
@@ -161,7 +162,12 @@ export function Capture({ chapters }: { chapters: ChapterChoice[] }) {
             </label>
           ) : null}
         </div>
-        <p className="st-inline-note">Screenshots are read on this server with Tesseract. Equations are often misread, so check the text against the picture.</p>
+        {ai.configured ? (
+          <label className="qv-check">
+            <input type="checkbox" checked={ai.enabled} onChange={(e) => void setVaultAiAction(e.target.checked)} /> Let the AI model read my screenshots (images are sent to your AI provider). Much better at maths than the built-in reader.
+          </label>
+        ) : null}
+        <p className="st-inline-note">{ai.configured && ai.enabled ? "Screenshots are read by the AI model; if it fails, the server's Tesseract is used." : "Screenshots are read on this server with Tesseract, which often misreads equations. Check the text against the picture."}</p>
       </div>
 
       <div role="status" aria-live="polite" className="qv-status">

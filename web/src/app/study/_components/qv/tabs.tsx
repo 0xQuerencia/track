@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Panel, SplitPanels, StatGrid } from "@/components/track/page";
 import { StatCard } from "@/components/track/stat-card";
+import { getAiStatus } from "@/lib/ai";
 import { getDb } from "@/lib/db";
 import { MISTAKE_CATEGORIES, MODES, MODE_LABEL, SOURCES, type QState } from "@/lib/qv/constants";
 import { imageIdsFor } from "@/lib/qv/images";
@@ -95,6 +96,7 @@ export function VaultTab({ search }: { search: StudySearch }) {
   const db = getDb();
   const today = qvToday(db);
   const chapters = chapterChoices();
+  const aiStatus = getAiStatus(db);
   const page = Math.max(1, Number(firstParam(search, "vp")) || 1);
   const filter = { q: firstParam(search, "q"), state: firstParam(search, "state") || "all", subject: firstParam(search, "vsubject"), chapterId: Number(firstParam(search, "vchapter")) || undefined, source: firstParam(search, "vsource"), tag: firstParam(search, "tag") };
   const { rows, total } = listQuestions({ ...filter, today, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }, db);
@@ -105,7 +107,7 @@ export function VaultTab({ search }: { search: StudySearch }) {
   };
   return (
     <>
-      <Capture chapters={chapters} />
+      <Capture chapters={chapters} ai={{ configured: aiStatus.keyConfigured && !aiStatus.killSwitch, enabled: aiStatus.consents.some((c) => c.feature === "vault" && c.enabled) }} />
       <Panel title="Your questions" description={`${total} question${total === 1 ? "" : "s"}${filter.q || filter.state !== "all" ? " match" : ""}.`}>
         <form method="get" action="/study" className="st-filters">
           <input type="hidden" name="tab" value="vault" />
