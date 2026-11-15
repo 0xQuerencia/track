@@ -23,7 +23,14 @@ const STORAGE_KEY = "track.home.layout";
 
 function reconcile(layout: Layout, ids: string[]): Layout {
   const known = layout.order.filter((id) => ids.includes(id));
-  const order = [...known, ...ids.filter((id) => !known.includes(id))];
+  // A widget the saved layout has never seen goes where the defaults put it,
+  // not at the bottom: after its default predecessor, or first if it has none.
+  const order = [...known];
+  ids.forEach((id, index) => {
+    if (known.includes(id)) return;
+    const before = ids.slice(0, index).reverse().find((candidate) => order.includes(candidate));
+    order.splice(before === undefined ? 0 : order.indexOf(before) + 1, 0, id);
+  });
   return { order, hidden: layout.hidden.filter((id) => ids.includes(id)) };
 }
 

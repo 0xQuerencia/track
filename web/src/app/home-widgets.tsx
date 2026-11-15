@@ -13,6 +13,7 @@ import { runDailyCycle } from "@/lib/dreamer/cycle";
 import { dailyBrief } from "@/lib/dreamer/queries";
 import { getSourceSetting } from "@/lib/dreamer/engine";
 import { getGoalSummaries, getOverdueTasks } from "@/lib/plans";
+import { AssistantPanel } from "./assistant/panel";
 import { CheckinForm } from "./checkin/checkin-form";
 import { setCheckinConsentAction } from "./checkin/actions";
 import { getAiStatus, getConsent } from "@/lib/ai";
@@ -70,6 +71,12 @@ export async function extraWidgets(today: string): Promise<WidgetSpec[]> {
   const sleepTrend = sleepSeries(db, 30).map((p) => ({ label: p.date, value: p.value }));
 
   return [
+    {
+      id: "assistant",
+      title: "Assistant",
+      wide: true,
+      content: <AssistantPanel />,
+    },
     {
       id: "checkin",
       title: checkinDone ? "Morning check-in · logged today" : "Morning check-in",

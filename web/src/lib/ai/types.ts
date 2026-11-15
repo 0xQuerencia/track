@@ -8,7 +8,7 @@ import type { ZodType } from "zod";
  * disclosure shown to the user is built from the same payload that is sent.
  */
 
-export type AiFeature = "dreamer" | "checkin";
+export type AiFeature = "dreamer" | "checkin" | "assistant";
 
 export type AiErrorCode =
   | "not_configured" // no OPENROUTER_API_KEY

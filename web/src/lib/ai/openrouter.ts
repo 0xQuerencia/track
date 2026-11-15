@@ -12,7 +12,7 @@ import type {
   ChatJsonResult,
 } from "./types";
 
-const TIMEOUT_MS = 30_000;
+const TIMEOUT_MS = 60_000;
 const MAX_RESPONSE_BYTES = 1_048_576;
 const MAX_ATTEMPTS = 3;
 const MAX_TOKENS = 8_192;
@@ -183,6 +183,8 @@ export async function chatJson<T>(
       messages: request.messages,
       max_tokens: maxTokens,
       response_format: { type: "json_object" },
+      // Reasoning models otherwise spend the token budget thinking and return empty content.
+      reasoning: { effort: "low" },
       stream: false,
     });
     const doFetch = deps.fetch ?? fetch;

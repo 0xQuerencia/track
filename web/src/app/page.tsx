@@ -233,7 +233,10 @@ export default async function CommandCenter() {
     },
   ];
 
-  widgets.push(...(await extraWidgets(todayStr())));
+  // The assistant (brief, then "what are you about to do?") is the first thing you see.
+  const extras = await extraWidgets(todayStr());
+  widgets.unshift(...extras.filter((w) => w.id === "assistant"));
+  widgets.push(...extras.filter((w) => w.id !== "assistant"));
   const ids = widgets.map((w) => w.id);
   const only = (show: string[]) => ids.filter((id) => !show.includes(id));
   const preset = (id: string, label: string, show: string[]): LayoutPreset => ({
@@ -246,8 +249,8 @@ export default async function CommandCenter() {
     { id: "balanced", label: "Balanced", order: ids, hidden: [] },
     preset("study", "Study", ["exam", "revision", "study", "focus", "priorities", "due", "trend", "agenda"]),
     preset("development", "Development", ["projects", "sessions", "priorities", "ideas", "agenda", "system", "focus"]),
-    preset("personal", "Personal", ["checkin", "dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
-    preset("minimal", "Minimal", ["checkin", "priorities", "focus", "exam"]),
+    preset("personal", "Personal", ["assistant", "checkin", "dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
+    preset("minimal", "Minimal", ["assistant", "checkin", "priorities", "focus", "exam"]),
   ];
 
   return (
