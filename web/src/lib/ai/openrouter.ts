@@ -135,6 +135,12 @@ async function waitBeforeRetry(attempt: number): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
 }
 
+/** Some free models wrap JSON in a markdown fence; unwrap it before parsing. */
+function stripJsonFence(text: string): string {
+  const match = /^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/i.exec(text);
+  return match ? match[1] : text;
+}
+
 async function zodResult<T>(schema: ZodType<T>, value: unknown): Promise<T> {
   const parsed = await schema.safeParseAsync(value);
   if (!parsed.success)
@@ -226,7 +232,7 @@ export async function chatJson<T>(
       throw new OpenRouterError("invalid_output", "OpenRouter returned no JSON content.");
     let json: unknown;
     try {
-      json = JSON.parse(content);
+      json = JSON.parse(stripJsonFence(content));
     } catch {
       throw new OpenRouterError("invalid_output", "OpenRouter returned invalid JSON.");
     }
