@@ -66,7 +66,9 @@ All modules share one SQLite database, one record-link table (`record_links`) an
 
 **Honesty rules.** Device and service status shows Unknown unless verified; progress figures are counts of real rows; reviews and the timeline are computed from records, with no estimates.
 
-**Tests.** `pnpm test` (node:test via tsx). `pnpm lint` needs eslint, which is not yet a declared dependency.
+**Checks.** `pnpm typecheck`, `pnpm lint`, `pnpm test` (node:test via tsx), `pnpm build`.
+
+**GitHub sync.** Optional and read-only: set `GITHUB_TOKEN` and a "Sync from GitHub" button appears on `/integrations`. It only calls `api.github.com` for projects whose repo URL is a plain `https://github.com/owner/repo`. Antigravity has no documented local format, so it is reported as unsupported.
 
 ## Sync API
 

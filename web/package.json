@@ -41,6 +41,7 @@
     "@types/node": "26.6.6",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "eslint": "^9.39.5",
     "eslint-config-next": "latest",
     "tsx": "^4.23.15",
     "typescript": "5.9.3"

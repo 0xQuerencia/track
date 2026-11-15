@@ -66,3 +66,19 @@ describe("in-app reminders", () => {
     assert.equal(reminders[0].date, "2026-11-15");
   });
 });
+
+describe("reminders with malformed rows", () => {
+  it("does not throw on a non-time start_time written through the generic form", async () => {
+    const { installTestDb, closeTestDb } = await import("../testing/test-db");
+    const { getDb } = await import("../db");
+    installTestDb();
+    try {
+      getDb()
+        .prepare(`INSERT INTO events (title, date, start_time, reminder_minutes, all_day) VALUES ('x', '2099-01-01', 'not a time', 30, 0)`)
+        .run();
+      assert.doesNotThrow(() => getUpcomingReminders(new Date("2098-12-31T00:00:00Z"), { zone: "UTC", windowHours: 72 }));
+    } finally {
+      closeTestDb();
+    }
+  });
+});

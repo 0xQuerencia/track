@@ -53,8 +53,10 @@ export function FocusTimer({ compact = false }: { compact?: boolean }) {
   const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
+    // Restoring a timer from localStorage must wait until after hydration.
     const stored = readStored();
     if (stored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from browser storage
       setStartedAt(stored.startedAt);
       setLabel(stored.label);
     }
@@ -62,6 +64,7 @@ export function FocusTimer({ compact = false }: { compact?: boolean }) {
 
   useEffect(() => {
     if (startedAt === null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync the clock when a timer starts
     setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);

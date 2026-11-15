@@ -52,9 +52,11 @@ export function getUpcomingReminders(now: Date = new Date(), options: ReminderOp
 
   const out: UpcomingReminder[] = [];
   for (const row of eventRowsInRange(getDb(), from, to, lookback)) {
-    if (row.reminder_minutes === null) continue;
+    if (row.reminder_minutes === null || !Number.isFinite(row.reminder_minutes)) continue;
     const minutes = row.reminder_minutes;
-    const clock = row.all_day === 1 || row.start_time === null ? ALL_DAY_REMINDER_TIME : row.start_time;
+    // Rows written through the generic entity form are not validated; a bad time must not crash the page.
+    const validTime = typeof row.start_time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(row.start_time);
+    const clock = row.all_day === 1 || !validTime ? ALL_DAY_REMINDER_TIME : (row.start_time as string);
     for (const occurrence of occurrencesInRange(
       { date: row.date, endDate: row.end_date, recurrence: row.recurrence, recurrenceUntil: row.recurrence_until },
       from,

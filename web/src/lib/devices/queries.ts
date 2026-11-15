@@ -14,9 +14,16 @@ export type ServiceRow = Row & {
 };
 
 const all = <T>(sql: string, ...params: SQLInputValue[]): T[] =>
-  getDb().prepare(sql).all(...params) as T[];
+  getDb()
+    .prepare(sql)
+    .all(...params)
+    // node:sqlite rows have a null prototype; client components need plain objects.
+    .map((row) => ({ ...row })) as T[];
 const one = <T>(sql: string, ...params: SQLInputValue[]): T | undefined =>
-  getDb().prepare(sql).get(...params) as T | undefined;
+  {
+  const row = getDb().prepare(sql).get(...params);
+  return row ? ({ ...row } as T) : undefined;
+};
 
 export const nowIso = (now: Date = new Date()): string => now.toISOString();
 

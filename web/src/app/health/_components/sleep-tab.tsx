@@ -1,7 +1,5 @@
 import { BarsChart, PALETTE, TrendChart } from "@/components/track/charts";
-import { EntityPanel } from "@/components/track/entity-panel";
 import { Panel, SplitPanels } from "@/components/track/page";
-import { listRows } from "@/lib/crud";
 import { shortDay, todayStr } from "@/lib/dates";
 import { monthlySeries } from "@/lib/health/trends";
 import { healthSeries } from "@/lib/queries";

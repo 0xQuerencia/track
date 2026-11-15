@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { recentRuns, listIntegrations } from "@/lib/integrations/store";
 import { nowIso } from "@/lib/integrations/time";
 import { IntegrationCard } from "./_components/integration-card";
+import { syncGithubAction } from "./actions";
 import { PasteImport } from "./_components/paste-import";
 import "@/styles/integrations.css";
 
@@ -33,6 +34,14 @@ export default function IntegrationsPage() {
           <IntegrationCard key={row.key} row={row} runs={recentRuns(db, row.key, 5)} />
         ))}
       </section>
+
+      {process.env.GITHUB_TOKEN ? (
+        <Panel title="GitHub" description="Read-only. Pulls recent commits, pull requests, issues and releases for projects whose repository is on github.com.">
+          <form action={syncGithubAction}>
+            <button type="submit" className="tk-button">Sync from GitHub</button>
+          </form>
+        </Panel>
+      ) : null}
 
       <Panel title="Paste by hand" description="For reports you copied from a file. The same validation applies as to the connector.">
         <PasteImport kind="sessions" />

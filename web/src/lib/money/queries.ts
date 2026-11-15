@@ -11,7 +11,11 @@ import type { TransactionExportRow } from "./csv";
  */
 
 const all = <T>(sql: string, ...params: SQLInputValue[]): T[] =>
-  getDb().prepare(sql).all(...params) as T[];
+  getDb()
+    .prepare(sql)
+    .all(...params)
+    // node:sqlite rows have a null prototype; client components need plain objects.
+    .map((row) => ({ ...row })) as T[];
 
 /** The spending categories the transactions form offers. */
 export function transactionCategories(): readonly string[] {

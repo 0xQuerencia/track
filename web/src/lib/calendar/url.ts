@@ -7,7 +7,7 @@ import {
   type CalendarView,
   type EventCategory,
 } from "./model";
-import { addDays, addMonths, monthGridDays, startOfMonth, startOfWeek } from "./time";
+import { addDays, addMonths, monthGridDays, startOfWeek } from "./time";
 
 /*
  * Calendar state lives in the URL: ?view=&date=&cat=&src=, plus ?event=<id>

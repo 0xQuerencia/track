@@ -296,3 +296,7 @@
     animation: none !important;
   }
 }
+
+/* Dashboard widgets can be dragged while customizing. */
+.tk-widget[draggable="true"] { cursor: grab; }
+.tk-widget[data-dragging] { opacity: 0.45; }

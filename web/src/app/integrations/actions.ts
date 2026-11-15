@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 import { getDb } from "@/lib/db";
 import { isIntegrationKey, type IntegrationKey } from "@/lib/integrations/catalog";
 import { MAX_PASTE_CHARACTERS } from "@/lib/integrations/limits";
+import { syncGithubProjects } from "@/lib/integrations/github";
 import { ingestRepoEventsManual } from "@/lib/integrations/ingest";
 import { getIntegration, setEnabled, setStoreSummaries } from "@/lib/integrations/store";
 import { nowIso } from "@/lib/integrations/time";
@@ -90,4 +91,11 @@ export async function importRepoEventsPasteAction(
   if (!result.ok) return { ok: false, message: result.error };
   refresh();
   return { ok: true, message: `${result.message} ${result.counts.inserted ?? 0} new, ${result.counts.updated ?? 0} updated.` };
+}
+
+/** Pulls recent commits, PRs, issues and releases for projects with a github.com repo. Needs GITHUB_TOKEN on the server. */
+export async function syncGithubAction(): Promise<void> {
+  if (!(await allowed())) return;
+  await syncGithubProjects(getDb(), process.env.GITHUB_TOKEN);
+  refresh();
 }
