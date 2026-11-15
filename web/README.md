@@ -47,6 +47,10 @@ Put it behind HTTPS and set `TRACK_COOKIE_SECURE=1`. With a reverse proxy, set `
 | `TRACK_COOKIE_SECURE` | `1` to mark the session cookie `Secure`. |
 | `TRACK_PUBLIC_URL` | Public base URL when behind a proxy. |
 
+### Optional AI features
+
+Set `OPENROUTER_API_KEY` to enable OpenRouter, then opt in per feature under **Settings → AI and privacy**. The default model is [`z-ai/glm-5.3-flash`](https://openrouter.ai/z-ai/glm-5.3-flash); `OPENROUTER_MODEL` can select another OpenRouter model slug. `TRACK_AI_DISABLED=1` blocks all AI requests regardless of saved consent. Consent starts off. AI call history records only the feature, model, time, token counts and result code; prompts and responses are not stored. Features must show the redacted excerpts they intend to send before requesting them.
+
 ## Life OS modules
 
 All modules share one SQLite database, one record-link table (`record_links`) and one search index. Everything is web-only; the Android API is unchanged.

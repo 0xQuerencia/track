@@ -1,15 +1,21 @@
 import { Page, Panel, SplitPanels } from "@/components/track/page";
 import { getDb } from "@/lib/db";
+import { getAiStatus, getRecentAiCalls } from "@/lib/ai";
 import { listTokens } from "@/lib/integrations/tokens";
 import { formatWhen } from "@/lib/sessions/format";
 import { TokenForm } from "./_components/token-form";
+import { AiSettingsPanel } from "./_components/ai-settings-panel";
 import { revokeIntegrationTokenAction } from "./actions";
 import "@/styles/integrations.css";
+import "./ai-settings.css";
 
 export const dynamic = "force-dynamic";
 
 export default function SettingsPage() {
-  const tokens = listTokens(getDb());
+  const db = getDb();
+  const tokens = listTokens(db);
+  const aiStatus = getAiStatus(db);
+  const aiCalls = getRecentAiCalls(db);
   const active = tokens.filter((token) => token.revokedAt === null);
 
   return (
@@ -65,6 +71,8 @@ export default function SettingsPage() {
           )}
         </Panel>
       </SplitPanels>
+
+      <AiSettingsPanel status={aiStatus} calls={aiCalls} />
 
       <Panel title="Backup and export" description="Track is one SQLite file. Back it up while nothing is writing to it.">
         <ul className="set-list">

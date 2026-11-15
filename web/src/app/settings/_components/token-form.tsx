@@ -9,6 +9,7 @@ const SCOPE_TEXT: Record<IntegrationScope, string> = {
   "sessions:write": "Send session metadata (connector sessions push)",
   "projects:write": "Send project inventory (connector inventory push)",
   "metadata:write": "Heartbeat only (connector ping)",
+  "dreamer:run": "Run the local Dreamer daily cycle (scheduled trigger)",
 };
 
 /** Creates a token and shows it once, with a copy button. Closing the page loses it for good. */

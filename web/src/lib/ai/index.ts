@@ -1,4 +1,13 @@
 import type { DatabaseSync } from "node:sqlite";
+import { chatJson as sendChatJson } from "./openrouter";
+import {
+  assertAiAllowed,
+  getAiStatus as readAiStatus,
+  getConsent as readConsent,
+  setConsent as writeConsent,
+} from "./policy";
+import { buildDisclosure as createDisclosure, messagesFromDisclosure, redactForAi } from "./redact-for-ai";
+import { getRecentAiCalls } from "./usage";
 import type {
   AiConsent,
   AiDisclosure,
@@ -12,56 +21,49 @@ import type {
 } from "./types";
 
 export type * from "./types";
+export { AiPolicyError } from "./policy";
+export { OpenRouterError } from "./openrouter";
+export { DEFAULT_OPENROUTER_MODEL, OPENROUTER_API_URL } from "./config";
+export { getRecentAiCalls, messagesFromDisclosure };
+export type { AiCallRecord } from "./usage";
 
-/*
- * STUB owned by the AI-client agent: replace each body with the real
- * implementation (openrouter.ts, policy.ts, redact-for-ai.ts) and keep these
- * exported names and signatures stable, because Dreamer is being built against them.
- */
-
+/* These exports are server-side only. Never import this module from a client component. */
 export async function chatJson<T>(
-  _request: ChatJsonRequest<T>,
-  _deps?: ChatJsonDeps,
+  request: ChatJsonRequest<T>,
+  deps?: ChatJsonDeps,
 ): Promise<ChatJsonResult<T>> {
-  return { ok: false, code: "not_configured", message: "AI client not implemented yet." };
+  return sendChatJson(request, deps);
 }
 
-export function getAiStatus(_db: DatabaseSync): AiStatus {
-  return { keyConfigured: false, killSwitch: false, defaultModel: "", consents: [] };
+export function getAiStatus(db: DatabaseSync): AiStatus {
+  return readAiStatus(db);
 }
 
-export function getConsent(_db: DatabaseSync, feature: AiFeature): AiConsent {
-  return {
-    feature,
-    enabled: false,
-    provider: "openrouter",
-    model: null,
-    grantedAt: null,
-    revokedAt: null,
-    scope: { allowDailyCycle: false, maxExcerptChars: 280 },
-  };
+export function getConsent(db: DatabaseSync, feature: AiFeature): AiConsent {
+  return readConsent(db, feature);
 }
 
 export function setConsent(
-  _db: DatabaseSync,
-  _feature: AiFeature,
-  _enabled: boolean,
-  _scope?: Partial<ConsentScope>,
+  db: DatabaseSync,
+  feature: AiFeature,
+  enabled: boolean,
+  scope?: Partial<ConsentScope>,
 ): AiConsent {
-  throw new Error("AI client not implemented yet.");
+  return writeConsent(db, feature, enabled, scope);
 }
 
-/** Strips emails, phone numbers, token-bearing URLs, long digit runs and @handles, then truncates. */
-export function redactForAi(text: string, maxChars: number): string {
-  return text.slice(0, maxChars);
-}
+/** Strips direct identifiers and token-bearing URLs, then truncates the excerpt. */
+export { redactForAi };
 
-/** Describes exactly what a request would send. Must be built from the same items the request uses. */
+/** Describes exactly the redacted text that messagesFromDisclosure serializes. */
 export function buildDisclosure(
   feature: AiFeature,
   purpose: string,
   model: string,
   items: readonly AiDisclosureItem[],
 ): AiDisclosure {
-  return { feature, purpose, model, items, totalChars: items.reduce((n, i) => n + i.text.length, 0) };
+  return createDisclosure(feature, purpose, model, items);
 }
+
+/* Re-exported so server-side callers can use the single policy gate directly. */
+export { assertAiAllowed };
