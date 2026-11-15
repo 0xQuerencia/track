@@ -5,10 +5,14 @@ import { Page, Panel } from "@/components/track/page";
 import { shortDay } from "@/lib/dates";
 import { listLinks } from "@/lib/links";
 import { collectionOptions, getNote } from "@/lib/knowledge/queries";
+import { getDb } from "@/lib/db";
+import { isEntryEnabled } from "@/lib/dreamer/queries";
 import { hrefWith } from "@/lib/knowledge/params";
 import "@/styles/knowledge.css";
+import "@/styles/dreamer.css";
 import { Backlinks } from "../_components/backlinks";
 import { NoteEditor, NoteToolbar } from "../_components/note-editor";
+import { DreamerSourceToggle } from "@/app/dreamer/source-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +38,7 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
       </p>
 
       <NoteToolbar id={note.id} title={note.title} pinned={note.pinned === 1} />
+      <DreamerSourceToggle source="note" refId={String(note.id)} enabled={isEntryEnabled(getDb(), "note", String(note.id))} />
 
       <div className="kn-detail">
         <Panel title="Note" description="Edits autosave as a local draft until you save.">

@@ -15,6 +15,7 @@ export const INTEGRATION_SCOPES = [
   "sessions:write",
   "projects:write",
   "metadata:write",
+  "dreamer:run",
 ] as const;
 export type IntegrationScope = (typeof INTEGRATION_SCOPES)[number];
 

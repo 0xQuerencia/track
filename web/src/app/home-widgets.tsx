@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { WidgetSpec } from "@/components/track/widget-board";
+import { Markdown } from "@/components/track/markdown";
+import "@/styles/dreamer.css";
 import { getUpcomingItems } from "@/lib/calendar/aggregate";
 import { getUpcomingOpportunities } from "@/lib/career";
 import { shortDay } from "@/lib/dates";
@@ -7,6 +9,9 @@ import { getDeviceSummary, getServiceStatuses } from "@/lib/devices";
 import { getExpiringDocuments } from "@/lib/documents";
 import { getDb } from "@/lib/db";
 import { getMoneySnapshot } from "@/lib/money";
+import { runDailyCycle } from "@/lib/dreamer/cycle";
+import { dailyBrief } from "@/lib/dreamer/queries";
+import { getSourceSetting } from "@/lib/dreamer/engine";
 import { getGoalSummaries, getOverdueTasks } from "@/lib/plans";
 import { getRevisionQueue, getTodayStudyTargets } from "@/lib/study";
 
@@ -21,7 +26,11 @@ const rows = (sql: string, ...params: (string | number)[]): Row[] =>
 
 const Empty = ({ children }: { children: React.ReactNode }) => <p className="tk-empty">{children}</p>;
 
-export function extraWidgets(today: string): WidgetSpec[] {
+export async function extraWidgets(today: string): Promise<WidgetSpec[]> {
+  const db = getDb();
+  await runDailyCycle(db);
+  const dreamerBrief = dailyBrief(db, today);
+  const sourcesEnabled = (["journal", "note", "idea"] as const).some((source) => getSourceSetting(db, source));
   const month = today.slice(0, 7);
   const agenda = getUpcomingItems(7).slice(0, 6);
   const overdue = getOverdueTasks(today);
@@ -48,6 +57,19 @@ export function extraWidgets(today: string): WidgetSpec[] {
   );
 
   return [
+    {
+      id: "dreamer",
+      title: "Dreamer · morning brief",
+      wide: true,
+      content: dreamerBrief ? (
+        <>
+          <Markdown source={dreamerBrief} className="dreamer-widget-brief" />
+          <p className="tk-widget-foot"><Link href="/dreamer">Review evidence and suggestions →</Link></p>
+        </>
+      ) : (
+        <Empty>{sourcesEnabled ? "Nothing new since the last local scan." : "Dreamer is paused. Enable a source in Sources & Privacy."} <Link href="/dreamer">Open Dreamer.</Link></Empty>
+      ),
+    },
     {
       id: "agenda",
       title: "Agenda, next 7 days",

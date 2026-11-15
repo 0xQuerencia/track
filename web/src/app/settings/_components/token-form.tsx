@@ -41,7 +41,7 @@ export function TokenForm() {
           <legend>Scopes</legend>
           {INTEGRATION_SCOPES.map((scope) => (
             <label key={scope} className="set-scope">
-              <input type="checkbox" name="scope" value={scope} defaultChecked={scope !== "projects:write"} disabled={pending} />
+              <input type="checkbox" name="scope" value={scope} defaultChecked={scope !== "projects:write" && scope !== "dreamer:run"} disabled={pending} />
               <span>
                 <code>{scope}</code> {SCOPE_TEXT[scope]}
               </span>
@@ -62,8 +62,9 @@ export function TokenForm() {
       {state?.ok && state.token ? (
         <div className="set-once" role="region" aria-label="New token">
           <p>
-            Token for <strong>{state.label}</strong>. Put it in the <code>TRACK_CONNECTOR_TOKEN</code> environment
-            variable on that machine. It is not stored here, so it cannot be shown again.
+            Token for <strong>{state.label}</strong>. {state.scopes.includes("dreamer:run")
+              ? <>Store it in a restricted environment file for the scheduled <code>POST /api/dreamer/run</code> job. It is not stored here, so it cannot be shown again.</>
+              : <>Put it in the <code>TRACK_CONNECTOR_TOKEN</code> environment variable on that machine. It is not stored here, so it cannot be shown again.</>}
           </p>
           <code className="set-token" data-testid="new-token">{state.token}</code>
           <button type="button" className="tk-button" onClick={() => copy(state.token as string)}>

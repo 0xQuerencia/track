@@ -1,0 +1,116 @@
+/* Dreamer inherits Track's graphite surfaces, sage accent and compact control language. */
+.dreamer-tabs {
+  display: flex;
+  gap: 0.2rem;
+  max-width: 100%;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+}
+
+.dreamer-tabs a {
+  flex: 0 0 auto;
+  padding: 0.7rem 0.85rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dreamer-tabs a:hover { color: var(--text-1); }
+.dreamer-tabs a[aria-current="page"] { border-color: var(--accent-ink); color: var(--text-1); font-weight: 600; }
+.dreamer-tabs a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; border-radius: var(--radius-tag); }
+
+.dreamer-brief { max-width: 72ch; color: var(--text-1); line-height: 1.6; }
+.dreamer-brief > :first-child { margin-top: 0; }
+.dreamer-run-meta, .dreamer-muted { margin: 0; color: var(--text-3); font-size: 0.82rem; }
+.dreamer-run-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1.1rem; }
+.dreamer-run-form label, .dreamer-consent-form label { display: inline-flex; align-items: flex-start; gap: 0.55rem; color: var(--text-2); }
+.dreamer-tab-link { margin: 0; }
+.dreamer-tab-link a, .dreamer-evidence-list a { color: var(--accent-ink); text-underline-offset: 0.2em; }
+.dreamer-notice { max-width: 72ch; color: var(--warning); }
+
+.dreamer-cards { display: grid; gap: 1.1rem; }
+.dreamer-card { display: grid; gap: 0.8rem; min-width: 0; padding: 1rem 0; border-top: 1px solid var(--line-strong); }
+.dreamer-card:first-child { border-top: 0; padding-top: 0; }
+.dreamer-card header h3 { margin: 0; max-width: 68ch; font-size: 1.1rem; line-height: 1.35; }
+.dreamer-card header .tk-kicker { margin: 0 0 0.35rem; color: var(--text-3); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.dreamer-card > p, .dreamer-card > small { margin: 0; }
+.dreamer-ai-label { color: var(--warning); font-size: 0.85rem; }
+.dreamer-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.dreamer-actions form { margin: 0; }
+.dreamer-actions .tk-button { white-space: normal; }
+
+.dreamer-evidence-list { display: grid; gap: 0.55rem; margin: 0.2rem 0 0; padding: 0; list-style: none; }
+.dreamer-evidence-list li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 0.5rem; align-items: start; color: var(--text-2); font-size: 0.9rem; }
+.dreamer-evidence-list time { font-variant-numeric: tabular-nums; }
+.dreamer-evidence-list q { overflow-wrap: anywhere; }
+.dreamer-evidence-list q::before, .dreamer-evidence-list q::after { color: var(--text-3); }
+
+.dreamer-correct-form { display: grid; gap: 0.55rem; max-width: 62ch; }
+.dreamer-correct-form label, .dreamer-delete-form label { display: grid; gap: 0.4rem; color: var(--text-2); }
+.dreamer-correct-form textarea, .dreamer-delete-form input { width: 100%; padding: 0.65rem 0.75rem; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface-1); color: var(--text-1); font: inherit; }
+.dreamer-correct-form textarea { min-height: 5rem; resize: vertical; }
+.dreamer-correct-form :focus-visible, .dreamer-delete-form input:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+
+.dreamer-evidence-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
+.dreamer-evidence-split section { min-width: 0; }
+.dreamer-evidence-split h4 { margin: 0 0 0.45rem; color: var(--accent-ink); font-size: 0.88rem; }
+.dreamer-evidence-split p { margin: 0.4rem 0; color: var(--text-2); }
+.dreamer-evidence-split dl { display: grid; grid-template-columns: minmax(7rem, auto) minmax(0, 1fr); gap: 0.35rem 0.7rem; margin: 0; }
+.dreamer-evidence-split dt { color: var(--text-3); }
+.dreamer-evidence-split dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.dreamer-feedback { padding-top: 0.2rem; }
+
+.dreamer-graph-list { display: grid; gap: 1rem; margin: 0; padding-left: 1.25rem; }
+.dreamer-graph-list > li { display: grid; gap: 0.6rem; padding: 0.35rem 0 1rem; border-bottom: 1px solid var(--line); }
+.dreamer-graph-list li > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.2rem; overflow-wrap: anywhere; }
+.dreamer-graph-list li > div:first-child span { display: none; }
+.dreamer-graph-list small { color: var(--text-3); }
+
+.dreamer-source-list { display: grid; }
+.dreamer-filter-form { display: flex; flex-wrap: wrap; align-items: end; gap: 0.7rem; margin-bottom: 0.35rem; }
+.dreamer-filter-form label { display: grid; gap: 0.3rem; color: var(--text-2); font-size: 0.85rem; }
+.dreamer-filter-form select { min-width: 10rem; padding: 0.5rem 0.65rem; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface-1); color: var(--text-1); font: inherit; }
+.dreamer-source-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.7rem 0; border-bottom: 1px solid var(--line); }
+.dreamer-source-row:first-child { padding-top: 0; }
+.dreamer-source-row > div { display: grid; gap: 0.18rem; }
+.dreamer-source-row small, .dreamer-entry-list small { color: var(--text-3); }
+.dreamer-exclusion-form { display: grid; gap: 0.85rem; margin: 1rem 0; }
+.dreamer-exclusion-form fieldset { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; min-width: 0; padding: 0.8rem; border: 1px solid var(--line); border-radius: var(--radius-card); }
+.dreamer-exclusion-form legend { padding: 0 0.35rem; color: var(--text-2); font-size: 0.85rem; }
+.dreamer-exclusion-form label { display: inline-flex; align-items: center; gap: 0.4rem; }
+.dreamer-entry-list { display: grid; gap: 0.25rem; max-height: 28rem; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.dreamer-entry-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 0.7rem; align-items: center; padding: 0.55rem 0; border-bottom: 1px solid var(--line); }
+.dreamer-entry-list li > a { min-width: 0; overflow: hidden; color: var(--text-1); text-overflow: ellipsis; white-space: nowrap; }
+.dreamer-entry-list li > small { grid-column: 1; }
+.dreamer-entry-list li > form { grid-column: 2; grid-row: 1 / span 2; }
+.dreamer-status { display: grid; grid-template-columns: minmax(8rem, auto) minmax(0, 1fr); gap: 0.45rem 0.8rem; max-width: 40rem; margin: 0; }
+.dreamer-status dt { color: var(--text-3); }
+.dreamer-status dd { margin: 0; overflow-wrap: anywhere; }
+.dreamer-consent-form { display: grid; gap: 0.65rem; padding: 1rem 0; }
+.dreamer-consent-form .tk-empty-small { margin: 0; }
+.dreamer-disclosure { max-width: 72ch; padding-top: 0.8rem; border-top: 1px solid var(--line); }
+.dreamer-disclosure summary { color: var(--accent-ink); cursor: pointer; }
+.dreamer-disclosure > p { color: var(--text-2); }
+.dreamer-disclosure ol { display: grid; gap: 0.8rem; padding-left: 1.4rem; }
+.dreamer-disclosure li { display: grid; gap: 0.25rem; }
+.dreamer-disclosure small { color: var(--text-3); }
+.dreamer-disclosure q { color: var(--text-1); overflow-wrap: anywhere; }
+.dreamer-delete-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.8rem; align-items: end; max-width: 52rem; }
+.dreamer-source-toggle { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.55rem; padding: 0.6rem 0; color: var(--text-3); font-size: 0.85rem; }
+.dreamer-widget-brief { max-height: 12rem; overflow: auto; color: var(--text-2); font-size: 0.9rem; }
+.dreamer-widget-brief > :first-child { margin-top: 0; }
+
+@media (max-width: 720px) {
+  .dreamer-evidence-split { grid-template-columns: minmax(0, 1fr); }
+  .dreamer-evidence-list li { grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
+  .dreamer-delete-form { grid-template-columns: minmax(0, 1fr); }
+  .dreamer-entry-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .dreamer-actions .tk-button { padding: 0.45rem 0.6rem; font-size: 0.78rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dreamer-tabs a { transition: none; }
+}

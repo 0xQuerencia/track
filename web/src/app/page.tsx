@@ -38,7 +38,7 @@ export const dynamic = "force-dynamic";
 
 const num = (value: unknown) => (typeof value === "number" ? value : null);
 
-export default function CommandCenter() {
+export default async function CommandCenter() {
   const priorities = topPriorities(3);
   const dueToday = tasksDueByToday();
   const exam = nextExam();
@@ -233,7 +233,7 @@ export default function CommandCenter() {
     },
   ];
 
-  widgets.push(...extraWidgets(todayStr()));
+  widgets.push(...(await extraWidgets(todayStr())));
   const ids = widgets.map((w) => w.id);
   const only = (show: string[]) => ids.filter((id) => !show.includes(id));
   const preset = (id: string, label: string, show: string[]): LayoutPreset => ({
@@ -246,7 +246,7 @@ export default function CommandCenter() {
     { id: "balanced", label: "Balanced", order: ids, hidden: [] },
     preset("study", "Study", ["exam", "revision", "study", "focus", "priorities", "due", "trend", "agenda"]),
     preset("development", "Development", ["projects", "sessions", "priorities", "ideas", "agenda", "system", "focus"]),
-    preset("personal", "Personal", ["agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
+    preset("personal", "Personal", ["dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
     preset("minimal", "Minimal", ["priorities", "focus", "exam"]),
   ];
 

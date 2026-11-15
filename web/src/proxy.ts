@@ -9,6 +9,8 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/api/v1/")) return NextResponse.next();
   // Connector routes check their own scoped bearer token (fail closed) in each handler.
   if (pathname.startsWith("/api/integrations/")) return NextResponse.next();
+  // Dreamer automation routes check their own dreamer:run bearer token in the handler.
+  if (pathname.startsWith("/api/dreamer/")) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (token && (await verifySessionToken(token))) return NextResponse.next();

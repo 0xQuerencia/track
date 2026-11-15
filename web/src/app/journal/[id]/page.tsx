@@ -1,4 +1,5 @@
 import "@/styles/journal.css";
+import "@/styles/dreamer.css";
 import { notFound } from "next/navigation";
 import { Markdown } from "@/components/track/markdown";
 import { Page, Panel } from "@/components/track/page";
@@ -6,6 +7,9 @@ import { RelatedLinks } from "@/components/track/related-links";
 import { shortDay } from "@/lib/dates";
 import { getJournalEntry, allJournalTags, type JournalRow } from "@/lib/journal/entries";
 import { listLinks } from "@/lib/links";
+import { getDb } from "@/lib/db";
+import { isEntryEnabled } from "@/lib/dreamer/queries";
+import { DreamerSourceToggle } from "@/app/dreamer/source-toggle";
 import { JournalComposer } from "../_components/journal-composer";
 import { JournalDeleteButton } from "../_components/journal-delete-button";
 
@@ -33,6 +37,7 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
         <div className="journal-entry-actions">
           <JournalDeleteButton id={entry.id} />
         </div>
+        <DreamerSourceToggle source="journal" refId={String(entry.id)} enabled={isEntryEnabled(getDb(), "journal", String(entry.id))} />
       </Panel>
       <Panel title="Edit">
         <JournalComposer
