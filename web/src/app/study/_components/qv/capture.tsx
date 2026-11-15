@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ingestAction, languagesAction, saveDraftsAction, setVaultAiAction } from "../../vault-actions";
 import { DIFFICULTIES, EXAM_CATEGORIES, QUESTION_TYPES, SOURCES } from "@/lib/qv/constants";
 import type { Draft } from "@/lib/qv/ingest";
+import { MathText } from "@/components/track/math-text";
 import type { ChapterChoice } from "./ui";
 
 type Card = {
@@ -225,6 +226,7 @@ function DraftEditor({ card, index, chapters, patch, onRemove, onSplit, onCrop }
           <label className="tk-field"><span>Question text</span>
             <textarea ref={area} rows={6} value={card.text} onChange={(e) => patch({ text: e.target.value })} maxLength={8000} />
           </label>
+          {card.text.includes("\\(") || card.text.includes("\\[") ? <div><span className="st-inline-note">Preview</span><MathText className="qv-text qv-math" text={card.text} /></div> : null}
           <div className="st-actions">
             <button type="button" className="tk-button tk-ghost" onClick={() => area.current && onSplit(area.current.selectionStart)}>Split at cursor</button>
             <button type="button" className="tk-button tk-ghost" onClick={onRemove}>Remove</button>

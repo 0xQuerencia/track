@@ -168,3 +168,8 @@ kbd { font-family: var(--font-mono); font-size: 0.7rem; border: 1px solid var(--
 .qv-bars, .qv-activity { max-width: 100%; overflow-x: auto; }
 .qv-bars li { min-width: 22px; }
 .qv-bar-val, .qv-bar-label { font-size: 0.6rem; white-space: nowrap; }
+
+/* Typeset maths inside question text. */
+.qv-math { font-family: var(--font-sans); font-size: 0.95rem; line-height: 1.7; }
+.qv-math .katex, .qv-run-text .katex { font-size: 1.05em; }
+.qv-math .katex-display, .qv-run-text .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; }

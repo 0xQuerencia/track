@@ -4,6 +4,7 @@ import { StatCard } from "@/components/track/stat-card";
 import { getAiStatus } from "@/lib/ai";
 import { getDb } from "@/lib/db";
 import { MISTAKE_CATEGORIES, MODES, MODE_LABEL, SOURCES, type QState } from "@/lib/qv/constants";
+import { plainMath } from "@/lib/qv/math";
 import { imageIdsFor } from "@/lib/qv/images";
 import { insights, mistakePatterns, repeatOffenders, weeklySummary } from "@/lib/qv/insights";
 import { jobStatus } from "@/lib/qv/jobs";
@@ -154,7 +155,7 @@ export function ReviewTab() {
           {rows.length ? [...byChapter].map(([name, list]) => (
             <div key={name}>
               <h3 className="st-subhead">{name} ({list.length})</h3>
-              <ul className="qv-queue">{list.map((q) => <li key={q.id}><StateBadge state={q.state} /> <span>{q.text.replace(/\s+/g, " ").slice(0, 90) || "(screenshot)"}</span> <small>{when(q.next_review, today)}</small></li>)}</ul>
+              <ul className="qv-queue">{list.map((q) => <li key={q.id}><StateBadge state={q.state} /> <span>{plainMath(q.text).replace(/\s+/g, " ").slice(0, 90) || "(screenshot)"}</span> <small>{when(q.next_review, today)}</small></li>)}</ul>
             </div>
           )) : <p className="st-inline-note">Nothing is due. Grade some questions and they will come back here on schedule.</p>}
         </Panel>
@@ -183,7 +184,7 @@ export function NotebookTab() {
         <Panel title="Mistakes by type"><HBars data={cats.map((c) => ({ label: c.category, value: c.n }))} /></Panel>
       </SplitPanels>
       {repeats.length ? <Panel title="Keep failing" description="Red twice or lapsed twice.">
-        <ul className="qv-queue">{repeats.map((q) => <li key={q.id}><a href={`#qv-${q.id}`}>{q.text.replace(/\s+/g, " ").slice(0, 100) || "(screenshot)"}</a> <small>red {q.reds}x, lapsed {q.lapses}x</small></li>)}</ul></Panel> : null}
+        <ul className="qv-queue">{repeats.map((q) => <li key={q.id}><a href={`#qvn-${q.id}`}>{plainMath(q.text).replace(/\s+/g, " ").slice(0, 100) || "(screenshot)"}</a> <small>red {q.reds}x, lapsed {q.lapses}x</small></li>)}</ul></Panel> : null}
       <Panel title={`Red (${rows.length})`} description="Could not solve alone. Add your own explanation and corrected solution when you understand it.">
         {rows.length ? <Cards rows={rows} chapters={chapters} today={today} notebook /> : <p className="st-inline-note">No red questions.</p>}
       </Panel>

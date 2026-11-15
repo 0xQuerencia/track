@@ -5,6 +5,8 @@ import { deleteQuestionAction, updateQuestionAction, type Msg } from "../../vaul
 import { DIFFICULTIES, EXAM_CATEGORIES, MISTAKE_CATEGORIES, QUESTION_TYPES, SOURCES } from "@/lib/qv/constants";
 import type { Attempt, Question } from "@/lib/qv/store";
 import { GradeBar } from "./grade-bar";
+import { MathText } from "@/components/track/math-text";
+import { clipMath } from "@/lib/qv/math";
 import { StateBadge, when, type ChapterChoice } from "./ui";
 
 type Props = { question: Question; imageIds: number[]; attempts: Attempt[]; chapters: ChapterChoice[]; today: string; notebook?: boolean };
@@ -15,14 +17,14 @@ export function QuestionCard({ question: q, imageIds, attempts, chapters, today,
   const [reveal, setReveal] = useState(false);
   const [state, action, pending] = useActionState<Msg, FormData>(updateQuestionAction, null);
   const [, startDelete] = useTransition();
-  const snippet = q.text.replace(/\s+/g, " ").slice(0, 140) || "(screenshot only)";
+  const snippet = clipMath(q.text, 140) || "(screenshot only)";
 
   return (
-    <article className="qv-card" id={`qv-${q.id}`} data-state={q.state}>
+    <article className="qv-card" id={notebook ? `qvn-${q.id}` : `qv-${q.id}`} data-state={q.state}>
       <header className="qv-card-head">
         <StateBadge state={q.state} />
         <button type="button" className="qv-card-title" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-          {snippet}
+          <MathText inline text={snippet} />
         </button>
         <span className="qv-meta">{when(q.next_review, today)}</span>
       </header>
@@ -45,7 +47,7 @@ export function QuestionCard({ question: q, imageIds, attempts, chapters, today,
               ))}
             </div>
           ) : null}
-          {q.text ? <pre className="qv-text">{q.text}</pre> : null}
+          {q.text ? <MathText className="qv-text qv-math" text={q.text} /> : null}
           {q.correct_answer || q.solution ? (
             <div>
               <button type="button" className="tk-button tk-ghost" onClick={() => setReveal((r) => !r)}>
@@ -54,7 +56,7 @@ export function QuestionCard({ question: q, imageIds, attempts, chapters, today,
               {reveal ? (
                 <div className="qv-solution">
                   {q.correct_answer ? <p><strong>Answer:</strong> {q.correct_answer}</p> : null}
-                  {q.solution ? <pre className="qv-text">{q.solution}</pre> : null}
+                  {q.solution ? <MathText className="qv-text qv-math" text={q.solution} /> : null}
                 </div>
               ) : null}
             </div>
