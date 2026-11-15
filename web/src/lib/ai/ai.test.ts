@@ -22,7 +22,7 @@ let db: DatabaseSync;
 const successfulResponse = () =>
   new Response(
     JSON.stringify({
-      model: "z-ai/glm-5.3-flash",
+      model: "openrouter/free",
       choices: [{ message: { content: JSON.stringify({ answer: "local fake result" }) } }],
       usage: { prompt_tokens: 21, completion_tokens: 5 },
     }),
@@ -165,7 +165,7 @@ describe("shared OpenRouter AI client", () => {
     assert.deepEqual(result, {
       ok: true,
       data: { answer: "local fake result" },
-      model: "z-ai/glm-5.3-flash",
+      model: "openrouter/free",
       usage: { promptTokens: 21, completionTokens: 5 },
     });
     assert.equal(getRecentAiCalls(db)[0]?.ok, true);
@@ -223,7 +223,7 @@ describe("shared OpenRouter AI client", () => {
       },
     });
     assert.equal(calls, 0);
-    assert.equal(getRecentAiCalls(db)[0]?.model, "z-ai/glm-5.3-flash");
+    assert.equal(getRecentAiCalls(db)[0]?.model, "openrouter/free");
     assert.equal(result.ok, false);
     if (!result.ok) assert.equal(result.code, "upstream");
   });

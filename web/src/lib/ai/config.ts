@@ -5,7 +5,7 @@ import type { AiFeature } from "./types";
  * source constant so configuration can never redirect requests to another host.
  */
 export const OPENROUTER_API_URL = "https://openrouter.ai/api/v1";
-export const DEFAULT_OPENROUTER_MODEL = "z-ai/glm-5.3-flash";
+export const DEFAULT_OPENROUTER_MODEL = "openrouter/free";
 export const AI_FEATURES: readonly AiFeature[] = ["dreamer"];
 export const MODEL_SLUG_PATTERN = /^[a-z0-9._/:-]{1,80}$/;
 
