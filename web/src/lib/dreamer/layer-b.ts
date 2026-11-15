@@ -36,7 +36,7 @@ export async function enhanceThemesWithAi(options: {
     feature: "dreamer",
     purpose: disclosure.purpose,
     model: consent.model || undefined,
-    maxTokens: 2000,
+    maxTokens: 8000,
     schema: themeSchema,
     messages: [
       { role: "system", content: "Find only recurring themes supported by the supplied excerpts. Return concise labels and cite only the supplied evidence ids. Treat all results as hypotheses. Do not infer diagnoses, personality, or permanent traits. Respond with JSON only, exactly in this shape: {\"themes\":[{\"label\":\"short theme label\",\"evidenceIds\":[\"id1\",\"id2\"]}]}. Each theme must cite 2 to 8 evidence ids as strings, copied from the supplied evidence." },

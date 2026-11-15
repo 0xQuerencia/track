@@ -16,7 +16,7 @@ import type { ChatJsonRequest } from "./types";
 import { closeTestDb, installTestDb } from "../testing/test-db";
 import type { DatabaseSync } from "node:sqlite";
 
-const ENV_KEYS = ["AI_API_KEY", "AI_BASE_URL", "AI_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "TRACK_AI_DISABLED", "TRACK_PUBLIC_URL"] as const;
+const ENV_KEYS = ["AI_API_KEY", "AI_BASE_URL", "AI_MODEL", "AI_EFFORT", "AI_FALLBACK_API_KEY", "AI_FALLBACK_BASE_URL", "AI_FALLBACK_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "TRACK_AI_DISABLED", "TRACK_PUBLIC_URL"] as const;
 let oldEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
 let db: DatabaseSync;
 
@@ -225,6 +225,50 @@ describe("shared AI client", () => {
       },
     });
     assert.equal(sentModel, "cx/gpt-6-luna");
+    assert.equal(result.ok, true);
+  });
+
+  it("always asks the primary model for extra-high effort", async () => {
+    configureAndConsent();
+    let body: { reasoning_effort?: string } = {};
+    await chatJson(makeRequest(), { db, fetch: async (_u, init) => { body = JSON.parse(String(init?.body)); return successfulResponse(); } });
+    assert.equal(body.reasoning_effort, "xhigh");
+  });
+
+  it("falls back to the second provider when the primary fails, without the effort setting", async () => {
+    configureAndConsent();
+    process.env.AI_FALLBACK_API_KEY = "test-fallback-key";
+    process.env.AI_FALLBACK_BASE_URL = "https://fallback.example.test/api/v1";
+    process.env.AI_FALLBACK_MODEL = "fallback/free-model";
+    const seen: { url: string; model: string; effort?: string }[] = [];
+    const result = await chatJson(makeRequest(), {
+      db,
+      fetch: async (url, init) => {
+        const body = JSON.parse(String(init?.body)) as { model: string; reasoning_effort?: string };
+        seen.push({ url: String(url), model: body.model, effort: body.reasoning_effort });
+        return String(url).startsWith("https://ai.example.test") ? new Response("down", { status: 500 }) : successfulResponse();
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(seen[seen.length - 1]?.url, "https://fallback.example.test/api/v1/chat/completions");
+    assert.equal(seen[seen.length - 1]?.model, "fallback/free-model");
+    assert.equal(seen[seen.length - 1]?.effort, undefined);
+    assert.ok(seen.some((c) => c.model === "cx/gpt-6-luna"), "primary was tried first");
+  });
+
+  it("does not use the fallback when consent is missing", async () => {
+    process.env.AI_API_KEY = "test-not-a-real-key";
+    process.env.AI_FALLBACK_API_KEY = "test-fallback-key";
+    let calls = 0;
+    const result = await chatJson(makeRequest(), { db, fetch: async () => { calls++; return successfulResponse(); } });
+    assert.equal(result.ok, false);
+    assert.equal(calls, 0);
+  });
+
+  it("works on the fallback alone when no primary key is set", async () => {
+    process.env.AI_FALLBACK_API_KEY = "test-fallback-key";
+    setConsent(db, "dreamer", true);
+    const result = await chatJson(makeRequest(), { db, fetch: async () => successfulResponse() });
     assert.equal(result.ok, true);
   });
 

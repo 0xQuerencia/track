@@ -42,7 +42,7 @@ export async function converse(
   const request = {
     feature: "assistant" as const,
     purpose: "Interpret a message about the user's day and propose changes to their own records.",
-    maxTokens: 4000,
+    maxTokens: 12000,
     schema: planSchema,
     messages: [
       { role: "system" as const, content: systemPrompt(clock, buildContext(db, clock.date)) },

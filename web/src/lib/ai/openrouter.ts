@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ZodType } from "zod";
 import { getDb } from "../db";
-import { aiApiKey, aiBaseUrl, configuredModel, publicReferer } from "./config";
+import { aiProviders, publicReferer, type Provider } from "./config";
 import { assertAiAllowed, AiPolicyError } from "./policy";
 import { recordAiCall } from "./usage";
 import type {
@@ -12,10 +12,10 @@ import type {
   ChatJsonResult,
 } from "./types";
 
-const TIMEOUT_MS = 60_000;
+const TIMEOUT_MS = 180_000; // extra-high effort can think for a while
 const MAX_RESPONSE_BYTES = 1_048_576;
 const MAX_ATTEMPTS = 3;
-const MAX_TOKENS = 8_192;
+const MAX_TOKENS = 32_768;
 
 export class OpenRouterError extends Error {
   constructor(readonly code: "rate_limited" | "timeout" | "upstream" | "invalid_output", message: string) {
@@ -152,14 +152,15 @@ async function zodResult<T>(schema: ZodType<T>, value: unknown): Promise<T> {
  * Server-side the AI provider chat-completions client. Every attempt passes the
  * consent/kill-switch gate, uses the fixed API origin, and writes metadata only.
  */
-export async function chatJson<T>(
+async function attempt<T>(
   request: ChatJsonRequest<T>,
-  deps: ChatJsonDeps = {},
+  deps: ChatJsonDeps,
+  provider: Provider,
 ): Promise<ChatJsonResult<T>> {
   const db = deps.db ?? getDb();
   const at = (deps.now ?? new Date()).toISOString();
-  // The model is pinned by server config; a per-request model is ignored on purpose.
-  const model = configuredModel();
+  // The model comes from server config per provider; a per-request model is ignored on purpose.
+  const model = provider.model;
   let promptTokens: number | null = null;
   let completionTokens: number | null = null;
   let errorCode: AiErrorCode | null = null;
@@ -167,9 +168,7 @@ export async function chatJson<T>(
   try {
     assertAiAllowed({ feature: request.feature, purpose: request.purpose }, db);
 
-    const apiKey = aiApiKey();
-    // The gate checked this value; keep the local guard to preserve the type invariant.
-    if (!apiKey) throw new AiPolicyError("not_configured", "The AI provider is not configured on this server.");
+    const apiKey = provider.apiKey;
 
     const maxTokens =
       typeof request.maxTokens === "number" && Number.isFinite(request.maxTokens)
@@ -180,6 +179,7 @@ export async function chatJson<T>(
       messages: request.messages,
       max_tokens: maxTokens,
       response_format: { type: "json_object" },
+      ...(provider.effort ? { reasoning_effort: provider.effort } : {}),
       stream: false,
     });
     const doFetch = deps.fetch ?? fetch;
@@ -187,7 +187,7 @@ export async function chatJson<T>(
     let response: Response | null = null;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
-        response = await doFetch(`${aiBaseUrl()}/chat/completions`, {
+        response = await doFetch(`${provider.baseUrl}/chat/completions`, {
           method: "POST",
           redirect: "error",
           signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -269,4 +269,25 @@ export async function chatJson<T>(
     });
     return resultError(errorCode);
   }
+}
+
+
+const FALL_BACK_ON = new Set<AiErrorCode>(["rate_limited", "timeout", "upstream", "invalid_output"]);
+
+/**
+ * Tries the primary provider, then the fallback if the primary failed in a way
+ * another provider could fix. Consent and kill-switch refusals never fall back.
+ */
+export async function chatJson<T>(
+  request: ChatJsonRequest<T>,
+  deps: ChatJsonDeps = {},
+): Promise<ChatJsonResult<T>> {
+  const providers = aiProviders();
+  if (providers.length === 0) return resultError("not_configured");
+  let last: ChatJsonResult<T> = resultError("upstream");
+  for (const provider of providers) {
+    last = await attempt(request, deps, provider);
+    if (last.ok || !FALL_BACK_ON.has(last.code)) return last;
+  }
+  return last;
 }

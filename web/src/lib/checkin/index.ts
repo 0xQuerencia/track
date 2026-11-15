@@ -61,7 +61,7 @@ export async function proposeCheckin(
   const response = await call({
     feature: "checkin",
     purpose: "Turn a morning check-in message into structured health log fields.",
-    maxTokens: 1200,
+    maxTokens: 6000,
     schema: proposalSchema,
     messages: [
       {
