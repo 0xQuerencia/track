@@ -62,8 +62,8 @@ export const INTEGRATION_META: Record<IntegrationKey, IntegrationMeta> = {
   },
   antigravity: {
     label: "Antigravity",
-    dataSource: "Not supported yet. The connector reports it as unsupported.",
-    sends: "Nothing",
+    dataSource: "~/.gemini/antigravity-cli/history.jsonl, via scripts/antigravity-sessions.mjs",
+    sends: "Conversation id, folder hint, timestamps and message count. Prompt text is never read",
   },
 };
 

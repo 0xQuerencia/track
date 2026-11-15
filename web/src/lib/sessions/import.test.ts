@@ -5,6 +5,7 @@ import { openSessionsTestDb, useAsAppDb } from "./test-support";
 import { importSessions, importSessionsManual } from "./import";
 import { parseSessionsEnvelope } from "./schema";
 import { saveNotes } from "./store";
+import { setEnabled as setIntegrationEnabled } from "../integrations/store";
 import { MAX_SESSIONS_PER_REQUEST } from "./constants";
 
 let db: DatabaseSync;
@@ -312,5 +313,22 @@ describe("manual paste", () => {
   it("rejects text that is not JSON", () => {
     const result = importSessionsManual(db, "{not json");
     assert.deepEqual(result.ok ? null : result.status, 400);
+  });
+});
+
+describe("antigravity payload from scripts/antigravity-sessions.mjs", () => {
+  it("imports metadata-only sessions once the integration is enabled", () => {
+    setIntegrationEnabled(db, "antigravity", true, "2026-11-15T09:00:00Z");
+    const result = importSessionsManual(
+      db,
+      JSON.stringify(
+        envelope(
+          [{ external_id: "bb4263f8-d75c-4467-a729-fcb7d250d959", cwd_hint: "/home/user/app", project_hint: "app", created_at: "2026-11-15T11:27:11.191Z", last_activity_at: "2026-11-15T12:51:58.389Z", message_count: 4 }],
+          { source: "manual", tool: "antigravity" },
+        ),
+      ),
+    );
+    assert.equal(result.ok, true, result.ok ? "" : result.error);
+    if (result.ok) assert.equal(result.created, 1);
   });
 });

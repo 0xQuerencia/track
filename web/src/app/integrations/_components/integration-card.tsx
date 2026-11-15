@@ -32,7 +32,6 @@ export function IntegrationCard({
   runs: SyncRun[];
 }) {
   const sessionTool = SESSION_KEYS.has(row.key);
-  const unsupported = row.key === "antigravity";
   const chips = capabilityChips(row.capabilities);
   return (
     <article className="tk-panel int-card" data-status={row.enabled ? row.status : "disabled"} aria-labelledby={`int-${row.key}`}>
@@ -67,20 +66,16 @@ export function IntegrationCard({
         </ul>
       ) : null}
 
-      {!unsupported ? (
-        <form action={toggleIntegrationAction} className="int-row">
-          <input type="hidden" name="key" value={row.key} />
-          <input type="hidden" name="enabled" value={row.enabled ? "0" : "1"} />
-          <button type="submit" className="tk-button">
-            {row.enabled ? "Disable" : "Enable"}
-          </button>
-          <span className="int-hint">
-            {row.enabled ? "Reports are accepted." : "Reports from this integration are refused."}
-          </span>
-        </form>
-      ) : (
-        <p className="int-hint">Not supported yet, so it cannot be enabled.</p>
-      )}
+      <form action={toggleIntegrationAction} className="int-row">
+        <input type="hidden" name="key" value={row.key} />
+        <input type="hidden" name="enabled" value={row.enabled ? "0" : "1"} />
+        <button type="submit" className="tk-button">
+          {row.enabled ? "Disable" : "Enable"}
+        </button>
+        <span className="int-hint">
+          {row.enabled ? "Reports are accepted." : "Reports from this integration are refused."}
+        </span>
+      </form>
 
       {sessionTool ? (
         <form action={setStoreSummariesAction} className="int-privacy">

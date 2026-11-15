@@ -40,7 +40,7 @@ function refresh() {
 export async function toggleIntegrationAction(formData: FormData): Promise<void> {
   if (!(await allowed())) return;
   const key = String(formData.get("key") ?? "");
-  if (!isIntegrationKey(key) || key === "antigravity") return;
+  if (!isIntegrationKey(key)) return;
   const db = getDb();
   if (!getIntegration(db, key)) return;
   const enabled = formData.get("enabled") === "1";
