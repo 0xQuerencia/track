@@ -50,6 +50,7 @@ export function EntityPanel({
   empty,
   limit = 50,
   formOpen,
+  formExclude = [],
 }: {
   entityKey: string;
   rows: Row[];
@@ -59,6 +60,8 @@ export function EntityPanel({
   empty?: string;
   limit?: number;
   formOpen?: boolean;
+  /** Field names left out of the add form (set by a dedicated action instead). */
+  formExclude?: readonly string[];
 }) {
   const entity = getEntity(entityKey);
   if (!entity) throw new Error(`Unknown entity: ${entityKey}`);
@@ -90,7 +93,7 @@ export function EntityPanel({
         <summary>Add {entity.singular.toLowerCase()}</summary>
         <EntityForm
           entityKey={entity.key}
-          fields={entity.fields}
+          fields={entity.fields.filter((f) => !formExclude.includes(f.name))}
           defaults={defaults}
           submitLabel={`Add ${entity.singular.toLowerCase()}`}
         />

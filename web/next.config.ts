@@ -52,6 +52,8 @@ const config: NextConfig = {
     serverActions: {
       // The public hostname when requests arrive through a forwarding proxy.
       allowedOrigins: publicUrl ? [new URL(publicUrl).host] : [],
+      // Document uploads are up to 10 MB, plus multipart overhead.
+      bodySizeLimit: "12mb",
     },
   },
   async headers() {

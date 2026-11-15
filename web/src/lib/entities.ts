@@ -42,7 +42,16 @@ export type Entity = {
   searchable: readonly string[];
   /** Page the record lives on, for search result links. */
   href: string;
+  /** Optional per-record page, with "{id}" standing for the row id. Falls back to href#key-id. */
+  detailHref?: string;
 };
+
+/** Link to one record: its detail page when the entity has one, else the list anchor. */
+export function entityRecordHref(entity: Entity, id: number | string): string {
+  return entity.detailHref
+    ? entity.detailHref.replace("{id}", String(id))
+    : `${entity.href}#${entity.key}-${id}`;
+}
 
 export const SUBJECTS = [
   "Physics",
@@ -99,6 +108,11 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
         default: 0,
       },
       { name: "done", label: "Covered", type: "boolean" },
+      { name: "weight", label: "Exam weight (1-5)", type: "number", min: 1, max: 5, default: 3 },
+      { name: "est_minutes", label: "Est. minutes", type: "number", min: 5, max: 600, default: 90 },
+      { name: "revision_count", label: "Revisions", type: "number", min: 0, max: 1000, default: 0 },
+      { name: "last_revised_at", label: "Last revised", type: "date" },
+      { name: "notes", label: "Notes", type: "textarea" },
     ],
   },
   {
@@ -151,6 +165,7 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
       { name: "course", label: "Course / batch", type: "text", default: "PW Manzil" },
       { name: "title", label: "Lecture", type: "text", required: true },
       { name: "subject", label: "Subject", type: "select", options: SUBJECTS },
+      { name: "planned_date", label: "Planned for", type: "date" },
       { name: "url", label: "URL", type: "url" },
       {
         name: "duration_min",
@@ -190,6 +205,13 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
     fields: [
       { name: "name", label: "Exam", type: "text", required: true },
       { name: "date", label: "Date", type: "date", required: true },
+      {
+        name: "track",
+        label: "Track",
+        type: "select",
+        options: ["Boards", "JEE", "Both"],
+        default: "Both",
+      },
       {
         name: "target_pct",
         label: "Target %",
@@ -284,7 +306,7 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
     key: "tasks",
     singular: "Task",
     plural: "Tasks",
-    href: "/plans",
+    href: "/plans?tab=tasks",
     orderBy:
       "CASE status WHEN 'Doing' THEN 0 WHEN 'To do' THEN 1 ELSE 2 END, due IS NULL, due, id",
     titleField: "title",
@@ -307,13 +329,22 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
         default: "To do",
       },
       { name: "area", label: "Area", type: "select", options: AREAS },
+      {
+        name: "recurrence",
+        label: "Repeats",
+        type: "select",
+        options: ["None", "Daily", "Weekly", "Weekdays", "Monthly"],
+        default: "None",
+      },
+      { name: "recurrence_until", label: "Repeat until", type: "date" },
+      { name: "routine_id", label: "Routine", type: "number" },
     ],
   },
   {
     key: "habits",
     singular: "Habit",
     plural: "Habits",
-    href: "/plans",
+    href: "/plans?tab=habits",
     orderBy: "id",
     titleField: "name",
     searchable: ["name"],
@@ -326,7 +357,7 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
     key: "goals",
     singular: "Goal",
     plural: "Goals",
-    href: "/plans",
+    href: "/plans?tab=goals",
     orderBy: "CASE status WHEN 'Active' THEN 0 WHEN 'Paused' THEN 1 ELSE 2 END, target_date IS NULL, target_date, id",
     titleField: "title",
     searchable: ["title", "notes"],
@@ -338,10 +369,27 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
         name: "status",
         label: "Status",
         type: "select",
-        options: ["Active", "Paused", "Done"],
+        options: ["Active", "Paused", "Done", "Dropped"],
         default: "Active",
       },
       { name: "notes", label: "Notes", type: "textarea" },
+      { name: "parent_id", label: "Parent goal", type: "number", min: 1 },
+      {
+        name: "kind",
+        label: "Kind",
+        type: "select",
+        options: ["Long-term", "Quarter", "Month", "Week", "Milestone"],
+        default: "Long-term",
+      },
+      { name: "start_date", label: "Start date", type: "date" },
+      {
+        name: "review_cadence",
+        label: "Review",
+        type: "select",
+        options: ["None", "Weekly", "Monthly"],
+        default: "None",
+      },
+      { name: "last_reviewed_at", label: "Last reviewed", type: "date" },
     ],
   },
   {
@@ -413,6 +461,24 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
         max: 10,
         step: 0.5,
       },
+      {
+        name: "progress_current",
+        label: "Progress (done)",
+        type: "number",
+        min: 0,
+        max: 100000,
+        step: 1,
+      },
+      {
+        name: "progress_total",
+        label: "Progress (total)",
+        type: "number",
+        min: 0,
+        max: 100000,
+        step: 1,
+      },
+      { name: "started_on", label: "Started", type: "date" },
+      { name: "finished_on", label: "Finished", type: "date" },
       { name: "notes", label: "Notes", type: "text" },
     ],
   },
@@ -421,9 +487,10 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
     singular: "Project",
     plural: "Projects",
     href: "/projects",
+    detailHref: "/projects/{id}",
     orderBy: "CASE status WHEN 'Active' THEN 0 WHEN 'Idea' THEN 1 WHEN 'Paused' THEN 2 ELSE 3 END, id DESC",
     titleField: "name",
-    searchable: ["name", "milestone", "notes"],
+    searchable: ["name", "milestone", "notes", "description", "category", "tags"],
     fields: [
       { name: "name", label: "Project", type: "text", required: true },
       { name: "repo", label: "Repository URL", type: "url" },
@@ -436,6 +503,28 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
       },
       { name: "milestone", label: "Next milestone", type: "text" },
       { name: "notes", label: "Notes", type: "textarea" },
+      { name: "description", label: "Description", type: "textarea" },
+      { name: "category", label: "Category", type: "text" },
+      { name: "tags", label: "Tags", type: "tags" },
+      { name: "tech_stack", label: "Tech stack", type: "tags" },
+      { name: "local_path", label: "Local path (reference only)", type: "text" },
+      { name: "default_branch", label: "Default branch", type: "text" },
+      { name: "current_branch", label: "Current branch", type: "text" },
+      { name: "milestone_date", label: "Milestone date", type: "date" },
+      { name: "last_activity_at", label: "Last activity", type: "text" },
+      { name: "last_commit_sha", label: "Last commit", type: "text" },
+      { name: "last_commit_message", label: "Last commit message", type: "text" },
+      { name: "last_commit_at", label: "Last commit at", type: "text" },
+      { name: "external_id", label: "External id", type: "text" },
+      {
+        name: "source",
+        label: "Source",
+        type: "select",
+        options: ["manual", "import"],
+        default: "manual",
+      },
+      { name: "archived", label: "Archived", type: "boolean" },
+      { name: "pinned", label: "Pinned", type: "boolean" },
     ],
   },
   {
@@ -445,7 +534,7 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
     href: "/projects",
     orderBy: "CASE status WHEN 'Doing' THEN 0 WHEN 'Backlog' THEN 1 ELSE 2 END, id DESC",
     titleField: "title",
-    searchable: ["title", "project"],
+    searchable: ["title", "project", "description"],
     fields: [
       { name: "project", label: "Project", type: "text", required: true },
       { name: "title", label: "Item", type: "text", required: true },
@@ -462,6 +551,9 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
         options: ["Backlog", "Doing", "Done"],
         default: "Backlog",
       },
+      { name: "priority", label: "Priority", type: "select", options: PRIORITIES, default: "Medium" },
+      { name: "due_date", label: "Due", type: "date" },
+      { name: "description", label: "Details", type: "textarea" },
     ],
   },
   {
@@ -505,6 +597,13 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
         ],
       },
       { name: "note", label: "Note", type: "text" },
+      {
+        name: "project_id",
+        label: "Project (id)",
+        type: "number",
+        min: 1,
+        max: 100000000,
+      },
     ],
   },
   {
@@ -542,10 +641,13 @@ export const LEGACY_ENTITIES: readonly Entity[] = [
     plural: "Journal",
     href: "/journal",
     orderBy: "date DESC, id DESC",
-    titleField: "text",
-    searchable: ["win", "setback", "text"],
+    // Search hits show the title only; the body is searchable but never shown as a hit.
+    titleField: "title",
+    searchable: ["title", "tags", "win", "setback", "text"],
     fields: [
       { name: "date", label: "Date", type: "date", default: today },
+      { name: "title", label: "Title", type: "text" },
+      { name: "tags", label: "Tags", type: "tags" },
       {
         name: "mood",
         label: "Mood (1-5)",

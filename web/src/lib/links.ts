@@ -1,5 +1,5 @@
 import { getDb } from "./db";
-import { getEntity } from "./entities";
+import { entityRecordHref, getEntity } from "./entities";
 import {
   isLinkRelation,
   isLinkType,
@@ -131,7 +131,7 @@ function toView(row: LinkRow, self: RecordRef): LinkView {
     typeLabel: linkTypeLabel(other.type),
     recordId: other.id,
     title: resolveTitle(other),
-    href: entity ? `${entity.href}#${entity.key}-${other.id}` : null,
+    href: entity ? entityRecordHref(entity, other.id) : null,
     createdAt: row.created_at,
   };
 }

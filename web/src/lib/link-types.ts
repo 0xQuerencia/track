@@ -27,6 +27,9 @@ export const LINK_RELATIONS = [
   "blocks",
   "supports",
   "source",
+  "session_of",
+  "converted_to",
+  "mentions",
 ] as const;
 
 export type LinkRelation = (typeof LINK_RELATIONS)[number];
@@ -37,6 +40,9 @@ export const LINK_RELATION_LABELS: Record<LinkRelation, string> = {
   blocks: "Blocks",
   supports: "Supports",
   source: "Source for",
+  session_of: "Session of",
+  converted_to: "Converted to",
+  mentions: "Mentions",
 };
 
 /** One link as shown from one of its two ends. */

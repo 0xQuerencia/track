@@ -1,6 +1,6 @@
 import type { SQLInputValue } from "node:sqlite";
 import { getDb } from "./db";
-import { ENTITY_LIST, getEntity, type Entity } from "./entities";
+import { ENTITY_LIST, entityRecordHref, getEntity, type Entity } from "./entities";
 import type { Value } from "./form";
 import { unlinkAllFor } from "./links";
 
@@ -116,7 +116,7 @@ export function searchAll(term: string, perEntity = 6): SearchHit[] {
       hits.push({
         entity: entity.key,
         singular: entity.singular,
-        href: `${entity.href}#${entity.key}-${row.id}`,
+        href: entityRecordHref(entity, row.id),
         pageHref: entity.href,
         title: row.title ?? `${entity.singular} #${row.id}`,
         id: row.id,

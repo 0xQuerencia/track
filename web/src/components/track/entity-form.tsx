@@ -59,7 +59,13 @@ function FieldInput({
         </select>
       );
     case "boolean":
-      return <input name={field.name} type="checkbox" />;
+      return (
+        <input
+          name={field.name}
+          type="checkbox"
+          defaultChecked={defaultValue === 1}
+        />
+      );
     default:
       return <input {...shared} type="text" maxLength={2000} />;
   }
