@@ -91,7 +91,7 @@ export function ReviewDialog({ goalId, title }: { goalId: number; title: string 
         Review
       </button>
       <dialog ref={dialogRef} className="pl-dialog" aria-label={`Review ${title}`}>
-        <form action={action} className="tk-form" method="dialog">
+        <form action={action} className="tk-form">
           <h3>Review: {title}</h3>
           <input type="hidden" name="goalId" value={goalId} />
           <div className="tk-form-grid">

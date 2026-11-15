@@ -8,7 +8,7 @@ import { getExpiringDocuments } from "@/lib/documents";
 import { getDb } from "@/lib/db";
 import { getMoneySnapshot } from "@/lib/money";
 import { getGoalSummaries, getOverdueTasks } from "@/lib/plans";
-import { getRevisionQueue } from "@/lib/study";
+import { getRevisionQueue, getTodayStudyTargets } from "@/lib/study";
 
 /*
  * Command Center widgets that read from the newer modules. Each one shows real
@@ -26,6 +26,7 @@ export function extraWidgets(today: string): WidgetSpec[] {
   const agenda = getUpcomingItems(7).slice(0, 6);
   const overdue = getOverdueTasks(today);
   const revisions = getRevisionQueue(today, 4);
+  const revisionState = revisions.length === 0 ? getTodayStudyTargets(today).revisionState : "ready";
   const goals = getGoalSummaries(4);
   const opportunities = getUpcomingOpportunities(4);
   const expiring = getExpiringDocuments(60).slice(0, 3);
@@ -84,7 +85,14 @@ export function extraWidgets(today: string): WidgetSpec[] {
       title: "Revision queue",
       content:
         revisions.length === 0 ? (
-          <Empty>No revisions recommended. <Link href="/study">Add chapters in Study HQ.</Link></Empty>
+          <Empty>
+            {revisionState === "no_chapters"
+              ? "No chapters yet."
+              : revisionState === "none_covered"
+                ? "No chapter is marked covered yet, so there is nothing to revise."
+                : "Nothing is due for revision."}{" "}
+            <Link href="/study">Open Study HQ.</Link>
+          </Empty>
         ) : (
           <ul className="tk-list">
             {revisions.map((r) => (
