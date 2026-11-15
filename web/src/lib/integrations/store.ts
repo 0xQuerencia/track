@@ -105,7 +105,8 @@ function toRow(raw: Raw, now: string): IntegrationRow {
     lastAttemptAt: raw.last_attempt_at,
     lastSuccessAt: raw.last_success_at,
     lastError: raw.last_error,
-    capabilities: parseCapabilities(raw.capabilities),
+    // Databases seeded before Antigravity import existed still store sessions:false.
+    capabilities: raw.key === "antigravity" ? { sessions: true, transcript_read: false } : parseCapabilities(raw.capabilities),
     privacy: parsePrivacy(raw.privacy),
   };
 }
