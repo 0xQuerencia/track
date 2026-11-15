@@ -1,0 +1,95 @@
+/* Money module. Uses the shared tokens from tokens.css; no new palette. */
+
+.money-tabs {
+  margin-bottom: 0.25rem;
+}
+
+.money-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.money-month-nav strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.money-hint,
+.money-mark-paid-note,
+.money-form-note {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+}
+
+.money-negative {
+  color: var(--negative);
+}
+
+.money-over-note {
+  color: var(--warning);
+  margin: 0 0 0.75rem;
+}
+
+.money-budget-table tr[data-over="true"] th,
+.money-budget-table tr[data-over] th {
+  color: var(--negative);
+}
+
+.money-budget-table progress {
+  width: 100%;
+  min-width: 6rem;
+  accent-color: var(--accent-ink);
+}
+
+.money-project-picker {
+  max-width: 14rem;
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  padding: 0.25rem 0.5rem;
+}
+
+.money-project-picker:focus-visible,
+.money-mark-paid .tk-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.money-mark-paid {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.money-top-categories li,
+.money-upcoming li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.money-top-categories small,
+.money-upcoming small {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.money-timeline-table td,
+.money-timeline-table th,
+.money-budget-table td,
+.money-budget-table th {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-tabs *,
+  .money-month-nav * {
+    transition: none;
+  }
+}

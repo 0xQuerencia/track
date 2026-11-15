@@ -1,0 +1,119 @@
+/* Journal module: writing form, drafts, reflection and entry pages. */
+
+.journal-views {
+  margin-bottom: 0.25rem;
+}
+
+.journal-tag-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.journal-tag-counts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-tag);
+  padding: 0.15rem 0.5rem;
+  background: var(--accent-wash);
+}
+
+.journal-tag-counts small {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.journal-composer [data-wide="true"] {
+  grid-column: 1 / -1;
+}
+
+.journal-draft-note,
+.journal-form-note {
+  color: var(--text-2);
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem;
+}
+
+.journal-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.journal-search .tk-field {
+  flex: 1 1 14rem;
+}
+
+.journal-tag {
+  display: inline-block;
+  margin: 0 0.25rem 0.25rem 0;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-tag);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-size: 0.8rem;
+}
+
+.journal-excerpt {
+  margin: 0;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  max-width: 42ch;
+}
+
+.journal-body {
+  white-space: normal;
+  line-height: 1.6;
+  max-width: 68ch;
+  margin-top: 0.75rem;
+}
+
+.journal-meta {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
+
+.journal-meta div {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.75rem;
+}
+
+.journal-meta dt {
+  color: var(--text-2);
+}
+
+.journal-meta dd {
+  margin: 0;
+}
+
+.journal-entry-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+@media (max-width: 40rem) {
+  .journal-meta div {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journal-views *,
+  .journal-search * {
+    transition: none;
+  }
+}
