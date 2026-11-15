@@ -21,6 +21,10 @@ import { CHECKIN_QUESTIONS, latestWeight, todayCheckinDone } from "@/lib/checkin
 import { sleepSeries, weightSeries } from "@/lib/checkin/stats";
 import { SparkTrend } from "@/components/track/charts";
 import { getRevisionQueue, getTodayStudyTargets } from "@/lib/study";
+import { findPatterns } from "@/lib/patterns";
+import { PatternRows } from "./review/patterns-panel";
+import { overview as qvOverview } from "@/lib/qv/stats";
+import { today as qvToday } from "@/lib/qv/store";
 
 /*
  * Command Center widgets that read from the newer modules. Each one shows real
@@ -70,7 +74,39 @@ export async function extraWidgets(today: string): Promise<WidgetSpec[]> {
   const weightTrend = weightSeries(db, 60).map((p) => ({ label: p.date, value: p.value }));
   const sleepTrend = sleepSeries(db, 30).map((p) => ({ label: p.date, value: p.value }));
 
+  const qv = qvOverview(db, qvToday(db));
+  const qvNext = db.prepare("SELECT title, start_time FROM qv_plan_items WHERE date = ? AND status = 'planned' ORDER BY start_time LIMIT 1").get(qv.today) as { title: string; start_time: string | null } | undefined;
+  const qvNote = db.prepare("SELECT title, href FROM qv_notifications WHERE read_at IS NULL ORDER BY id DESC LIMIT 1").get() as { title: string; href: string | null } | undefined;
+
+  const patterns = findPatterns(db, qv.today).slice(0, 3);
+
   return [
+    {
+      id: "patterns",
+      title: "Patterns",
+      content: patterns.length ? (
+        <>
+          <PatternRows patterns={patterns} />
+          <p><Link href="/review">All patterns</Link></p>
+        </>
+      ) : (
+        <Empty>No patterns yet. They appear once there is enough to compare.</Empty>
+      ),
+    },
+    {
+      id: "qvault",
+      title: "Question vault",
+      content: qv.total === 0 ? (
+        <Empty>No questions yet. <Link href="/study?tab=vault">Paste a screenshot</Link> to start.</Empty>
+      ) : (
+        <div className="tk-stack">
+          <p><strong>{qv.dueToday}</strong> due today{qv.overdue ? `, ${qv.overdue} overdue` : ""} · {qv.red} red · {qv.yellow} yellow · {qv.green} green · {qv.unassessed} new</p>
+          {qvNext ? <p>Next block: {qvNext.title}{qvNext.start_time ? ` at ${qvNext.start_time}` : ""}</p> : null}
+          {qvNote ? <p>{qvNote.href ? <Link href={qvNote.href}>{qvNote.title}</Link> : qvNote.title}</p> : null}
+          <p><Link className="tk-button" href="/study?tab=review">Open revision queue</Link></p>
+        </div>
+      ),
+    },
     {
       id: "assistant",
       title: "Assistant",

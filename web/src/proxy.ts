@@ -11,6 +11,8 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/api/integrations/")) return NextResponse.next();
   // Dreamer automation routes check their own dreamer:run bearer token in the handler.
   if (pathname.startsWith("/api/dreamer/")) return NextResponse.next();
+  // Study job triggers check their own study:jobs bearer token in the handler.
+  if (pathname.startsWith("/api/study/jobs")) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (token && (await verifySessionToken(token))) return NextResponse.next();

@@ -15,6 +15,7 @@ import { migration as m110 } from "./m110_ai";
 import { migration as m120 } from "./m120_dreamer";
 import { migration as m130 } from "./m130_checkin";
 import { migration as m140 } from "./m140_assistant";
+import { migration as m150 } from "./m150_qvault";
 import type { Migration } from "./types";
 
 export type { Migration } from "./types";
@@ -39,6 +40,7 @@ export const MIGRATIONS: readonly Migration[] = [
   m120,
   m130,
   m140,
+  m150,
 ];
 
 function assertOrdered(list: readonly Migration[]): void {

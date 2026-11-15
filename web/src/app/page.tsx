@@ -247,7 +247,7 @@ export default async function CommandCenter() {
   });
   const presets: LayoutPreset[] = [
     { id: "balanced", label: "Balanced", order: ids, hidden: [] },
-    preset("study", "Study", ["exam", "revision", "study", "focus", "priorities", "due", "trend", "agenda"]),
+    preset("study", "Study", ["qvault", "exam", "revision", "study", "focus", "priorities", "due", "trend", "agenda"]),
     preset("development", "Development", ["projects", "sessions", "priorities", "ideas", "agenda", "system", "focus"]),
     preset("personal", "Personal", ["assistant", "checkin", "dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
     preset("minimal", "Minimal", ["assistant", "checkin", "priorities", "focus", "exam"]),

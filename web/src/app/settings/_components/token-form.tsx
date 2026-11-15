@@ -10,6 +10,7 @@ const SCOPE_TEXT: Record<IntegrationScope, string> = {
   "projects:write": "Send project inventory (connector inventory push)",
   "metadata:write": "Heartbeat only (connector ping)",
   "dreamer:run": "Run the local Dreamer daily cycle (scheduled trigger)",
+  "study:jobs": "Run the due Study jobs (plan, reminders, weekly review) from a scheduler",
 };
 
 /** Creates a token and shows it once, with a copy button. Closing the page loses it for good. */
@@ -41,7 +42,7 @@ export function TokenForm() {
           <legend>Scopes</legend>
           {INTEGRATION_SCOPES.map((scope) => (
             <label key={scope} className="set-scope">
-              <input type="checkbox" name="scope" value={scope} defaultChecked={scope !== "projects:write" && scope !== "dreamer:run"} disabled={pending} />
+              <input type="checkbox" name="scope" value={scope} defaultChecked={scope !== "projects:write" && scope !== "dreamer:run" && scope !== "study:jobs"} disabled={pending} />
               <span>
                 <code>{scope}</code> {SCOPE_TEXT[scope]}
               </span>
