@@ -122,3 +122,8 @@
 .dreamer-more > summary { cursor: pointer; color: var(--text-3); font-size: 0.85rem; }
 .dreamer-more > summary:hover { color: var(--text-1); }
 .dreamer-pager { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; color: var(--text-3); font-size: 0.85rem; }
+
+.checkin-questions { margin: 0 0 0.8rem; padding-left: 1.1rem; color: var(--text-2); font-size: 0.9rem; }
+.checkin-preview ul { margin: 0.4rem 0 0.9rem; padding-left: 1.1rem; }
+.checkin-error { color: var(--text-1); font-size: 0.9rem; }
+.checkin-done { margin: 0; color: var(--accent-ink); }

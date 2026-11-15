@@ -13,6 +13,7 @@ import { migration as m090 } from "./m090_devices_money_media";
 import { migration as m100 } from "./m100_timeline_reviews";
 import { migration as m110 } from "./m110_ai";
 import { migration as m120 } from "./m120_dreamer";
+import { migration as m130 } from "./m130_checkin";
 import type { Migration } from "./types";
 
 export type { Migration } from "./types";
@@ -35,6 +36,7 @@ export const MIGRATIONS: readonly Migration[] = [
   m100,
   m110,
   m120,
+  m130,
 ];
 
 function assertOrdered(list: readonly Migration[]): void {

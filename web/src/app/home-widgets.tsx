@@ -13,6 +13,10 @@ import { runDailyCycle } from "@/lib/dreamer/cycle";
 import { dailyBrief } from "@/lib/dreamer/queries";
 import { getSourceSetting } from "@/lib/dreamer/engine";
 import { getGoalSummaries, getOverdueTasks } from "@/lib/plans";
+import { CheckinForm } from "./checkin/checkin-form";
+import { setCheckinConsentAction } from "./checkin/actions";
+import { getAiStatus, getConsent } from "@/lib/ai";
+import { CHECKIN_QUESTIONS, latestWeight, todayCheckinDone } from "@/lib/checkin";
 import { getRevisionQueue, getTodayStudyTargets } from "@/lib/study";
 
 /*
@@ -56,7 +60,36 @@ export async function extraWidgets(today: string): Promise<WidgetSpec[]> {
     `SELECT key, status, last_success_at, last_error FROM integrations WHERE enabled = 1 OR status != 'Not connected'`,
   );
 
+  const checkinConsent = getConsent(db, "checkin").enabled;
+  const aiStatus = getAiStatus(db);
+  const checkinDone = todayCheckinDone(db, today);
+  const weight = latestWeight(db);
+
   return [
+    {
+      id: "checkin",
+      title: checkinDone ? "Morning check-in · logged today" : "Morning check-in",
+      wide: true,
+      content: !aiStatus.keyConfigured || aiStatus.killSwitch ? (
+        <Empty>The check-in needs the OpenRouter key on the server and AI not disabled.</Empty>
+      ) : !checkinConsent ? (
+        <form action={setCheckinConsentAction} className="checkin-form">
+          <p>Answer a few questions in plain language and the AI fills in your sleep, energy, weight and more. It only sees the text you type here, and you confirm before anything is saved.</p>
+          <label><input type="checkbox" name="enabled" /> Let the AI read my check-in text (sent to OpenRouter)</label>
+          <div className="tk-form-actions"><button className="tk-button" type="submit">Turn on</button></div>
+        </form>
+      ) : (
+        <>
+          <CheckinForm questions={CHECKIN_QUESTIONS} />
+          {weight ? (
+            <p className="tk-widget-foot">
+              Last weight {weight.weight_kg} kg on {shortDay(weight.date)}
+              {weight.previous !== null ? ` (${weight.weight_kg - weight.previous >= 0 ? "+" : ""}${(weight.weight_kg - weight.previous).toFixed(1)} kg)` : ""}
+            </p>
+          ) : null}
+        </>
+      ),
+    },
     {
       id: "dreamer",
       title: "Dreamer · morning brief",

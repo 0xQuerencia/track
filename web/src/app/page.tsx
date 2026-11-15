@@ -246,8 +246,8 @@ export default async function CommandCenter() {
     { id: "balanced", label: "Balanced", order: ids, hidden: [] },
     preset("study", "Study", ["exam", "revision", "study", "focus", "priorities", "due", "trend", "agenda"]),
     preset("development", "Development", ["projects", "sessions", "priorities", "ideas", "agenda", "system", "focus"]),
-    preset("personal", "Personal", ["dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
-    preset("minimal", "Minimal", ["priorities", "focus", "exam"]),
+    preset("personal", "Personal", ["checkin", "dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
+    preset("minimal", "Minimal", ["checkin", "priorities", "focus", "exam"]),
   ];
 
   return (
