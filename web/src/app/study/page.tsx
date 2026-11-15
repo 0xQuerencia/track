@@ -1,200 +1,99 @@
-import { BarsChart, TrendChart } from "@/components/track/charts";
-import { EntityPanel } from "@/components/track/entity-panel";
-import { Page, Panel, SplitPanels, StatGrid } from "@/components/track/page";
-import { StatCard } from "@/components/track/stat-card";
-import { TabbedSections, type TabSpec } from "@/components/track/tabbed";
-import { daysUntil, shortDay } from "@/lib/dates";
-import { listRows } from "@/lib/crud";
+import { Page } from "@/components/track/page";
+import { todayStr } from "@/lib/dates";
+import { lectureProgress } from "@/lib/queries";
 import {
-  chapterProgress,
-  lectureProgress,
-  masteryBySubject,
-  nextExam,
-  studyMinutesByDay,
-  studyTotals,
-} from "@/lib/queries";
+  loadActiveOverrides,
+  loadChapters,
+  loadPlannerRevisions,
+  loadPrereqEdges,
+  loadRecentMistakes,
+  loadUpcomingExams,
+} from "@/lib/study/queries";
+import { recommendRevisions } from "@/lib/study/revision";
+import "@/styles/study.css";
+import { StudyTabs, type StudyTab } from "./_components/study-tabs";
+import { OverviewTab } from "./_components/overview";
+import { ChaptersTab } from "./_components/chapters";
+import { RevisionPlanner } from "./_components/revision-planner";
+import { MocksTab } from "./_components/mocks";
+import { QuestionsTab } from "./_components/questions";
+import { LecturesTab, ResourcesTab } from "./_components/lectures-tab";
+import { ExamsTab, MistakesTab, PracticeTab } from "./_components/practice-tabs";
+import { chapterFilters, firstParam, parseBudget, type StudySearch } from "./_components/params";
+import type { ChapterOption } from "./_components/record-form";
 
 export const dynamic = "force-dynamic";
 
-const percent = (part: number, whole: number) =>
-  whole > 0 ? Math.min(100, Math.round((part / whole) * 100)) : 0;
+const TAB_IDS = [
+  "overview",
+  "chapters",
+  "revision",
+  "mocks",
+  "questions",
+  "practice",
+  "exams",
+  "mistakes",
+  "lectures",
+  "resources",
+] as const;
 
-export default function StudyPage() {
-  const totals = studyTotals(7);
-  const chapters = chapterProgress();
+type Props = { searchParams: Promise<StudySearch> };
+
+export default async function StudyPage({ searchParams }: Props) {
+  const search = await searchParams;
+  const today = todayStr();
+  const requestedTab = firstParam(search, "tab");
+  const initialTab = (TAB_IDS as readonly string[]).includes(requestedTab) ? requestedTab : "overview";
+  const budget = parseBudget(firstParam(search, "budget"));
+  const filters = chapterFilters(search);
+  const chapterParam = Number(firstParam(search, "chapter"));
+  const selectedId = Number.isInteger(chapterParam) && chapterParam > 0 ? chapterParam : null;
+
+  const chapterRows = loadChapters();
+  const chapterOptions: ChapterOption[] = chapterRows.map((row) => ({
+    id: row.id,
+    label: `${row.name} (${row.subject})`,
+  }));
+  const overrides = loadActiveOverrides(today);
+  const plan = recommendRevisions({
+    chapters: chapterRows,
+    prereqs: loadPrereqEdges(),
+    revisions: loadPlannerRevisions(),
+    mistakes: loadRecentMistakes(today),
+    exams: loadUpcomingExams(today),
+    overrides,
+    today,
+    availableMinutes: budget,
+  });
   const lectures = lectureProgress();
-  const exam = nextExam();
-  const days = exam ? daysUntil(String(exam.date)) : null;
 
-  const overview = (
-    <>
-      <StatGrid>
-        <StatCard label="Study, 7 days" value={totals.minutes} suffix=" min" />
-        <StatCard label="Questions, 7 days" value={totals.questions} />
-        <StatCard label="Accuracy, 7 days" value={totals.accuracy} suffix="%" />
-        <StatCard
-          label="Mastered chapters"
-          value={chapters.mastered}
-          hint={`of ${chapters.total} · ${chapters.covered} covered`}
-        />
-      </StatGrid>
-      {exam ? (
-        <Panel title="Next exam">
-          <p className="tk-callout">
-            <strong>{String(exam.name)}</strong> on {shortDay(String(exam.date))}
-            {days !== null ? ` · ${days === 0 ? "today" : `${days} days away`}` : ""}
-            {exam.target_pct != null ? ` · target ${String(exam.target_pct)}%` : ""}
-          </p>
-        </Panel>
-      ) : null}
-      <SplitPanels>
-        <Panel title="Mastery by subject" description="Average mastery of each subject’s chapters.">
-          <BarsChart
-            data={masteryBySubject()}
-            series={[{ key: "value" }]}
-            emptyNote="No mastery recorded yet. Update chapters in the Syllabus tab."
-          />
-        </Panel>
-        <Panel title="Study minutes, 14 days">
-          <TrendChart data={studyMinutesByDay(14)} />
-        </Panel>
-      </SplitPanels>
-    </>
-  );
-
-  const tabs: TabSpec[] = [
-    { id: "overview", label: "Overview", content: overview },
+  const tabs: StudyTab[] = [
+    { id: "overview", label: "Overview", content: <OverviewTab budget={budget} /> },
     {
-      id: "syllabus",
-      label: "Syllabus",
+      id: "chapters",
+      label: "Chapters",
+      content: <ChaptersTab filters={filters} selectedId={selectedId} />,
+    },
+    {
+      id: "revision",
+      label: "Revision",
       content: (
-        <EntityPanel
-          entityKey="chapters"
-          title="Syllabus"
-          description="Covered means taught or read; mastery is how well you can actually solve it. The Class 12 PCM list is a starter: check it against the official CBSE syllabus and edit freely."
-          rows={listRows("chapters")}
-          limit={120}
-          columns={[
-            { name: "subject" },
-            { name: "klass" },
-            { name: "name" },
-            { name: "track" },
-            { name: "priority", inline: true },
-            { name: "done", inline: true },
-            { name: "mastery", inline: true },
-          ]}
+        <RevisionPlanner
+          plan={plan}
+          overrides={overrides}
+          budget={budget}
+          logChoices={chapterOptions.map((option) => ({ id: option.id, label: option.label }))}
+          today={today}
         />
       ),
     },
-    {
-      id: "lectures",
-      label: "Lectures",
-      content: (
-        <EntityPanel
-          entityKey="lectures"
-          title="Lectures"
-          description="Watching a lecture does not count as mastery. Solve questions afterwards and record them under Practice."
-          rows={listRows("lectures")}
-          columns={[
-            { name: "title" },
-            { name: "course" },
-            { name: "subject" },
-            { name: "watched_min", inline: true },
-            { name: "duration_min" },
-            {
-              name: "progress",
-              label: "Watched",
-              render: (row) => {
-                const pct = percent(Number(row.watched_min ?? 0), Number(row.duration_min ?? 0));
-                return (
-                  <progress
-                    max={100}
-                    value={pct}
-                    aria-label={`${pct}% watched`}
-                    title={`${pct}%`}
-                  />
-                );
-              },
-            },
-            { name: "speed" },
-            { name: "url" },
-          ]}
-        />
-      ),
-    },
-    {
-      id: "practice",
-      label: "Practice",
-      content: (
-        <EntityPanel
-          entityKey="study_sessions"
-          title="Study sessions"
-          description="Minutes studied and questions attempted. Accuracy is worked out from these."
-          rows={listRows("study_sessions")}
-          columns={[
-            { name: "date" },
-            { name: "subject" },
-            { name: "minutes" },
-            { name: "questions" },
-            { name: "correct" },
-            {
-              name: "accuracy",
-              label: "Accuracy",
-              render: (row) =>
-                Number(row.questions) > 0
-                  ? `${percent(Number(row.correct ?? 0), Number(row.questions))}%`
-                  : "—",
-            },
-            { name: "notes" },
-          ]}
-        />
-      ),
-    },
-    {
-      id: "exams",
-      label: "Exams",
-      content: (
-        <EntityPanel
-          entityKey="exams"
-          title="Exams"
-          rows={listRows("exams")}
-          columns={[
-            { name: "name" },
-            { name: "date" },
-            {
-              name: "in",
-              label: "In",
-              render: (row) => {
-                const left = daysUntil(String(row.date));
-                return left < 0 ? "Past" : left === 0 ? "Today" : `${left} d`;
-              },
-            },
-            { name: "target_pct" },
-            { name: "score_pct", inline: true },
-            { name: "notes" },
-          ]}
-        />
-      ),
-    },
-    {
-      id: "mistakes",
-      label: "Mistakes",
-      content: (
-        <EntityPanel
-          entityKey="mistakes"
-          title="Mistake log"
-          description="Write down what went wrong, then tick it once you have fixed the gap."
-          rows={listRows("mistakes")}
-          columns={[
-            { name: "date" },
-            { name: "subject" },
-            { name: "chapter" },
-            { name: "note" },
-            { name: "fixed", inline: true },
-          ]}
-        />
-      ),
-    },
+    { id: "mocks", label: "Mocks", content: <MocksTab /> },
+    { id: "questions", label: "Questions", content: <QuestionsTab chapters={chapterOptions} /> },
+    { id: "practice", label: "Practice", content: <PracticeTab /> },
+    { id: "exams", label: "Exams", content: <ExamsTab /> },
+    { id: "mistakes", label: "Mistakes", content: <MistakesTab /> },
+    { id: "lectures", label: "Lectures & assignments", content: <LecturesTab /> },
+    { id: "resources", label: "Resources", content: <ResourcesTab chapters={chapterOptions} /> },
   ];
 
   return (
@@ -203,7 +102,7 @@ export default function StudyPage() {
       title="Study HQ"
       lede={`Boards and JEE, tracked by what you can actually solve. ${lectures.count} lectures logged, ${Math.round(lectures.watched)} of ${Math.round(lectures.duration)} min watched.`}
     >
-      <TabbedSections tabs={tabs} label="Study sections" />
+      <StudyTabs tabs={tabs} initialTab={initialTab} label="Study sections" />
     </Page>
   );
 }
