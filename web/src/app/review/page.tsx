@@ -3,6 +3,7 @@ import { Page, Panel, SplitPanels, StatGrid } from "@/components/track/page";
 import { StatCard } from "@/components/track/stat-card";
 import { getUpcomingItems } from "@/lib/calendar/aggregate";
 import { isoDate, shortDay, todayStr } from "@/lib/dates";
+import { PatternsPanel } from "./patterns-panel";
 import { getReview, reviewRange, shiftAnchor, type ReviewPeriod } from "@/lib/review";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Param
         <StatCard label="Question accuracy" value={accuracy} suffix="%" hint={r.questions ? `${r.correct}/${r.questions}` : "No questions logged"} />
         <StatCard label="Workouts" value={r.workouts} />
       </StatGrid>
+      <PatternsPanel />
       <SplitPanels>
         <Panel title="Academics">
           {r.mocks.length === 0 ? (
