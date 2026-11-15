@@ -1,0 +1,401 @@
+/* Knowledge base, plus the shared Markdown, pager and draft-notice styles.
+   Colors, radii and motion come from tokens.css. */
+
+/* ---------- Markdown (rendered by components/track/markdown.tsx) ---------- */
+
+.md {
+  color: var(--text-1);
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md p,
+.md ul,
+.md ol,
+.md blockquote,
+.md pre {
+  margin: 0 0 0.9em;
+}
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+  margin: 1.2em 0 0.45em;
+  line-height: 1.25;
+  font-weight: 600;
+}
+.md h1 {
+  font-size: 1.5em;
+}
+.md h2 {
+  font-size: 1.25em;
+}
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+  font-size: 1.05em;
+}
+.md a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.md a:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.md code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-tag);
+  background: var(--surface-4);
+}
+.md pre.md-code {
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface-0);
+  border: 1px solid var(--line);
+  overflow-x: auto;
+}
+.md pre.md-code code {
+  padding: 0;
+  background: none;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.md blockquote {
+  padding: 2px 0 2px 14px;
+  border-left: 2px solid var(--accent-line);
+  color: var(--text-2);
+}
+.md ul,
+.md ol {
+  padding-left: 1.4em;
+}
+.md li + li {
+  margin-top: 0.25em;
+}
+.md li.md-task {
+  list-style: none;
+  margin-left: -1.4em;
+}
+.md li.md-task input {
+  margin-right: 8px;
+  accent-color: var(--accent-ink);
+}
+.md hr {
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  margin: 1.4em 0;
+}
+
+.md-editor {
+  display: grid;
+  gap: 6px;
+}
+.md-editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.md-editor-head > label {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.md-editor-modes {
+  display: flex;
+  gap: 4px;
+}
+.md-editor-modes [aria-pressed="true"] {
+  color: var(--text-1);
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+}
+.md-editor textarea {
+  width: 100%;
+  min-height: 9em;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.md-editor textarea:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}
+.md-editor textarea[hidden],
+.md-editor-preview[hidden] {
+  display: none;
+}
+.md-editor-preview {
+  min-height: 9em;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1px dashed var(--line-strong);
+  background: var(--surface-1);
+}
+.md-editor-hint {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+/* ---------- Shared: pager, draft notice ---------- */
+
+.tk-pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 14px;
+}
+.tk-pager a {
+  color: var(--accent-ink);
+}
+.tk-pager-off {
+  color: var(--text-3);
+}
+.tk-pager-status {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-draft-notice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface-4);
+  border: 1px solid var(--warning);
+  font-size: 14px;
+}
+.tk-draft-notice p {
+  margin: 0;
+}
+.tk-draft-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Knowledge pages ---------- */
+
+.kn-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.kn-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line);
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+.kn-tab:hover {
+  color: var(--text-1);
+  border-color: var(--line-strong);
+}
+.kn-tab:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+.kn-tab[aria-current="page"] {
+  color: var(--text-1);
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+}
+.kn-tab-count {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.kn-capture-form {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.kn-capture-title {
+  flex: 1 1 260px;
+}
+.kn-filters {
+  padding-block: 14px;
+}
+.kn-filter-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+}
+
+.kn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.kn-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.kn-row[data-pinned] {
+  border-color: var(--accent-line);
+}
+.kn-row-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.kn-row-title {
+  color: var(--text-1);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kn-row-title:hover,
+.kn-row-title:focus-visible {
+  color: var(--accent-ink);
+}
+.kn-row-sub {
+  color: var(--text-3);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.kn-row-excerpt {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.kn-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.kn-row-date {
+  color: var(--text-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.kn-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.kn-pill {
+  padding: 1px 8px;
+  border-radius: var(--radius-tag);
+  background: var(--surface-4);
+  color: var(--text-1);
+}
+.kn-mark {
+  color: var(--accent-ink);
+}
+.kn-edit-form {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.kn-edit-form .id-wide,
+.kn-edit-form textarea {
+  width: 100%;
+}
+
+.kn-back {
+  margin: 0;
+  font-size: 14px;
+}
+.kn-back a {
+  color: var(--text-2);
+}
+.kn-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kn-detail {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.8fr) minmax(240px, 1fr);
+  align-items: start;
+}
+.kn-side {
+  display: grid;
+  gap: 16px;
+}
+.kn-editor {
+  display: grid;
+  gap: 14px;
+}
+.kn-backlinks a {
+  color: var(--accent-ink);
+}
+.kn-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 14px;
+}
+.kn-facts dt {
+  color: var(--text-3);
+}
+.kn-facts dd {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .kn-detail {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .kn-row {
+    grid-template-columns: 1fr;
+  }
+  .kn-row-actions {
+    justify-content: flex-start;
+  }
+}
