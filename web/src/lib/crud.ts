@@ -122,5 +122,17 @@ export function searchAll(term: string, perEntity = 6): SearchHit[] {
         id: row.id,
       });
   }
+  // Vault questions are not registry entities (they have their own table), so they are searched here.
+  const questions = db
+    .prepare(
+      `SELECT id, text FROM qv_questions
+       WHERE text LIKE ? ESCAPE '\\' OR topic LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\' OR notes LIKE ? ESCAPE '\\'
+       ORDER BY id DESC LIMIT ${perEntity}`,
+    )
+    .all(like, like, like, like) as { id: number; text: string }[];
+  for (const q of questions) {
+    const page = `/study?tab=vault&q=${encodeURIComponent(needle)}`;
+    hits.push({ entity: "qv_questions", singular: "Question", href: `${page}#qv-${q.id}`, pageHref: page, title: q.text.replace(/\s+/g, " ").slice(0, 90) || `Question #${q.id}`, id: q.id });
+  }
   return hits;
 }

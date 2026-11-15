@@ -21,11 +21,19 @@ import { LecturesTab, ResourcesTab } from "./_components/lectures-tab";
 import { ExamsTab, MistakesTab, PracticeTab } from "./_components/practice-tabs";
 import { chapterFilters, firstParam, parseBudget, type StudySearch } from "./_components/params";
 import type { ChapterOption } from "./_components/record-form";
+import { AnalyticsTab, ChapterQuestionPanel, NotebookTab, PlanTab, QvSummary, ReviewTab, SettingsTab, VaultTab } from "./_components/qv/tabs";
+import "@/styles/qvault.css";
 
 export const dynamic = "force-dynamic";
 
 const TAB_IDS = [
   "overview",
+  "plan",
+  "vault",
+  "review",
+  "notebook",
+  "analytics",
+  "settings",
   "chapters",
   "revision",
   "mocks",
@@ -68,15 +76,20 @@ export default async function StudyPage({ searchParams }: Props) {
   const lectures = lectureProgress();
 
   const tabs: StudyTab[] = [
-    { id: "overview", label: "Overview", content: <OverviewTab budget={budget} /> },
+    { id: "overview", label: "Overview", content: (<><QvSummary /><OverviewTab budget={budget} /></>) },
+    { id: "plan", label: "Plan", content: <PlanTab /> },
+    { id: "vault", label: "Vault", content: <VaultTab search={search} /> },
+    { id: "review", label: "Revise", content: <ReviewTab /> },
+    { id: "notebook", label: "Notebook", content: <NotebookTab /> },
     {
       id: "chapters",
       label: "Chapters",
-      content: <ChaptersTab filters={filters} selectedId={selectedId} />,
+      content: (<><ChapterQuestionPanel /><ChaptersTab filters={filters} selectedId={selectedId} /></>),
     },
+    { id: "analytics", label: "Analytics", content: <AnalyticsTab /> },
     {
       id: "revision",
-      label: "Revision",
+      label: "Chapter plan",
       content: (
         <RevisionPlanner
           plan={plan}
@@ -88,12 +101,13 @@ export default async function StudyPage({ searchParams }: Props) {
       ),
     },
     { id: "mocks", label: "Mocks", content: <MocksTab /> },
-    { id: "questions", label: "Questions", content: <QuestionsTab chapters={chapterOptions} /> },
-    { id: "practice", label: "Practice", content: <PracticeTab /> },
+    { id: "questions", label: "Question log", content: <QuestionsTab chapters={chapterOptions} /> },
+    { id: "practice", label: "Sessions", content: <PracticeTab /> },
     { id: "exams", label: "Exams", content: <ExamsTab /> },
-    { id: "mistakes", label: "Mistakes", content: <MistakesTab /> },
-    { id: "lectures", label: "Lectures & assignments", content: <LecturesTab /> },
+    { id: "mistakes", label: "Mistake log", content: <MistakesTab /> },
+    { id: "lectures", label: "Lectures", content: <LecturesTab /> },
     { id: "resources", label: "Resources", content: <ResourcesTab chapters={chapterOptions} /> },
+    { id: "settings", label: "Settings", content: <SettingsTab /> },
   ];
 
   return (

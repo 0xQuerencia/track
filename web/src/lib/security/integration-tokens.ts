@@ -16,6 +16,7 @@ export const INTEGRATION_SCOPES = [
   "projects:write",
   "metadata:write",
   "dreamer:run",
+  "study:jobs",
 ] as const;
 export type IntegrationScope = (typeof INTEGRATION_SCOPES)[number];
 
