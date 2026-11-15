@@ -300,3 +300,21 @@
 /* Dashboard widgets can be dragged while customizing. */
 .tk-widget[draggable="true"] { cursor: grab; }
 .tk-widget[data-dragging] { opacity: 0.45; }
+
+/* Phone width: let grid/flex children shrink so wide tables and tab bars scroll inside their own box. */
+.tk-content,
+.tk-page,
+.tk-stack,
+.tk-panel,
+.tk-split > * {
+  min-width: 0;
+}
+.tk-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.pl-tabs,
+.hl-tabs {
+  min-width: 0;
+  max-width: 100%;
+}
