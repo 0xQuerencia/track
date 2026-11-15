@@ -1,0 +1,113 @@
+/* Health: section tabs, trend panels, goal list and the disclaimer.
+   Colours and radii come from tokens.css so light and dark stay in step. */
+
+.hl-section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.hl-tabs ul {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border-bottom: 1px solid var(--line);
+}
+.hl-tabs a {
+  display: inline-block;
+  padding: 8px 12px 10px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+.hl-tabs a:hover {
+  color: var(--foreground);
+}
+.hl-tabs a[aria-current="page"] {
+  color: var(--foreground);
+  border-bottom-color: var(--accent-ink, var(--primary));
+  font-weight: 600;
+}
+.hl-tabs a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-tag);
+}
+
+.hl-muted {
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.hl-goal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.hl-goal-list li {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.hl-goal-list li > div {
+  display: grid;
+  gap: 2px;
+}
+.hl-goal-list li[data-active] {
+  border-color: var(--accent-line, var(--line));
+}
+.hl-goal-list p {
+  margin: 0;
+}
+
+.hl-meter {
+  display: grid;
+  gap: 4px;
+}
+.hl-meter progress {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.hl-meter progress::-webkit-progress-bar {
+  background: var(--surface-2);
+  border-radius: 999px;
+}
+.hl-meter progress::-webkit-progress-value {
+  background: var(--accent-ink, var(--primary));
+  border-radius: 999px;
+}
+.hl-meter progress::-moz-progress-bar {
+  background: var(--accent-ink, var(--primary));
+  border-radius: 999px;
+}
+
+.hl-disclaimer {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-tabs a {
+    transition: none;
+  }
+}

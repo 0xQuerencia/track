@@ -1,60 +1,39 @@
-import { BarsChart, PALETTE, TrendChart } from "@/components/track/charts";
-import { EntityPanel } from "@/components/track/entity-panel";
-import { Page, Panel, SplitPanels, StatGrid } from "@/components/track/page";
-import { StatCard } from "@/components/track/stat-card";
-import { listRows } from "@/lib/crud";
-import { shortDay } from "@/lib/dates";
-import { healthAverages, healthSeries } from "@/lib/queries";
+import "@/styles/health.css";
+import { Page } from "@/components/track/page";
+import { HEALTH_DISCLAIMER, HEALTH_TAB_LABELS } from "@/lib/health/constants";
+import { resolveHealthTab } from "@/lib/health/view";
+import { ExerciseTab } from "./_components/exercise-tab";
+import { GoalsTab } from "./_components/goals-tab";
+import { HealthTabs } from "./_components/health-tabs";
+import { HydrationTab } from "./_components/hydration-tab";
+import { NutritionTab } from "./_components/nutrition-tab";
+import { OverviewTab } from "./_components/overview-tab";
+import { SleepTab } from "./_components/sleep-tab";
 
 export const dynamic = "force-dynamic";
 
-export default function HealthPage() {
-  const avg = healthAverages(7);
-  const water = healthSeries("water_l", 14).map((p) => ({
-    name: shortDay(p.date),
-    litres: p.value,
-  }));
-
+export default async function HealthPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const tab = resolveHealthTab((await searchParams).tab);
   return (
     <Page
       kicker="Health"
       title="Health"
-      lede="Sleep, energy, hydration and training. A quick daily log is enough."
+      lede="Sleep, energy, training, water and goals. A quick daily log is enough."
     >
-      <StatGrid>
-        <StatCard label="Sleep, 7-day avg" value={avg.sleep} decimals={1} suffix=" h" />
-        <StatCard label="Energy, 7-day avg" value={avg.energy} decimals={1} suffix="/5" />
-        <StatCard label="Water, 7-day avg" value={avg.water} decimals={1} suffix=" L" />
-      </StatGrid>
-      <SplitPanels>
-        <Panel title="Sleep, 14 days" description="Hours per night.">
-          <TrendChart data={healthSeries("sleep_hours", 14)} />
-        </Panel>
-        <Panel title="Energy, 14 days" description="1 is drained, 5 is sharp.">
-          <TrendChart data={healthSeries("energy", 14)} color={PALETTE[2]} />
-        </Panel>
-      </SplitPanels>
-      <Panel title="Water, 14 days" description="Litres per day.">
-        <BarsChart
-          data={water}
-          series={[{ key: "litres", color: PALETTE[1] }]}
-          emptyNote="Log water to see the chart."
-        />
-      </Panel>
-      <EntityPanel
-        entityKey="health_logs"
-        title="Daily log"
-        rows={listRows("health_logs")}
-        columns={[
-          { name: "date" },
-          { name: "sleep_hours" },
-          { name: "energy" },
-          { name: "water_l" },
-          { name: "workout" },
-          { name: "meals" },
-          { name: "notes" },
-        ]}
-      />
+      <HealthTabs active={tab} />
+      <section aria-label={HEALTH_TAB_LABELS[tab]} className="hl-section">
+        {tab === "overview" ? <OverviewTab /> : null}
+        {tab === "sleep" ? <SleepTab /> : null}
+        {tab === "exercise" ? <ExerciseTab /> : null}
+        {tab === "hydration" ? <HydrationTab /> : null}
+        {tab === "nutrition" ? <NutritionTab /> : null}
+        {tab === "goals" ? <GoalsTab /> : null}
+      </section>
+      <p className="hl-disclaimer">{HEALTH_DISCLAIMER}</p>
     </Page>
   );
 }

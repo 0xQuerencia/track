@@ -1,67 +1,38 @@
-import { EntityPanel } from "@/components/track/entity-panel";
-import { Page, Panel, StatGrid } from "@/components/track/page";
-import { HabitsPanel, TaskBoard } from "@/components/track/plans-parts";
-import { StatCard } from "@/components/track/stat-card";
-import { listRows } from "@/lib/crud";
-import { addDays, lastDays, shortDay, todayStr } from "@/lib/dates";
-import { habitsToday, taskCounts } from "@/lib/queries";
+import "@/styles/plans.css";
+import { Page } from "@/components/track/page";
+import { todayStr } from "@/lib/dates";
+import { PLANS_TAB_LABELS } from "@/lib/plans/constants";
+import { resolvePlansView } from "@/lib/plans/view";
+import { GoalsTab } from "./_components/goals-tab";
+import { HabitsTab } from "./_components/habits-tab";
+import { PlansTabs } from "./_components/tabs-nav";
+import { RoutinesTab } from "./_components/routines-tab";
+import { TasksTab } from "./_components/tasks-tab";
+import { TodayTab } from "./_components/today-tab";
+import { WeekTab } from "./_components/week-tab";
 
 export const dynamic = "force-dynamic";
 
-export default function PlansPage() {
-  const tasks = listRows("tasks");
-  const counts = taskCounts();
-  const habits = habitsToday();
-  const goals = listRows("goals");
-  const nextWeek = lastDays(7, addDays(todayStr(), 6));
+type Params = { tab?: string | string[]; new?: string | string[]; week?: string | string[] };
+
+export default async function PlansPage({ searchParams }: { searchParams: Promise<Params> }) {
+  const view = resolvePlansView(await searchParams, todayStr());
 
   return (
     <Page
       kicker="Plans"
-      title="Plans"
-      lede="Tasks, habits, goals, and what the coming week looks like."
+      title="Plans & Goals"
+      lede="Today's work, the task board, goals that roll up from real progress, habits, routines and the week ahead."
     >
-      <StatGrid>
-        <StatCard label="Open tasks" value={counts.open} />
-        <StatCard label="Due today" value={counts.dueToday} />
-        <StatCard label="Overdue" value={counts.overdue} tone={counts.overdue > 0 ? "negative" : undefined} />
-        <StatCard label="Habits today" value={habits.done} hint={`of ${habits.total}`} />
-      </StatGrid>
-      <TaskBoard tasks={tasks} />
-      <HabitsPanel />
-      <Panel title="This week" description="Open tasks by due date, today and the next six days.">
-        <ol className="tk-week">
-          {nextWeek.map((date) => {
-            const due = tasks.filter((t) => t.status !== "Done" && t.due === date);
-            return (
-              <li key={date} data-today={date === todayStr() || undefined}>
-                <h3>{date === todayStr() ? "Today" : shortDay(date)}</h3>
-                {due.length === 0 ? (
-                  <p className="tk-empty tk-empty-small">Free</p>
-                ) : (
-                  <ul>
-                    {due.map((t) => (
-                      <li key={t.id}>{String(t.title)}</li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      </Panel>
-      <EntityPanel
-        entityKey="goals"
-        title="Long-term goals"
-        rows={goals}
-        columns={[
-          { name: "title" },
-          { name: "area" },
-          { name: "target_date" },
-          { name: "status", inline: true },
-          { name: "notes" },
-        ]}
-      />
+      <PlansTabs active={view.tab} />
+      <section aria-label={PLANS_TAB_LABELS[view.tab]} className="pl-section">
+        {view.tab === "today" ? <TodayTab /> : null}
+        {view.tab === "tasks" ? <TasksTab openForm={view.openTaskForm} /> : null}
+        {view.tab === "goals" ? <GoalsTab /> : null}
+        {view.tab === "habits" ? <HabitsTab /> : null}
+        {view.tab === "routines" ? <RoutinesTab /> : null}
+        {view.tab === "week" ? <WeekTab weekStart={view.weekStart} /> : null}
+      </section>
     </Page>
   );
 }
