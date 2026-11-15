@@ -318,3 +318,11 @@
   min-width: 0;
   max-width: 100%;
 }
+
+.hl-checkin-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1.25rem 2rem; align-items: start; }
+.hl-checkin-grid h3 { margin: 0 0 0.5rem; font-size: 0.9rem; color: var(--text-2); font-weight: 600; }
+.hl-checkin-wide { grid-column: 1 / -1; }
+@media (max-width: 720px) { .hl-checkin-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.tk-ring-center { display: grid; gap: 0.1rem; text-align: center; }
+.tk-ring-center small { color: var(--text-3); font-size: 0.7rem; }

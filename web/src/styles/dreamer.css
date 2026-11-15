@@ -127,3 +127,5 @@
 .checkin-preview ul { margin: 0.4rem 0 0.9rem; padding-left: 1.1rem; }
 .checkin-error { color: var(--text-1); font-size: 0.9rem; }
 .checkin-done { margin: 0; color: var(--accent-ink); }
+
+.checkin-sparks { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem 1.5rem; margin-top: 1rem; }

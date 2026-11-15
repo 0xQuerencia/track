@@ -17,6 +17,8 @@ import { CheckinForm } from "./checkin/checkin-form";
 import { setCheckinConsentAction } from "./checkin/actions";
 import { getAiStatus, getConsent } from "@/lib/ai";
 import { CHECKIN_QUESTIONS, latestWeight, todayCheckinDone } from "@/lib/checkin";
+import { sleepSeries, weightSeries } from "@/lib/checkin/stats";
+import { SparkTrend } from "@/components/track/charts";
 import { getRevisionQueue, getTodayStudyTargets } from "@/lib/study";
 
 /*
@@ -64,6 +66,8 @@ export async function extraWidgets(today: string): Promise<WidgetSpec[]> {
   const aiStatus = getAiStatus(db);
   const checkinDone = todayCheckinDone(db, today);
   const weight = latestWeight(db);
+  const weightTrend = weightSeries(db, 60).map((p) => ({ label: p.date, value: p.value }));
+  const sleepTrend = sleepSeries(db, 30).map((p) => ({ label: p.date, value: p.value }));
 
   return [
     {
@@ -81,10 +85,19 @@ export async function extraWidgets(today: string): Promise<WidgetSpec[]> {
       ) : (
         <>
           <CheckinForm questions={CHECKIN_QUESTIONS} />
-          {weight ? (
+          <div className="checkin-sparks">
+            <div>
+              <p className="tk-kicker">Weight{weight ? ` · ${weight.weight_kg} kg` : ""}</p>
+              <SparkTrend data={weightTrend} />
+            </div>
+            <div>
+              <p className="tk-kicker">Sleep, 30 days</p>
+              <SparkTrend data={sleepTrend} color="#8aa6c1" />
+            </div>
+          </div>
+          {weight && weight.previous !== null ? (
             <p className="tk-widget-foot">
-              Last weight {weight.weight_kg} kg on {shortDay(weight.date)}
-              {weight.previous !== null ? ` (${weight.weight_kg - weight.previous >= 0 ? "+" : ""}${(weight.weight_kg - weight.previous).toFixed(1)} kg)` : ""}
+              Last weight on {shortDay(weight.date)} ({weight.weight_kg - weight.previous >= 0 ? "+" : ""}{(weight.weight_kg - weight.previous).toFixed(1)} kg since the entry before)
             </p>
           ) : null}
         </>
