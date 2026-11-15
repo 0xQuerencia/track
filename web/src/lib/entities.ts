@@ -4,9 +4,13 @@
  * column name or select option can only come from this file, never from a
  * request.
  */
+import { EXTENSION_ENTITIES } from "./entities-ext";
+
 export type FieldType =
   | "text"
   | "textarea"
+  | "markdown"
+  | "tags"
   | "number"
   | "date"
   | "select"
@@ -54,7 +58,12 @@ const AREAS = ["Study", "Life", "Project", "Health", "Money"] as const;
 
 const today = "today" as const;
 
-export const ENTITY_LIST: readonly Entity[] = [
+/**
+ * The original record types. Their tables are created by migration m001,
+ * which is keyed to this list, so later edits here must stay additive: new
+ * columns are added through a migration, never by changing an existing one.
+ */
+export const LEGACY_ENTITIES: readonly Entity[] = [
   {
     key: "chapters",
     singular: "Chapter",
@@ -558,9 +567,24 @@ export const ENTITY_LIST: readonly Entity[] = [
   },
 ];
 
-export const ENTITIES: Readonly<Record<string, Entity>> = Object.fromEntries(
-  ENTITY_LIST.map((entity) => [entity.key, entity]),
-);
+/** Every record type: the legacy set plus the feature modules' extensions. */
+export const ENTITY_LIST: readonly Entity[] = [
+  ...LEGACY_ENTITIES,
+  ...EXTENSION_ENTITIES,
+];
+
+function indexEntities(list: readonly Entity[]): Record<string, Entity> {
+  const index: Record<string, Entity> = {};
+  for (const entity of list) {
+    if (Object.prototype.hasOwnProperty.call(index, entity.key))
+      throw new Error(`Duplicate entity key: ${entity.key}`);
+    index[entity.key] = entity;
+  }
+  return index;
+}
+
+export const ENTITIES: Readonly<Record<string, Entity>> =
+  indexEntities(ENTITY_LIST);
 
 export function getEntity(key: string): Entity | undefined {
   return Object.prototype.hasOwnProperty.call(ENTITIES, key)

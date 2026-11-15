@@ -67,7 +67,7 @@ export function EntityPanel({
   const cols: Column[] =
     columns ??
     entity.fields
-      .filter((f) => f.type !== "textarea")
+      .filter((f) => f.type !== "textarea" && f.type !== "markdown")
       .map((f) => ({ name: f.name }));
   const defaults: Record<string, string | number> = {};
   for (const f of entity.fields) {
@@ -117,7 +117,7 @@ export function EntityPanel({
             </thead>
             <tbody>
               {shown.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} id={`${entity.key}-${row.id}`}>
                   {cols.map((col) => {
                     const field = fieldByName.get(col.name);
                     return (

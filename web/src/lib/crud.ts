@@ -2,6 +2,7 @@ import type { SQLInputValue } from "node:sqlite";
 import { getDb } from "./db";
 import { ENTITY_LIST, getEntity, type Entity } from "./entities";
 import type { Value } from "./form";
+import { unlinkAllFor } from "./links";
 
 export type Row = { id: number } & Record<string, string | number | null>;
 
@@ -61,18 +62,30 @@ export function updateField(
     .run(value, id);
 }
 
+/** Deletes one record and its links. Other records are never touched. */
 export function deleteRow(key: string, id: number): void {
   const entity = mustGet(key);
   const db = getDb();
-  db.prepare(`DELETE FROM "${entity.key}" WHERE id = ?`).run(id);
-  if (entity.key === "habits")
-    db.prepare("DELETE FROM habit_logs WHERE habit_id = ?").run(id);
+  db.exec("BEGIN");
+  try {
+    db.prepare(`DELETE FROM "${entity.key}" WHERE id = ?`).run(id);
+    if (entity.key === "habits")
+      db.prepare("DELETE FROM habit_logs WHERE habit_id = ?").run(id);
+    unlinkAllFor(entity.key, String(id));
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 export type SearchHit = {
   entity: string;
   singular: string;
+  /** Deep link: the page, plus `#<entity>-<id>` where the page renders that row. */
   href: string;
+  /** The page without the row anchor. */
+  pageHref: string;
   title: string;
   id: number;
 };
@@ -103,7 +116,8 @@ export function searchAll(term: string, perEntity = 6): SearchHit[] {
       hits.push({
         entity: entity.key,
         singular: entity.singular,
-        href: entity.href,
+        href: `${entity.href}#${entity.key}-${row.id}`,
+        pageHref: entity.href,
         title: row.title ?? `${entity.singular} #${row.id}`,
         id: row.id,
       });

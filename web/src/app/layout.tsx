@@ -10,6 +10,7 @@ import "@/styles/pages.css";
 import "@/styles/motion.css";
 import "@/styles/atlas.css";
 import "@/styles/track.css";
+import "@/styles/life-os.css";
 import { TrackShell } from "@/components/track-shell";
 
 const wordmarkFont = Bricolage_Grotesque({
