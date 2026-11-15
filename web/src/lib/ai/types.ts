@@ -11,7 +11,7 @@ import type { ZodType } from "zod";
 export type AiFeature = "dreamer" | "checkin" | "assistant";
 
 export type AiErrorCode =
-  | "not_configured" // no OPENROUTER_API_KEY
+  | "not_configured" // no AI_API_KEY
   | "disabled" // TRACK_AI_DISABLED=1
   | "no_consent" // the user has not opted in for this feature
   | "rate_limited"
@@ -37,7 +37,7 @@ export type ChatJsonRequest<T> = {
   purpose: string;
   messages: readonly ChatMessage[];
   schema: ZodType<T>;
-  /** Optional model slug; must match ^[a-z0-9._/:-]{1,80}$. Defaults to OPENROUTER_MODEL. */
+  /** Ignored: the model is pinned by AI_MODEL (default cx/gpt-6-luna). */
   model?: string;
   maxTokens?: number;
 };

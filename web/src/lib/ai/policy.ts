@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { getDb } from "../db";
-import { AI_FEATURES, configuredModel } from "./config";
+import { AI_FEATURES, aiApiKey, configuredModel } from "./config";
 import type { AiConsent, AiFeature, AiStatus, ConsentScope } from "./types";
 
 const DEFAULT_SCOPE: ConsentScope = { allowDailyCycle: false, maxExcerptChars: 280 };
@@ -117,8 +117,8 @@ export function setConsent(
 function assertEnvironmentAllowed(): void {
   if (process.env.TRACK_AI_DISABLED === "1")
     throw new AiPolicyError("disabled", "AI calls are disabled by the server setting.");
-  if (!process.env.OPENROUTER_API_KEY?.trim())
-    throw new AiPolicyError("not_configured", "OpenRouter is not configured on this server.");
+  if (!aiApiKey())
+    throw new AiPolicyError("not_configured", "The AI provider is not configured on this server.");
 }
 
 /** The only gate for a network call; `db` exists only for injection in tests. */
@@ -136,7 +136,7 @@ export function assertAiAllowed(
 
 export function getAiStatus(db: DatabaseSync): AiStatus {
   return {
-    keyConfigured: Boolean(process.env.OPENROUTER_API_KEY?.trim()),
+    keyConfigured: Boolean(aiApiKey()),
     killSwitch: process.env.TRACK_AI_DISABLED === "1",
     defaultModel: configuredModel(),
     consents: AI_FEATURES.map((feature) => getConsent(db, feature)),

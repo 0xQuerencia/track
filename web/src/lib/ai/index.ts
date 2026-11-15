@@ -23,7 +23,7 @@ import type {
 export type * from "./types";
 export { AiPolicyError } from "./policy";
 export { OpenRouterError } from "./openrouter";
-export { DEFAULT_OPENROUTER_MODEL, OPENROUTER_API_URL } from "./config";
+export { DEFAULT_AI_BASE_URL, DEFAULT_AI_MODEL } from "./config";
 export { getRecentAiCalls, messagesFromDisclosure };
 export type { AiCallRecord } from "./usage";
 

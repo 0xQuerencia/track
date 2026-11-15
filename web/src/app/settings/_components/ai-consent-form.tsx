@@ -18,7 +18,7 @@ export function AiConsentForm({ consent }: { consent: AiConsent }) {
         <legend>Dreamer permission</legend>
         <label className="set-ai-option">
           <input type="checkbox" name="enabled" defaultChecked={consent.enabled} />
-          <span>Allow Dreamer to send minimized, redacted excerpts to OpenRouter</span>
+          <span>Allow Dreamer to send minimized, redacted excerpts to your AI provider</span>
         </label>
         <label className="set-ai-option">
           <input

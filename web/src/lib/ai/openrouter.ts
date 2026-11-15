@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ZodType } from "zod";
 import { getDb } from "../db";
-import { configuredModel, MODEL_SLUG_PATTERN, OPENROUTER_API_URL, publicReferer } from "./config";
+import { aiApiKey, aiBaseUrl, configuredModel, publicReferer } from "./config";
 import { assertAiAllowed, AiPolicyError } from "./policy";
 import { recordAiCall } from "./usage";
 import type {
@@ -65,7 +65,7 @@ async function readBoundedText(response: Response): Promise<string> {
     } catch {
       // A response rejected for size does not need further handling.
     }
-    throw new OpenRouterError("upstream", "OpenRouter returned a response that was too large.");
+    throw new OpenRouterError("upstream", "the AI provider returned a response that was too large.");
   }
   if (!response.body) return "";
 
@@ -79,7 +79,7 @@ async function readBoundedText(response: Response): Promise<string> {
       size += next.value.byteLength;
       if (size > MAX_RESPONSE_BYTES) {
         await reader.cancel();
-        throw new OpenRouterError("upstream", "OpenRouter returned a response that was too large.");
+        throw new OpenRouterError("upstream", "the AI provider returned a response that was too large.");
       }
       chunks.push(next.value);
     }
@@ -98,19 +98,19 @@ async function readBoundedText(response: Response): Promise<string> {
 function fixedMessage(code: AiErrorCode): string {
   switch (code) {
     case "not_configured":
-      return "OpenRouter is not configured on this server.";
+      return "The AI provider is not configured on this server.";
     case "disabled":
       return "AI calls are disabled by the server setting.";
     case "no_consent":
       return "AI is off for this feature until you opt in under Settings.";
     case "rate_limited":
-      return "OpenRouter is rate limiting requests. Try again later.";
+      return "the AI provider is rate limiting requests. Try again later.";
     case "timeout":
-      return "OpenRouter did not respond before the 30 second timeout.";
+      return "the AI provider did not respond before the 30 second timeout.";
     case "invalid_output":
-      return "OpenRouter returned output that did not match the expected JSON shape.";
+      return "the AI provider returned output that did not match the expected JSON shape.";
     default:
-      return "OpenRouter could not complete this request.";
+      return "the AI provider could not complete this request.";
   }
 }
 
@@ -144,12 +144,12 @@ function stripJsonFence(text: string): string {
 async function zodResult<T>(schema: ZodType<T>, value: unknown): Promise<T> {
   const parsed = await schema.safeParseAsync(value);
   if (!parsed.success)
-    throw new OpenRouterError("invalid_output", "OpenRouter returned JSON with an unexpected shape.");
+    throw new OpenRouterError("invalid_output", "the AI provider returned JSON with an unexpected shape.");
   return parsed.data;
 }
 
 /**
- * Server-side OpenRouter chat-completions client. Every attempt passes the
+ * Server-side the AI provider chat-completions client. Every attempt passes the
  * consent/kill-switch gate, uses the fixed API origin, and writes metadata only.
  */
 export async function chatJson<T>(
@@ -158,21 +158,18 @@ export async function chatJson<T>(
 ): Promise<ChatJsonResult<T>> {
   const db = deps.db ?? getDb();
   const at = (deps.now ?? new Date()).toISOString();
-  const defaultModel = configuredModel();
-  const hasValidOverride = request.model === undefined || MODEL_SLUG_PATTERN.test(request.model);
-  const model = hasValidOverride ? request.model ?? defaultModel : defaultModel;
+  // The model is pinned by server config; a per-request model is ignored on purpose.
+  const model = configuredModel();
   let promptTokens: number | null = null;
   let completionTokens: number | null = null;
   let errorCode: AiErrorCode | null = null;
 
   try {
     assertAiAllowed({ feature: request.feature, purpose: request.purpose }, db);
-    if (!hasValidOverride)
-      throw new OpenRouterError("upstream", "The requested model slug is invalid.");
 
-    const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+    const apiKey = aiApiKey();
     // The gate checked this value; keep the local guard to preserve the type invariant.
-    if (!apiKey) throw new AiPolicyError("not_configured", "OpenRouter is not configured on this server.");
+    if (!apiKey) throw new AiPolicyError("not_configured", "The AI provider is not configured on this server.");
 
     const maxTokens =
       typeof request.maxTokens === "number" && Number.isFinite(request.maxTokens)
@@ -183,8 +180,6 @@ export async function chatJson<T>(
       messages: request.messages,
       max_tokens: maxTokens,
       response_format: { type: "json_object" },
-      // Reasoning models otherwise spend the token budget thinking and return empty content.
-      reasoning: { effort: "low" },
       stream: false,
     });
     const doFetch = deps.fetch ?? fetch;
@@ -192,7 +187,7 @@ export async function chatJson<T>(
     let response: Response | null = null;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
-        response = await doFetch(`${OPENROUTER_API_URL}/chat/completions`, {
+        response = await doFetch(`${aiBaseUrl()}/chat/completions`, {
           method: "POST",
           redirect: "error",
           signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -200,8 +195,8 @@ export async function chatJson<T>(
           body,
         });
       } catch (error) {
-        if (isTimeout(error)) throw new OpenRouterError("timeout", "OpenRouter request timed out.");
-        throw new OpenRouterError("upstream", "OpenRouter could not be reached.");
+        if (isTimeout(error)) throw new OpenRouterError("timeout", "the AI provider request timed out.");
+        throw new OpenRouterError("upstream", "the AI provider could not be reached.");
       }
 
       if (response.ok) break;
@@ -213,30 +208,30 @@ export async function chatJson<T>(
       const retryable = response.status === 429 || response.status >= 500;
       if (!retryable || attempt === MAX_ATTEMPTS - 1) {
         if (response.status === 429)
-          throw new OpenRouterError("rate_limited", "OpenRouter rate limited the request.");
-        throw new OpenRouterError("upstream", "OpenRouter returned an unsuccessful response.");
+          throw new OpenRouterError("rate_limited", "the AI provider rate limited the request.");
+        throw new OpenRouterError("upstream", "the AI provider returned an unsuccessful response.");
       }
       await waitBeforeRetry(attempt);
     }
 
     if (!response?.ok)
-      throw new OpenRouterError("upstream", "OpenRouter returned an unsuccessful response.");
+      throw new OpenRouterError("upstream", "the AI provider returned an unsuccessful response.");
     const responseText = await readBoundedText(response);
     let providerReply: ProviderReply;
     try {
       providerReply = JSON.parse(responseText) as ProviderReply;
     } catch {
-      throw new OpenRouterError("upstream", "OpenRouter returned an unreadable response.");
+      throw new OpenRouterError("upstream", "the AI provider returned an unreadable response.");
     }
 
     const content = providerReply.choices?.[0]?.message?.content;
     if (typeof content !== "string")
-      throw new OpenRouterError("invalid_output", "OpenRouter returned no JSON content.");
+      throw new OpenRouterError("invalid_output", "the AI provider returned no JSON content.");
     let json: unknown;
     try {
       json = JSON.parse(stripJsonFence(content));
     } catch {
-      throw new OpenRouterError("invalid_output", "OpenRouter returned invalid JSON.");
+      throw new OpenRouterError("invalid_output", "the AI provider returned invalid JSON.");
     }
     const data = await zodResult(request.schema, json);
     promptTokens = tokenCount(providerReply.usage?.prompt_tokens);

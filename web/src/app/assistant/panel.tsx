@@ -33,10 +33,10 @@ export function AssistantPanel() {
         )}
       </section>
       {!ready ? (
-        <p className="tk-empty">The assistant needs the OpenRouter key on the server and AI not disabled. The brief above works without it.</p>
+        <p className="tk-empty">The assistant needs the AI provider key on the server and AI not disabled. The brief above works without it.</p>
       ) : !consent ? (
         <form action={setAssistantConsentAction} className="asst-consent">
-          <p>Talk to your app in plain language. The AI reads what you type plus short titles of your open tasks, upcoming events, habits and goals (so it can refer to real items), sent to OpenRouter. It can add and edit records; deletes always ask first, and every change has an Undo.</p>
+          <p>Talk to your app in plain language. The AI reads what you type plus short titles of your open tasks, upcoming events, habits and goals (so it can refer to real items), sent to your AI provider. It can add and edit records; deletes always ask first, and every change has an Undo.</p>
           <label><input type="checkbox" name="enabled" /> I allow this</label>
           <button className="tk-button tk-primary" type="submit">Turn on</button>
         </form>

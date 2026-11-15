@@ -11,18 +11,19 @@ import {
   redactForAi,
   setConsent,
 } from "./index";
+import { aiBaseUrl, DEFAULT_AI_BASE_URL } from "./config";
 import type { ChatJsonRequest } from "./types";
 import { closeTestDb, installTestDb } from "../testing/test-db";
 import type { DatabaseSync } from "node:sqlite";
 
-const ENV_KEYS = ["OPENROUTER_API_KEY", "OPENROUTER_MODEL", "TRACK_AI_DISABLED", "TRACK_PUBLIC_URL"] as const;
+const ENV_KEYS = ["AI_API_KEY", "AI_BASE_URL", "AI_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "TRACK_AI_DISABLED", "TRACK_PUBLIC_URL"] as const;
 let oldEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
 let db: DatabaseSync;
 
 const successfulResponse = () =>
   new Response(
     JSON.stringify({
-      model: "openrouter/free",
+      model: "cx/gpt-6-luna",
       choices: [{ message: { content: JSON.stringify({ answer: "local fake result" }) } }],
       usage: { prompt_tokens: 21, completion_tokens: 5 },
     }),
@@ -39,11 +40,12 @@ const makeRequest = (messages: ChatJsonRequest<{ answer: string }>["messages"] =
 });
 
 function configureAndConsent(): void {
-  process.env.OPENROUTER_API_KEY = "test-not-a-real-openrouter-key";
+  process.env.AI_API_KEY = "test-not-a-real-key";
+  process.env.AI_BASE_URL = "https://ai.example.test/v1";
   setConsent(db, "dreamer", true);
 }
 
-describe("shared OpenRouter AI client", () => {
+describe("shared AI client", () => {
   beforeEach(() => {
     oldEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
     for (const key of ENV_KEYS) delete process.env[key];
@@ -92,13 +94,13 @@ describe("shared OpenRouter AI client", () => {
     assert.deepEqual(result, {
       ok: false,
       code: "not_configured",
-      message: "OpenRouter is not configured on this server.",
+      message: "The AI provider is not configured on this server.",
     });
     assert.equal(calls, 0);
   });
 
   it("requires explicit feature consent before a provider call", async () => {
-    process.env.OPENROUTER_API_KEY = "test-not-a-real-openrouter-key";
+    process.env.AI_API_KEY = "test-not-a-real-key";
     let calls = 0;
     const result = await chatJson(makeRequest(), {
       db,
@@ -155,7 +157,7 @@ describe("shared OpenRouter AI client", () => {
     const result = await chatJson(makeRequest(), { db, fetch: fakeFetch, now: new Date("2026-01-01T00:00:00.000Z") });
 
     assert.equal(seen.length, 2);
-    assert.equal(seen[0]?.url, "https://openrouter.ai/api/v1/chat/completions");
+    assert.equal(seen[0]?.url, "https://ai.example.test/v1/chat/completions");
     assert.equal(seen[1]?.init.redirect, "error");
     assert.equal((seen[1]?.init.signal as AbortSignal).aborted, false);
     assert.equal((seen[1]?.init.headers as Record<string, string>)["HTTP-Referer"], "https://track.example.test");
@@ -165,7 +167,7 @@ describe("shared OpenRouter AI client", () => {
     assert.deepEqual(result, {
       ok: true,
       data: { answer: "local fake result" },
-      model: "openrouter/free",
+      model: "cx/gpt-6-luna",
       usage: { promptTokens: 21, completionTokens: 5 },
     });
     assert.equal(getRecentAiCalls(db)[0]?.ok, true);
@@ -212,20 +214,27 @@ describe("shared OpenRouter AI client", () => {
     if (!invalid.ok) assert.equal(invalid.code, "invalid_output");
   });
 
-  it("rejects model slugs outside the allowlist pattern without making a request", async () => {
+  it("pins the model: a per-request model is ignored", async () => {
     configureAndConsent();
-    let calls = 0;
-    const result = await chatJson({ ...makeRequest(), model: "bad model slug with spaces" }, {
+    let sentModel = "";
+    const result = await chatJson({ ...makeRequest(), model: "some/other-model" }, {
       db,
-      fetch: async () => {
-        calls++;
+      fetch: async (_url, init) => {
+        sentModel = (JSON.parse(String(init?.body)) as { model: string }).model;
         return successfulResponse();
       },
     });
-    assert.equal(calls, 0);
-    assert.equal(getRecentAiCalls(db)[0]?.model, "openrouter/free");
-    assert.equal(result.ok, false);
-    if (!result.ok) assert.equal(result.code, "upstream");
+    assert.equal(sentModel, "cx/gpt-6-luna");
+    assert.equal(result.ok, true);
+  });
+
+  it("only accepts an https base URL without credentials, else falls back", () => {
+    process.env.AI_BASE_URL = "http://insecure.example.test/v1";
+    assert.equal(aiBaseUrl(), DEFAULT_AI_BASE_URL);
+    process.env.AI_BASE_URL = "https://user:pw@ai.example.test/v1";
+    assert.equal(aiBaseUrl(), DEFAULT_AI_BASE_URL);
+    process.env.AI_BASE_URL = "https://ai.example.test/v1/";
+    assert.equal(aiBaseUrl(), "https://ai.example.test/v1");
   });
 
   it("redacts direct identifiers and token URLs before truncating", () => {

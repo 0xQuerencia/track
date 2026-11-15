@@ -82,11 +82,11 @@ export async function extraWidgets(today: string): Promise<WidgetSpec[]> {
       title: checkinDone ? "Morning check-in · logged today" : "Morning check-in",
       wide: true,
       content: !aiStatus.keyConfigured || aiStatus.killSwitch ? (
-        <Empty>The check-in needs the OpenRouter key on the server and AI not disabled.</Empty>
+        <Empty>The check-in needs the AI provider key on the server and AI not disabled.</Empty>
       ) : !checkinConsent ? (
         <form action={setCheckinConsentAction} className="checkin-form">
           <p>Answer a few questions in plain language and the AI fills in your sleep, energy, weight and more. It only sees the text you type here, and you confirm before anything is saved.</p>
-          <label><input type="checkbox" name="enabled" /> Let the AI read my check-in text (sent to OpenRouter)</label>
+          <label><input type="checkbox" name="enabled" /> Let the AI read my check-in text (sent to your AI provider)</label>
           <div className="tk-form-actions"><button className="tk-button" type="submit">Turn on</button></div>
         </form>
       ) : (

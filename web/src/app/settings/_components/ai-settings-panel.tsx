@@ -17,11 +17,11 @@ export function AiSettingsPanel({ status, calls }: Props) {
   return (
     <Panel
       title="AI and privacy"
-      description="Track uses OpenRouter only after you opt in for a feature. The API key stays on the server."
+      description="Track uses your AI provider only after you opt in for a feature. The API key stays on the server."
     >
       <dl className="set-ai-status">
         <div>
-          <dt>OpenRouter key</dt>
+          <dt>AI provider key</dt>
           <dd>{status.keyConfigured ? "Configured" : "Not configured"}</dd>
         </div>
         <div>
