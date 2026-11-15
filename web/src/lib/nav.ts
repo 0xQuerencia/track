@@ -4,6 +4,7 @@ import {
   Brain,
   BookOpen,
   CalendarDays,
+  ClipboardCheck,
   Cpu,
   Crosshair,
   FileText,
@@ -44,6 +45,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { href: "/health", label: "Health", icon: HeartPulse },
       { href: "/money", label: "Money", icon: Wallet },
       { href: "/journal", label: "Journal", icon: Notebook },
+      { href: "/review", label: "Review", icon: ClipboardCheck },
     ],
   },
   {

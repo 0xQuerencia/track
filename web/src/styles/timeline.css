@@ -1,0 +1,10 @@
+.tl-filter { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; }
+.tl-filter label { display: grid; gap: 0.25rem; font-size: 0.8rem; color: var(--muted-foreground, inherit); }
+.tl-days { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+.tl-days h3 { font-size: 0.8rem; font-weight: 600; margin: 0 0 0.4rem; opacity: 0.7; }
+.tl-events { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; border-left: 1px solid currentColor; border-left-color: color-mix(in oklab, currentColor 20%, transparent); padding-left: 0.9rem; }
+.tl-events li { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.75rem; align-items: baseline; }
+.tl-events b { font-size: 0.72rem; font-weight: 500; opacity: 0.65; }
+.tl-events a { text-decoration: none; }
+.tl-events a:hover, .tl-events a:focus-visible { text-decoration: underline; }
+@media (max-width: 520px) { .tl-events li { grid-template-columns: 1fr; gap: 0; } }

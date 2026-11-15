@@ -47,6 +47,27 @@ Put it behind HTTPS and set `TRACK_COOKIE_SECURE=1`. With a reverse proxy, set `
 | `TRACK_COOKIE_SECURE` | `1` to mark the session cookie `Secure`. |
 | `TRACK_PUBLIC_URL` | Public base URL when behind a proxy. |
 
+## Life OS modules
+
+All modules share one SQLite database, one record-link table (`record_links`) and one search index. Everything is web-only; the Android API is unchanged.
+
+| Area | Routes |
+|------|--------|
+| Life | `/study` (revision planner, mocks, prerequisites), `/focus`, `/plans` (goals, routines, weekly plan), `/calendar`, `/health`, `/money` (budgets, recurring, CSV export), `/journal`, `/review` (day/week/month) |
+| Work | `/projects` (+ detail, inventory import), `/sessions` (AI session metadata), `/ideas` (convert to project), `/career` |
+| Personal | `/knowledge` (notes, bookmarks, backlinks), `/media`, `/people`, `/documents` (private vault), `/timeline` |
+| System | `/devices`, `/integrations`, `/settings` (scoped integration tokens) |
+
+`Ctrl/Cmd+K` opens the command palette (search, go-to, quick create).
+
+**Schema and upgrades.** `src/lib/migrations/` is a versioned, additive registry tracked in `schema_migrations`. Before any pending migration touches an existing database file, a `VACUUM INTO` backup is written next to it (last 5 kept). Back up `data/` yourself before upgrading a production install, and never commit `data/`.
+
+**Linux connector.** `tools/track-connector/` (see its README) sends only sanitized metadata (repo facts, session ids and timestamps, never transcripts) using a scoped token created under Settings. Without it, paste JSON on `/integrations`.
+
+**Honesty rules.** Device and service status shows Unknown unless verified; progress figures are counts of real rows; reviews and the timeline are computed from records, with no estimates.
+
+**Tests.** `pnpm test` (node:test via tsx). `pnpm lint` needs eslint, which is not yet a declared dependency.
+
 ## Sync API
 
 Used by the Android launcher; all routes need `Authorization: Bearer $TRACK_API_TOKEN`.
