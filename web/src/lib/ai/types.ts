@@ -8,7 +8,7 @@ import type { ZodType } from "zod";
  * disclosure shown to the user is built from the same payload that is sent.
  */
 
-export type AiFeature = "dreamer" | "checkin" | "assistant";
+export type AiFeature = "dreamer" | "checkin" | "assistant" | "vault";
 
 export type AiErrorCode =
   | "not_configured" // no AI_API_KEY
@@ -19,7 +19,8 @@ export type AiErrorCode =
   | "upstream"
   | "invalid_output"; // reply failed schema validation
 
-export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+export type ChatMessage = { role: "system" | "user" | "assistant"; content: string | readonly ContentPart[] };
 
 /** One redacted excerpt that would leave the machine. `id` is the evidence id the model may cite. */
 export type AiDisclosureItem = { id: string; label: string; text: string };
@@ -40,6 +41,8 @@ export type ChatJsonRequest<T> = {
   /** Ignored: the model is pinned by AI_MODEL (default cx/gpt-6-luna). */
   model?: string;
   maxTokens?: number;
+  /** Lower reasoning effort for simple jobs such as reading a screenshot. Defaults to the server's setting. */
+  effort?: "minimal" | "low" | "medium";
 };
 
 export type ChatJsonDeps = { fetch?: typeof fetch; db?: DatabaseSync; now?: Date };

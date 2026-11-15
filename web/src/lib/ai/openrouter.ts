@@ -174,12 +174,13 @@ async function attempt<T>(
       typeof request.maxTokens === "number" && Number.isFinite(request.maxTokens)
         ? Math.max(1, Math.min(MAX_TOKENS, Math.floor(request.maxTokens)))
         : 1_024;
+    const effort = provider.name === "primary" ? (request.effort ?? provider.effort) : provider.effort;
     const body = JSON.stringify({
       model,
       messages: request.messages,
       max_tokens: maxTokens,
       response_format: { type: "json_object" },
-      ...(provider.effort ? { reasoning_effort: provider.effort } : {}),
+      ...(effort ? { reasoning_effort: effort } : {}),
       stream: false,
     });
     const doFetch = deps.fetch ?? fetch;

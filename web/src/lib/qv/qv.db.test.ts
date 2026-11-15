@@ -446,3 +446,35 @@ describe("search", () => {
     assert.equal(searchAll("100%").filter((h) => h.entity === "qv_questions").length, 0);
   });
 });
+
+describe("AI screenshot reading", () => {
+  const tsv = "level\tpage\tblock\tpar\tline\tword\tl\tt\tw\th\tconf\ttext\n5\t1\t1\t1\t1\t1\t0\t0\t1\t1\t90\tFallback";
+  const PNG3 = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("ai-body-3")]);
+  it("uses the AI reading when it works, one draft per question, and reuses it for the same image", async () => {
+    let calls = 0;
+    const ai = async () => (calls++, { ok: true as const, questions: [{ text: "Find \\(x^2\\)", qtype: "Numerical" }, { text: "Define work", qtype: "Subjective" }] });
+    const first = await ingestImage("a.png", PNG3, { db, ai, runner: async () => { throw new Error("tesseract must not run"); } });
+    assert.ok(first.ok);
+    if (!first.ok) return;
+    assert.equal(first.draft.parts.length, 2);
+    assert.equal(first.draft.parts[0].qtype, "Numerical");
+    assert.match(first.draft.engine ?? "", /^ai:/);
+    const again = await ingestImage("b.png", PNG3, { db, ai });
+    assert.ok(again.ok && again.draft.status === "reused" && again.draft.parts.length === 2 && again.draft.parts[1].text === "Define work");
+    assert.equal(calls, 1);
+  });
+  it("falls back to Tesseract when the AI fails or is not allowed, and says so", async () => {
+    const failing = await ingestImage("a.png", PNG, { db, ai: async () => ({ ok: false as const, code: "upstream" as const }), runner: async () => tsv });
+    assert.ok(failing.ok);
+    if (failing.ok) {
+      assert.equal(failing.draft.parts[0].text, "Fallback");
+      assert.ok(failing.draft.warnings.some((w) => /AI reader failed/.test(w)));
+    }
+    const off = await ingestImage("b.png", PNG2, { db, ai: async () => ({ ok: false as const, code: "no_consent" as const }), runner: async () => tsv });
+    assert.ok(off.ok && !off.draft.warnings.some((w) => /AI/.test(w)));
+  });
+  it("sends nothing without consent: the default reader is gated", async () => {
+    const r = await ingestImage("c.png", Buffer.concat([PNG, Buffer.from("zzz")]), { db, runner: async () => tsv });
+    assert.ok(r.ok && r.draft.parts[0].text === "Fallback");
+  });
+});

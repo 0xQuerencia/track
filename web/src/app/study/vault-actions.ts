@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { setConsent } from "@/lib/ai";
 import { getDb } from "@/lib/db";
 import { MAX_IMAGES_PER_BATCH, MODES, RATINGS, type PracticeMode, type Rating } from "@/lib/qv/constants";
 import { ingestImage, type Draft } from "@/lib/qv/ingest";
@@ -255,4 +256,11 @@ export async function finishPracticeAction(sessionId: number): Promise<{ answere
   refresh();
   revalidatePath("/");
   return r;
+}
+
+/** Opt in or out of sending screenshots to the AI provider to be read. Off until you turn it on. */
+export async function setVaultAiAction(enabled: boolean): Promise<void> {
+  await requireSession();
+  setConsent(getDb(), "vault", enabled);
+  refresh();
 }

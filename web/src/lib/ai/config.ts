@@ -7,7 +7,7 @@ import type { AiFeature } from "./types";
  */
 export const DEFAULT_AI_BASE_URL = "https://openrouter.ai/api/v1";
 export const DEFAULT_AI_MODEL = "cx/gpt-6-luna";
-export const AI_FEATURES: readonly AiFeature[] = ["dreamer", "checkin", "assistant"];
+export const AI_FEATURES: readonly AiFeature[] = ["dreamer", "checkin", "assistant", "vault"];
 export const MODEL_SLUG_PATTERN = /^[a-z0-9._/:-]{1,80}$/;
 
 function safeBaseUrl(candidate: string, fallback: string): string {

@@ -6,10 +6,11 @@ deterministic spaced-repetition rule, and builds a daily plan around your calend
 existing Track database (migration `m150_qvault`) and behind the existing login.
 
 ## Setup
+* **Screenshot reading** prefers the AI model (the router in `AI_BASE_URL`, vision-capable, low reasoning effort): it keeps maths as LaTeX and splits several questions itself. It is off until you tick "Let the AI model read my screenshots" in the Vault (consent feature `vault`); the image is sent to your AI provider. If it is off, unconfigured or fails, Tesseract is used, then typing.
 * **OCR** uses the `tesseract` binary on the server (`pacman -S tesseract tesseract-data-eng`, `apt install tesseract-ocr`).
   More languages: install the language data (e.g. `tesseract-data-hin`); the Vault shows an OCR language picker when more than one is installed.
   Without Tesseract everything still works: the screenshot is saved and you type the text.
-* No paid AI service is needed or used by this feature.
+* AI is optional: without it everything still works through Tesseract or typing.
 * **Time zone**: set in Study settings (defaults to `TRACK_TIMEZONE`/`TRACK_TZ`, else Asia/Kolkata).
 
 ## Scheduling rule
@@ -56,7 +57,7 @@ serverless filesystem. Study, Settings has **Download backup** (JSON with images
 (adds what is missing; restoring twice changes nothing). Also back up `data/track.db` as usual.
 
 ## Limits
-* Tesseract reads printed text; equations, fractions, subscripts and handwriting are often wrong. The UI warns and keeps the screenshot beside the text.
+* Maths comes out as `\(...\)` LaTeX text and is not rendered yet. Tesseract reads printed text; equations, fractions, subscripts and handwriting are often wrong. The UI warns and keeps the screenshot beside the text.
   There is no math OCR engine; nothing is guessed.
 * Notes and journal entries are not used for planning (no entry-level control was built).
 * The plan rebuilds when you press Rebuild, save settings, finish the evening job, or the plan job runs; completing a task elsewhere is picked up on the next rebuild.
