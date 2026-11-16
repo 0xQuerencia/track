@@ -10,6 +10,8 @@ import type {
   ChatJsonDeps,
   ChatJsonRequest,
   ChatJsonResult,
+  ChatTextRequest,
+  ChatTextResult,
 } from "./types";
 
 const TIMEOUT_MS = 180_000; // extra-high effort can think for a while
@@ -141,6 +143,38 @@ function stripJsonFence(text: string): string {
   return match ? match[1] : text;
 }
 
+/**
+ * The gateway's reasoning models sometimes return Markdown even when asked for
+ * JSON. For prose-only agents, accept prose (or unwrap a compatible JSON field)
+ * rather than failing a perfectly useful answer due to a JSON schema mismatch.
+ * Never interpret the contents as instructions or tool calls.
+ */
+function plainAssistantText(content: unknown): string {
+  const text = (
+    typeof content === "string" ? content :
+    Array.isArray(content) ? content
+      .filter((part): part is { type: "text"; text: string } =>
+        typeof part === "object" && part !== null && part.type === "text" && typeof part.text === "string")
+      .map((part) => part.text).join("\n") : ""
+  ).trim();
+  if (!text) throw new OpenRouterError("invalid_output", "the AI provider returned empty text.");
+
+  let output = text;
+  try {
+    const parsed: unknown = JSON.parse(stripJsonFence(text));
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      const obj = parsed as Record<string, unknown>;
+      const key = ["report", "answer", "text", "content"].find((k) => typeof obj[k] === "string");
+      if (key) output = obj[key] as string;
+    }
+  } catch {
+    // Plain Markdown is the expected response and does not need JSON parsing.
+  }
+  const bounded = output.trim().slice(0, 12_000);
+  if (!bounded) throw new OpenRouterError("invalid_output", "the AI provider returned empty text.");
+  return bounded;
+}
+
 async function zodResult<T>(schema: ZodType<T>, value: unknown): Promise<T> {
   const parsed = await schema.safeParseAsync(value);
   if (!parsed.success)
@@ -153,9 +187,10 @@ async function zodResult<T>(schema: ZodType<T>, value: unknown): Promise<T> {
  * consent/kill-switch gate, uses the fixed API origin, and writes metadata only.
  */
 async function attempt<T>(
-  request: ChatJsonRequest<T>,
+  request: ChatJsonRequest<T> | ChatTextRequest,
   deps: ChatJsonDeps,
   provider: Provider,
+  outputMode: "json" | "text",
 ): Promise<ChatJsonResult<T>> {
   const db = deps.db ?? getDb();
   const at = (deps.now ?? new Date()).toISOString();
@@ -179,7 +214,7 @@ async function attempt<T>(
       model,
       messages: request.messages,
       max_tokens: maxTokens,
-      response_format: { type: "json_object" },
+      ...(outputMode === "json" ? { response_format: { type: "json_object" } } : {}),
       ...(effort ? { reasoning_effort: effort } : {}),
       stream: false,
     });
@@ -226,15 +261,22 @@ async function attempt<T>(
     }
 
     const content = providerReply.choices?.[0]?.message?.content;
-    if (typeof content !== "string")
-      throw new OpenRouterError("invalid_output", "the AI provider returned no JSON content.");
-    let json: unknown;
-    try {
-      json = JSON.parse(stripJsonFence(content));
-    } catch {
-      throw new OpenRouterError("invalid_output", "the AI provider returned invalid JSON.");
+    let data: T;
+    if (outputMode === "text") {
+      data = plainAssistantText(content) as T;
+    } else {
+      if (typeof content !== "string")
+        throw new OpenRouterError("invalid_output", "the AI provider returned no JSON content.");
+      let json: unknown;
+      try {
+        json = JSON.parse(stripJsonFence(content));
+      } catch {
+        throw new OpenRouterError("invalid_output", "the AI provider returned invalid JSON.");
+      }
+      if (!("schema" in request) || !request.schema)
+        throw new OpenRouterError("invalid_output", "the JSON response schema was missing.");
+      data = await zodResult(request.schema as ZodType<T>, json);
     }
-    const data = await zodResult(request.schema, json);
     promptTokens = tokenCount(providerReply.usage?.prompt_tokens);
     completionTokens = tokenCount(providerReply.usage?.completion_tokens);
     safeRecord(db, {
@@ -287,7 +329,22 @@ export async function chatJson<T>(
   if (providers.length === 0) return resultError("not_configured");
   let last: ChatJsonResult<T> = resultError("upstream");
   for (const provider of providers) {
-    last = await attempt(request, deps, provider);
+    last = await attempt(request, deps, provider, "json");
+    if (last.ok || !FALL_BACK_ON.has(last.code)) return last;
+  }
+  return last;
+}
+
+/** Text-mode agent completions, not forced into fragile JSON-only output. */
+export async function chatText(
+  request: ChatTextRequest,
+  deps: ChatJsonDeps = {},
+): Promise<ChatTextResult> {
+  const providers = aiProviders();
+  if (providers.length === 0) return resultError("not_configured");
+  let last: ChatTextResult = resultError("upstream");
+  for (const provider of providers) {
+    last = await attempt<string>(request, deps, provider, "text");
     if (last.ok || !FALL_BACK_ON.has(last.code)) return last;
   }
   return last;

@@ -45,6 +45,10 @@ export type ChatJsonRequest<T> = {
   effort?: "minimal" | "low" | "medium";
 };
 
+/** Plain-text AI completions for prose agents. Consent, key and usage policy are shared with chatJson. */
+export type ChatTextRequest = Omit<ChatJsonRequest<string>, "schema">;
+export type ChatTextResult = ChatJsonResult<string>;
+
 export type ChatJsonDeps = { fetch?: typeof fetch; db?: DatabaseSync; now?: Date };
 
 export type ChatJsonResult<T> =

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { chatJson as sendChatJson } from "./openrouter";
+import { chatJson as sendChatJson, chatText as sendChatText } from "./openrouter";
 import {
   assertAiAllowed,
   getAiStatus as readAiStatus,
@@ -33,6 +33,14 @@ export async function chatJson<T>(
   deps?: ChatJsonDeps,
 ): Promise<ChatJsonResult<T>> {
   return sendChatJson(request, deps);
+}
+
+/** Plain-text completions with the exact same consent and provider protections. */
+export async function chatText(
+  request: import("./types").ChatTextRequest,
+  deps?: ChatJsonDeps,
+): Promise<import("./types").ChatTextResult> {
+  return sendChatText(request, deps);
 }
 
 export function getAiStatus(db: DatabaseSync): AiStatus {
