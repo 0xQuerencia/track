@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "eslint src --max-warnings 0",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -21,6 +22,7 @@
     "d3-array": "^3.2.5",
     "d3-scale": "^4.0.3",
     "d3-shape": "^3.2.1",
+    "katex": "^0.19.1",
     "lucide-react": "latest",
     "motion": "^14.10.1",
     "next": "latest",
@@ -37,10 +39,13 @@
     "@types/d3-array": "^3.2.2",
     "@types/d3-scale": "^4.0.9",
     "@types/d3-shape": "^3.2.0",
+    "@types/katex": "^0.16.8",
     "@types/node": "26.6.6",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "eslint": "^9.39.5",
     "eslint-config-next": "latest",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3"
   }
 }

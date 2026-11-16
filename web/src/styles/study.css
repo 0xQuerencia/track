@@ -1,0 +1,352 @@
+/* Study HQ. Builds on the tk-* classes; study-only layout lives here. */
+
+.st-tabs .tabbar {
+  flex-wrap: wrap;
+}
+
+.st-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.st-filters .tk-form-actions {
+  grid-column: 1 / -1;
+}
+
+.st-warn {
+  color: var(--warning);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.st-inline-error {
+  color: var(--negative);
+  font-size: 0.875rem;
+}
+
+.st-inline-note {
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.st-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.st-actions .tk-button {
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.st-subhead {
+  margin: 14px 0 6px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Exam countdown */
+.st-countdown {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.st-countdown li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.st-countdown span:not(.st-days) {
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.st-days {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-family: var(--font-mono);
+  color: var(--accent-ink);
+}
+
+.st-days[data-today] {
+  color: var(--warning);
+}
+
+/* Today's targets */
+.st-targets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.st-targets li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--accent-line);
+}
+
+.st-targets small {
+  color: var(--text-3);
+}
+
+/* Subject cards */
+.st-subject-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.st-subject-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+
+.st-subject-card h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.st-subject-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.st-subject-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.st-subject-card dt {
+  color: var(--text-3);
+  font-size: 0.8rem;
+}
+
+.st-subject-card dd {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.st-subject-card dd small {
+  color: var(--text-3);
+}
+
+.st-weak-list {
+  margin: 0;
+  padding: 0 0 0 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.st-weak-list small {
+  display: block;
+  color: var(--text-3);
+}
+
+/* Chapter detail */
+.st-detail {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-panel);
+  background: var(--surface-2);
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 80px;
+}
+
+.st-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.st-detail-head h2 {
+  margin: 0;
+}
+
+.st-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.st-facts div {
+  padding: 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-3);
+}
+
+.st-facts dt {
+  color: var(--text-3);
+  font-size: 0.8rem;
+}
+
+.st-facts dd {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+}
+
+.st-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.st-notes-form,
+.st-prereq-form,
+.st-log-form,
+.st-budget {
+  margin-top: 12px;
+}
+
+/* Revision plan */
+.st-budget {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+.st-plan-summary {
+  margin: 14px 0 6px;
+  font-family: var(--font-mono);
+  color: var(--accent-ink);
+}
+
+.st-plan {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  counter-reset: none;
+}
+
+.st-plan li {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.st-plan li:hover {
+  border-color: var(--line-strong);
+}
+
+.st-plan li[data-planned="false"] {
+  opacity: 0.72;
+}
+
+.st-plan-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.st-plan-head small {
+  display: block;
+  color: var(--text-3);
+}
+
+.st-rank {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-line);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.st-score {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  color: var(--accent-ink);
+}
+
+.st-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.st-chip {
+  padding: 2px 8px;
+  border-radius: var(--radius-tag);
+  border: 1px solid var(--line-strong);
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+.st-chip[data-kind="pin"] {
+  color: var(--accent-ink);
+  border-color: var(--accent-line);
+}
+
+.st-chip[data-kind="over"] {
+  color: var(--warning);
+}
+
+.st-reasons {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 3px;
+  color: var(--text-2);
+  font-size: 0.9rem;
+}
+
+.st-plan-foot {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .st-plan-head {
+    grid-template-columns: auto 1fr;
+  }
+  .st-score {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .st-detail {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-plan li,
+  .st-actions .tk-button {
+    transition: none;
+  }
+}

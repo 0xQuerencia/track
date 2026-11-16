@@ -1,0 +1,151 @@
+/* Devices module: status, storage, services and the maintenance log. */
+
+.dev-notice {
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  color: var(--text-2);
+  padding: 0.75rem 1rem;
+  margin: 0;
+}
+
+.dev-status {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: var(--text-1);
+}
+
+.dev-status small {
+  color: var(--text-2);
+  flex-basis: 100%;
+}
+
+.dev-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--text-3);
+  flex: none;
+}
+
+.dev-status[data-state="Online"] .dev-dot,
+.dev-status[data-state="Up"] .dev-dot {
+  background: var(--positive);
+}
+
+.dev-status[data-state="Offline"] .dev-dot,
+.dev-status[data-state="Down"] .dev-dot {
+  background: var(--negative);
+}
+
+.dev-muted,
+.dev-hint {
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.dev-note {
+  color: var(--text-2);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.dev-storage {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 10rem;
+}
+
+.dev-storage progress {
+  width: 100%;
+  accent-color: var(--accent-ink);
+}
+
+.dev-storage[data-over] progress {
+  accent-color: var(--negative);
+}
+
+.dev-storage small {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.dev-storage-edit {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.dev-storage-edit label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.dev-storage-edit span {
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.dev-connectivity {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dev-segments {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dev-segments button[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.dev-service-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dev-services-table td,
+.dev-services-table th {
+  vertical-align: top;
+}
+
+.dev-maintenance-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.dev-subhead {
+  font-size: 0.95rem;
+  color: var(--text-2);
+  margin: 0.75rem 0 0.25rem;
+}
+
+.dev-prewrap {
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.dev-segments button:focus-visible,
+.dev-service-actions button:focus-visible,
+.dev-storage-edit input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dev-status *,
+  .dev-segments * {
+    transition: none;
+  }
+}

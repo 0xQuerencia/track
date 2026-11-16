@@ -26,8 +26,9 @@ export function useNavRail(navRef: NavRef, routeKey: string) {
       return;
     }
     nav.setAttribute("data-rail", "ready");
+    // Items sit inside collapsible groups, so the match is not limited to direct children.
     const active = nav.querySelector<HTMLElement>(
-      ':scope > .nav-item-wrap > [aria-current="page"]',
+      '.nav-item-wrap > [aria-current="page"]',
     );
     let animation: JSAnimation | undefined;
     if (!active) {

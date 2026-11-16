@@ -7,6 +7,12 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/login") return NextResponse.next();
   // The phone app authenticates with its own bearer token inside each route.
   if (pathname.startsWith("/api/v1/")) return NextResponse.next();
+  // Connector routes check their own scoped bearer token (fail closed) in each handler.
+  if (pathname.startsWith("/api/integrations/")) return NextResponse.next();
+  // Dreamer automation routes check their own dreamer:run bearer token in the handler.
+  if (pathname.startsWith("/api/dreamer/")) return NextResponse.next();
+  // Study job triggers check their own study:jobs bearer token in the handler.
+  if (pathname.startsWith("/api/study/jobs")) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (token && (await verifySessionToken(token))) return NextResponse.next();

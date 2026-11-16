@@ -47,6 +47,33 @@ Put it behind HTTPS and set `TRACK_COOKIE_SECURE=1`. With a reverse proxy, set `
 | `TRACK_COOKIE_SECURE` | `1` to mark the session cookie `Secure`. |
 | `TRACK_PUBLIC_URL` | Public base URL when behind a proxy. |
 
+### Optional AI features
+
+Set `OPENROUTER_API_KEY` to enable OpenRouter, then opt in per feature under **Settings → AI and privacy**. The default model is `openrouter/free` (OpenRouter's free router); `OPENROUTER_MODEL` can select another OpenRouter model slug. `TRACK_AI_DISABLED=1` blocks all AI requests regardless of saved consent. Consent starts off. AI call history records only the feature, model, time, token counts and result code; prompts and responses are not stored. Features must show the redacted excerpts they intend to send before requesting them.
+
+## Life OS modules
+
+All modules share one SQLite database, one record-link table (`record_links`) and one search index. Everything is web-only; the Android API is unchanged.
+
+| Area | Routes |
+|------|--------|
+| Life | `/study` (revision planner, mocks, prerequisites), `/focus`, `/plans` (goals, routines, weekly plan), `/calendar`, `/health`, `/money` (budgets, recurring, CSV export), `/journal`, `/review` (day/week/month) |
+| Work | `/projects` (+ detail, inventory import), `/sessions` (AI session metadata), `/ideas` (convert to project), `/career` |
+| Personal | `/knowledge` (notes, bookmarks, backlinks), `/media`, `/people`, `/documents` (private vault), `/timeline` |
+| System | `/devices`, `/integrations`, `/settings` (scoped integration tokens) |
+
+`Ctrl/Cmd+K` opens the command palette (search, go-to, quick create).
+
+**Schema and upgrades.** `src/lib/migrations/` is a versioned, additive registry tracked in `schema_migrations`. Before any pending migration touches an existing database file, a `VACUUM INTO` backup is written next to it (last 5 kept). Back up `data/` yourself before upgrading a production install, and never commit `data/`.
+
+**Linux connector.** `tools/track-connector/` (see its README) sends only sanitized metadata (repo facts, session ids and timestamps, never transcripts) using a scoped token created under Settings. Without it, paste JSON on `/integrations`.
+
+**Honesty rules.** Device and service status shows Unknown unless verified; progress figures are counts of real rows; reviews and the timeline are computed from records, with no estimates.
+
+**Checks.** `pnpm typecheck`, `pnpm lint`, `pnpm test` (node:test via tsx), `pnpm build`.
+
+**GitHub sync.** Optional and read-only: set `GITHUB_TOKEN` and a "Sync from GitHub" button appears on `/integrations`. It only calls `api.github.com` for projects whose repo URL is a plain `https://github.com/owner/repo`. Antigravity has no documented local format, so it is reported as unsupported.
+
 ## Sync API
 
 Used by the Android launcher; all routes need `Authorization: Bearer $TRACK_API_TOKEN`.

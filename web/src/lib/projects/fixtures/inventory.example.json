@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "generated_at": "2026-01-15T09:00:00Z",
+  "projects": [
+    {
+      "external_id": "example-atlas-notes-0001",
+      "name": "Atlas Notes",
+      "description": "Example project: a note-taking app used only as sample data.",
+      "category": "app",
+      "tech_stack": ["TypeScript", "Next.js", "SQLite"],
+      "local_path": "/home/user/projects/atlas-notes",
+      "git": {
+        "remote_url": "git@example.com:demo-user/atlas-notes.git",
+        "default_branch": "main",
+        "current_branch": "feat/search",
+        "last_commit": {
+          "sha": "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567",
+          "message": "feat: add full-text search",
+          "at": "2026-01-14T18:22:00Z"
+        }
+      },
+      "tags": ["notes", "example"],
+      "last_activity_at": "2026-01-14T18:22:00Z"
+    },
+    {
+      "external_id": "example-kiln-game-0002",
+      "name": "Kiln Game",
+      "category": "game",
+      "tech_stack": ["Godot", "GDScript"],
+      "local_path": "/home/user/games/kiln",
+      "git": {
+        "remote_url": "https://example.com/demo-user/kiln-game",
+        "default_branch": "main",
+        "current_branch": "main",
+        "last_commit": {
+          "sha": "f0e1d2c3b4a5968778695a4b3c2d1e0f9a8b7c6d",
+          "message": "chore: tune kiln temperature curve",
+          "at": "2025-12-03T10:05:00Z"
+        }
+      },
+      "tags": ["game", "example"],
+      "last_activity_at": "2025-12-03T10:05:00Z"
+    },
+    {
+      "external_id": "example-harbor-cli-0003",
+      "name": "Harbor CLI",
+      "description": "Example project without a remote yet.",
+      "category": "tool",
+      "tech_stack": ["Go"],
+      "local_path": "/home/user/tools/harbor"
+    }
+  ]
+}

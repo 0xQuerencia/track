@@ -1,0 +1,435 @@
+/* Plans & Goals: tabs, goal tree, progress meters, routines and the weekly plan.
+   Colours and radii come from the tokens in tokens.css, so light and dark stay in step. */
+
+.pl-section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ---------- Section tabs (plain links, so they work without scripts) ---------- */
+
+.pl-tabs ul {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border-bottom: 1px solid var(--line);
+}
+.pl-tabs a {
+  display: inline-block;
+  padding: 8px 12px 10px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+.pl-tabs a:hover {
+  color: var(--foreground);
+}
+.pl-tabs a[aria-current="page"] {
+  color: var(--foreground);
+  border-bottom-color: var(--accent-ink, var(--primary));
+  font-weight: 600;
+}
+.pl-tabs a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-tag);
+}
+
+.pl-two-up {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 900px) {
+  .pl-two-up {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+}
+
+.pl-note,
+.pl-muted {
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+.pl-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-tag);
+  background: var(--accent-wash, var(--surface-2));
+  color: var(--accent-ink, var(--foreground));
+  font-size: 0.8rem;
+  border: 1px solid var(--accent-line, var(--line));
+}
+.pl-repeat {
+  color: var(--accent-ink, var(--foreground));
+}
+.pl-inline-status {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+
+/* ---------- Progress meter ---------- */
+
+.pl-meter {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+}
+.pl-meter progress {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.pl-meter progress::-webkit-progress-bar {
+  background: var(--surface-2);
+  border-radius: 999px;
+}
+.pl-meter progress::-webkit-progress-value {
+  background: var(--accent-ink, var(--primary));
+  border-radius: 999px;
+}
+.pl-meter progress::-moz-progress-bar {
+  background: var(--accent-ink, var(--primary));
+  border-radius: 999px;
+}
+.pl-meter-text {
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+}
+.pl-meter-empty {
+  margin: 8px 0;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ---------- Goals tree ---------- */
+
+.pl-goal-tree,
+.pl-goal-children,
+.pl-goal-summaries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pl-goal-children {
+  margin-top: 12px;
+  padding-left: 18px;
+  border-left: 1px solid var(--line-strong);
+}
+.pl-goal {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.pl-goal:first-child {
+  border-top: 0;
+}
+.pl-goal[data-depth="1"] h3 {
+  font-size: 1.15rem;
+}
+.pl-goal[data-depth="2"] h3,
+.pl-goal[data-depth="3"] h3,
+.pl-goal[data-depth="4"] h3 {
+  font-size: 1rem;
+}
+.pl-goal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pl-goal-head h3 {
+  margin: 0;
+}
+.pl-goal-meta,
+.pl-goal-notes {
+  margin: 2px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+}
+.pl-goal-notes {
+  white-space: pre-line;
+}
+.pl-review-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.pl-goal-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.pl-goal-controls .tk-field {
+  min-width: 180px;
+}
+
+.pl-disclosure {
+  margin: 6px 0;
+}
+.pl-disclosure > summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  padding: 4px 0;
+}
+.pl-disclosure > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.pl-contributions {
+  list-style: none;
+  margin: 6px 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.pl-contributions li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.92rem;
+}
+.pl-contributions li[data-done] .pl-contribution-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--muted-foreground);
+}
+.pl-contributions li[data-missing] {
+  color: var(--muted-foreground);
+}
+.pl-contribution-title small {
+  text-transform: lowercase;
+  color: var(--muted-foreground);
+  margin-right: 4px;
+}
+.pl-contribution-title em {
+  color: var(--muted-foreground);
+  font-style: normal;
+}
+.pl-contribution-state {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+.pl-contribution-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pl-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+.pl-contribution-form {
+  margin-top: 4px;
+}
+
+/* ---------- Dialogs and forms ---------- */
+
+.pl-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  padding: 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-panel);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.55);
+}
+.pl-dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+.pl-dialog h3 {
+  margin: 0 0 12px;
+}
+.pl-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pl-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.pl-days legend {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+/* ---------- Habit targets ---------- */
+
+.pl-target-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.pl-target-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.pl-target-list li > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.pl-target-list progress {
+  width: min(240px, 60vw);
+  height: 6px;
+}
+.pl-target-list li[data-met] {
+  border-color: var(--accent-line, var(--line));
+}
+
+/* ---------- Routines ---------- */
+
+.pl-routine-list {
+  display: grid;
+  gap: 14px;
+}
+.pl-routine {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface-1);
+}
+.pl-routine > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pl-routine h3 {
+  margin: 0;
+}
+.pl-routine-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pl-routine-items {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.pl-routine-items li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.pl-routine-items li small {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.pl-apply {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* ---------- Task cards ---------- */
+
+.pl-task-controls {
+  display: grid;
+  gap: 4px;
+}
+
+/* ---------- Weekly plan ---------- */
+
+.pl-week {
+  display: grid;
+  gap: 16px;
+}
+.pl-week-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pl-week-nav h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.pl-week-nav a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+}
+.pl-week-nav a:hover,
+.pl-week-nav a:focus-visible {
+  color: var(--foreground);
+  background: var(--surface-2);
+}
+.pl-week-habits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.pl-week-habits li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px dashed var(--line);
+  padding: 4px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-tabs a {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .pl-contributions li,
+  .pl-routine-items li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,315 @@
+/* People and important dates. Colours come from tokens.css. */
+
+.people-form {
+  display: grid;
+  gap: 14px;
+}
+
+.people-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 14px;
+}
+
+.people-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.people-field[data-wide] {
+  grid-column: 1 / -1;
+}
+
+.people-field > span,
+.people-check > span {
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.people-field input,
+.people-field select,
+.people-field textarea,
+.people-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 14px;
+}
+
+.people-field textarea {
+  resize: vertical;
+}
+
+.people-field input:focus-visible,
+.people-field select:focus-visible,
+.people-field textarea:focus-visible,
+.people-search input:focus-visible,
+.people-name:focus-visible,
+.people-tag:focus-visible,
+.people-pager a:focus-visible,
+.people-back a:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+.people-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.people-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.people-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.people-search .people-field {
+  min-width: 180px;
+}
+
+.people-search a {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.people-name {
+  color: var(--text-1);
+  font-weight: 540;
+  text-decoration: none;
+}
+
+.people-name:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.people-muted {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.people-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.people-tag {
+  padding: 1px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-tag);
+  color: var(--text-2);
+  font-size: 12px;
+  text-decoration: none;
+  transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast);
+}
+
+.people-tag:hover {
+  color: var(--text-1);
+  border-color: var(--accent-line);
+}
+
+.people-tag[aria-current="true"] {
+  color: var(--accent-ink);
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+}
+
+.people-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.people-pager a {
+  color: var(--accent-ink);
+}
+
+.people-upcoming {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people-upcoming li {
+  display: grid;
+  grid-template-columns: 74px 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.people-upcoming time {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.people-upcoming a {
+  color: var(--text-1);
+  text-decoration: none;
+}
+
+.people-upcoming a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.people-upcoming small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.people-dates {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people-dates li {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.people-date-head {
+  display: grid;
+  grid-template-columns: 74px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.people-date-head time {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.people-date-head > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.people-date-head small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.people-edit summary {
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.people-edit[open] summary {
+  color: var(--text-1);
+}
+
+.people-edit .people-form {
+  margin-top: 12px;
+}
+
+.people-back {
+  margin: 0;
+  font-size: 13px;
+}
+
+.people-back a {
+  color: var(--text-3);
+  text-decoration: none;
+}
+
+.people-summary {
+  display: grid;
+  gap: 16px;
+}
+
+.people-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px 22px;
+  margin: 0;
+}
+
+.people-facts div {
+  display: grid;
+  gap: 4px;
+}
+
+.people-facts dt {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.people-facts dd {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 14px;
+}
+
+.people-notes {
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.people-subhead {
+  margin: 0 0 4px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 540;
+}
+
+.people-danger {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .people-date-head {
+    grid-template-columns: 1fr;
+  }
+  .people-upcoming li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .people-tag {
+    transition: none;
+  }
+}

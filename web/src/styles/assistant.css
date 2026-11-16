@@ -1,0 +1,70 @@
+/* Assistant: brief first, then the conversation. Operate surface: scannable, quiet, one accent. */
+.asst { display: grid; gap: 1.5rem; }
+
+/* Brief */
+.asst-brief-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 1rem; margin-bottom: 0.75rem; }
+.asst-brief-head h3 { margin: 0; font-size: 1rem; }
+.asst-brief-head span { color: var(--text-3); font-size: 0.82rem; }
+.asst-brief-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.75rem; }
+.asst-brief-card { border: 1px solid var(--line); border-radius: var(--radius-panel, 6px); background: var(--surface-2, transparent); padding: 0.75rem 0.9rem; min-width: 0; }
+.asst-brief-card[data-kind="needs-attention"] { border-color: var(--accent-line, var(--line-strong)); }
+.asst-brief-label { margin: 0 0 0.4rem; color: var(--text-3); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.asst-brief-card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.3rem; font-size: 0.9rem; line-height: 1.4; }
+.asst-brief-card li { overflow-wrap: anywhere; }
+
+/* Chat */
+.asst-chat { display: grid; gap: 0.75rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+.asst-greet h4 { margin: 0 0 0.2rem; font-size: 1.05rem; }
+.asst-greet p { margin: 0; color: var(--text-2); font-size: 0.9rem; max-width: 60ch; }
+.asst-log { display: grid; align-content: start; gap: 0.9rem; max-height: min(34vh, 17rem); overflow-y: auto; padding: 0.25rem 0.5rem 0.25rem 0; scroll-padding-bottom: 1rem; }
+.asst-turn { display: grid; gap: 0.4rem; max-width: min(100%, 44rem); }
+.asst-turn[data-role="user"] { justify-self: end; justify-items: end; }
+.asst-bubble { margin: 0; padding: 0.6rem 0.85rem; border-radius: var(--radius-panel, 6px); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.asst-turn[data-role="assistant"] .asst-bubble { background: var(--surface-2, transparent); border: 1px solid var(--line); }
+.asst-turn[data-role="user"] .asst-bubble { border: 1px solid var(--accent-line, var(--line-strong)); color: var(--text-1); }
+.asst-thinking { color: var(--text-3); }
+
+/* Changes the assistant made or proposes */
+.asst-changes { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.3rem; width: 100%; }
+.asst-change { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: var(--radius-panel, 6px); font-size: 0.88rem; }
+.asst-change-text { min-width: 0; overflow-wrap: anywhere; }
+.asst-change-text a { color: inherit; text-decoration-color: var(--line-strong); text-underline-offset: 2px; }
+.asst-change-actions { display: inline-flex; gap: 0.35rem; }
+.asst-change-actions form { margin: 0; }
+.asst-badge { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.03em; text-transform: uppercase; padding: 0.12rem 0.45rem; border: 1px solid var(--line-strong, var(--line)); border-radius: var(--radius-tag, 4px); color: var(--text-2); white-space: nowrap; }
+.asst-change[data-status="applied"] .asst-badge { border-color: var(--accent-line, var(--line-strong)); color: var(--accent-ink); }
+.asst-change[data-status="pending"] { border-color: var(--line-strong, var(--line)); }
+.asst-change[data-status="pending"] .asst-badge { color: var(--text-1); }
+.asst-change[data-status="rejected"], .asst-change[data-status="undone"], .asst-change[data-status="failed"] { color: var(--text-3); }
+.asst-btn { font: inherit; font-size: 0.8rem; padding: 0.25rem 0.6rem; border: 1px solid var(--line-strong, var(--line)); border-radius: var(--radius-tag, 4px); background: transparent; color: var(--text-2); cursor: pointer; }
+.asst-btn:hover { color: var(--text-1); border-color: var(--text-3); }
+.asst-btn:focus-visible, .asst-chip:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.asst-btn-primary { background: var(--accent-ink); border-color: var(--accent-ink); color: var(--bg, #111); }
+.asst-btn-primary:hover { color: var(--bg, #111); opacity: 0.9; }
+
+/* Suggestions and composer */
+.asst-suggest { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.asst-chip { font: inherit; font-size: 0.85rem; text-align: left; padding: 0.4rem 0.75rem; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--text-2); cursor: pointer; }
+.asst-chip:hover { color: var(--text-1); border-color: var(--line-strong, var(--text-3)); }
+.asst-composer { display: flex; gap: 0.5rem; align-items: stretch; padding: 0.5rem; border: 1px solid var(--line-strong, var(--line)); border-radius: var(--radius-panel, 6px); background: var(--surface-2, transparent); }
+.asst-composer:focus-within { border-color: var(--accent-ink); }
+.asst-composer textarea { flex: 1; min-width: 0; resize: none; border: 0; background: transparent; outline: none; padding: 0.35rem 0.4rem; font: inherit; line-height: 1.45; color: var(--text-1); }
+.asst-hint { margin: -0.35rem 0 0; color: var(--text-3); font-size: 0.75rem; }
+.asst-error { margin: 0; padding: 0.5rem 0.75rem; border: 1px solid var(--line-strong, var(--line)); border-radius: var(--radius-panel, 6px); color: var(--text-1); font-size: 0.88rem; }
+
+/* Setup states */
+.asst-consent { display: grid; gap: 0.75rem; max-width: 62ch; }
+.asst-consent p { margin: 0; line-height: 1.5; }
+.asst-consent label { display: inline-flex; align-items: center; gap: 0.5rem; }
+.asst-consent button { justify-self: start; }
+.asst-auto { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; color: var(--text-3); font-size: 0.8rem; }
+.asst-auto label { display: inline-flex; align-items: center; gap: 0.45rem; }
+
+@media (max-width: 640px) {
+  .asst-brief-grid { grid-template-columns: minmax(0, 1fr); }
+  .asst-change { grid-template-columns: minmax(0, 1fr) auto; }
+  .asst-change .asst-badge { grid-column: 1 / -1; justify-self: start; }
+  .asst-composer { flex-direction: column; }
+  .asst-turn { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .asst-log { scroll-behavior: auto; } }

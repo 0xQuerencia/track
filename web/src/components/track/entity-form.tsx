@@ -20,6 +20,17 @@ function FieldInput({
   switch (field.type) {
     case "textarea":
       return <textarea {...shared} rows={2} maxLength={2000} />;
+    case "markdown":
+      return <textarea {...shared} rows={6} maxLength={2000} />;
+    case "tags":
+      return (
+        <input
+          {...shared}
+          type="text"
+          placeholder="comma, separated"
+          maxLength={2000}
+        />
+      );
     case "number":
       return (
         <input
@@ -48,7 +59,13 @@ function FieldInput({
         </select>
       );
     case "boolean":
-      return <input name={field.name} type="checkbox" />;
+      return (
+        <input
+          name={field.name}
+          type="checkbox"
+          defaultChecked={defaultValue === 1}
+        />
+      );
     default:
       return <input {...shared} type="text" maxLength={2000} />;
   }
@@ -78,7 +95,9 @@ export function EntityForm({
             key={field.name}
             className="tk-field"
             data-type={field.type}
-            data-wide={field.type === "textarea" || undefined}
+            data-wide={
+              field.type === "textarea" || field.type === "markdown" || undefined
+            }
           >
             <span>{field.label}</span>
             <FieldInput field={field} defaultValue={defaults[field.name]} />

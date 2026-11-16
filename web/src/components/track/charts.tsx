@@ -13,6 +13,18 @@ import { PieChart } from "@/components/charts/pie-chart";
 import { PieSlice } from "@/components/charts/pie-slice";
 import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import { XAxis } from "@/components/charts/x-axis";
+import { Ring } from "@/components/charts/ring";
+import { RingCenter } from "@/components/charts/ring-center";
+import { RingChart } from "@/components/charts/ring-chart";
+import { AreaSparkline } from "@/components/charts/sparkline";
+import {
+  HeatmapCells,
+  HeatmapChart,
+  HeatmapInteractionBoundary,
+  HeatmapInteractionProvider,
+  HeatmapTooltip,
+  HeatmapXAxis,
+} from "@/components/charts/heatmap";
 import { useChartDuration } from "@/lib/motion/use-chart-duration";
 
 /** Sage-led palette from the design tokens, written out because SVG stops need real colours. */
@@ -189,5 +201,79 @@ export function Donut({
         ))}
       </ul>
     </div>
+  );
+}
+
+/** Tiny inline trend (bklit Sparkline) for cards. Needs two or more points. */
+export function SparkTrend({
+  data,
+  height = 40,
+  color = PALETTE[0],
+}: {
+  data: { label: string; value: number }[];
+  height?: number;
+  color?: string;
+}) {
+  if (data.length < 2) return <p className="tk-empty-small">Needs two entries to draw a trend.</p>;
+  return <AreaSparkline data={data} dataKey="value" height={height} color={color} endDot />;
+}
+
+/** Progress rings (bklit RingChart): each metric against its own target. */
+export function RingMeters({
+  rings,
+  size = 220,
+}: {
+  rings: { label: string; value: number; maxValue: number }[];
+  size?: number;
+}) {
+  const data = rings.map((ring, i) => ({ ...ring, color: PALETTE[i % PALETTE.length] }));
+  return (
+    <RingChart data={data} size={size} strokeWidth={12} baseInnerRadius={44}>
+      {data.map((ring, i) => (
+        <Ring index={i} key={ring.label} />
+      ))}
+      <RingCenter defaultLabel="Today">
+        {({ value, label, isHovered, data: ring }) => (
+          <span className="tk-ring-center">
+            <strong>{isHovered ? `${value}/${ring.maxValue}` : "Today"}</strong>
+            {isHovered ? <small>{label}</small> : null}
+          </span>
+        )}
+      </RingCenter>
+    </RingChart>
+  );
+}
+
+/** Weeks-by-weekday consistency grid (bklit Heatmap). `days` are ISO dates with a count. */
+export function ConsistencyHeatmap({ days, today, weeks = 12 }: { days: { date: string; count: number }[]; today: string; weeks?: number }) {
+  const columns = useMemo(() => {
+    const byDate = new Map(days.map((d) => [d.date, d.count]));
+    const end = new Date(`${today}T00:00:00`);
+    const start = new Date(end);
+    start.setDate(start.getDate() - (weeks * 7 - 1) - ((start.getDay() + 6) % 7));
+    const cols: { bin: number; bins: { bin: number; count: number; date: Date }[] }[] = [];
+    for (let w = 0; w < weeks + 1; w++) {
+      const bins = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + w * 7 + d);
+        if (date > end) break;
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        bins.push({ bin: d, count: byDate.get(key) ?? 0, date });
+      }
+      if (bins.length) cols.push({ bin: w, bins });
+    }
+    return cols;
+  }, [days, today, weeks]);
+  return (
+    <HeatmapInteractionProvider>
+      <HeatmapInteractionBoundary>
+        <HeatmapChart className="w-full" data={columns} layout="fluid">
+          <HeatmapCells />
+          <HeatmapXAxis />
+          <HeatmapTooltip />
+        </HeatmapChart>
+      </HeatmapInteractionBoundary>
+    </HeatmapInteractionProvider>
   );
 }

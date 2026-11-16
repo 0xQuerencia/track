@@ -18,6 +18,7 @@ import {
   todayStr,
 } from "@/lib/dates";
 import { getEntity } from "@/lib/entities";
+import { extraWidgets } from "./home-widgets";
 import {
   activeProjects,
   focusTotals,
@@ -37,7 +38,7 @@ export const dynamic = "force-dynamic";
 
 const num = (value: unknown) => (typeof value === "number" ? value : null);
 
-export default function CommandCenter() {
+export default async function CommandCenter() {
   const priorities = topPriorities(3);
   const dueToday = tasksDueByToday();
   const exam = nextExam();
@@ -232,21 +233,24 @@ export default function CommandCenter() {
     },
   ];
 
+  // The assistant (brief, then "what are you about to do?") is the first thing you see.
+  const extras = await extraWidgets(todayStr());
+  widgets.unshift(...extras.filter((w) => w.id === "assistant"));
+  widgets.push(...extras.filter((w) => w.id !== "assistant"));
   const ids = widgets.map((w) => w.id);
+  const only = (show: string[]) => ids.filter((id) => !show.includes(id));
+  const preset = (id: string, label: string, show: string[]): LayoutPreset => ({
+    id,
+    label,
+    order: [...show, ...only(show)],
+    hidden: only(show),
+  });
   const presets: LayoutPreset[] = [
     { id: "balanced", label: "Balanced", order: ids, hidden: [] },
-    {
-      id: "study",
-      label: "Study focus",
-      order: ["exam", "focus", "study", "trend", "priorities", "due", ...ids],
-      hidden: ["health", "projects", "timeline"],
-    },
-    {
-      id: "minimal",
-      label: "Minimal",
-      order: ["priorities", "focus", "exam", ...ids],
-      hidden: ids.filter((id) => !["priorities", "focus", "exam"].includes(id)),
-    },
+    preset("study", "Study", ["qvault", "exam", "revision", "study", "focus", "priorities", "due", "trend", "agenda"]),
+    preset("development", "Development", ["projects", "sessions", "priorities", "ideas", "agenda", "system", "focus"]),
+    preset("personal", "Personal", ["assistant", "checkin", "dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
+    preset("minimal", "Minimal", ["assistant", "checkin", "priorities", "focus", "exam"]),
   ];
 
   return (

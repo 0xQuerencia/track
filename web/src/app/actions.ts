@@ -8,11 +8,15 @@ import { getDb } from "@/lib/db";
 import { isoDate, todayStr } from "@/lib/dates";
 import { getEntity } from "@/lib/entities";
 import { coerceValue, parseForm } from "@/lib/form";
+import { clientIpFrom, createLimiter } from "@/lib/security/rate-limit";
+import { sessionCookieOptions } from "@/lib/security/cookies";
+import { verifyOriginHeaders } from "@/lib/security/origin";
 import {
   SESSION_COOKIE,
   SESSION_DAYS,
   createSessionToken,
   passwordMatches,
+  readSessionConfig,
   verifySessionToken,
 } from "@/lib/session";
 
@@ -110,50 +114,77 @@ export async function saveFocusSessionAction(
 
 /* ---- sign in / out ---- */
 
-const attempts = new Map<string, { count: number; resetAt: number }>();
-const MAX_ATTEMPTS = 8;
-const WINDOW_MS = 10 * 60_000;
+/** Failed passwords per client IP: 5 per 15 minutes, then locked until the window ends. */
+const loginByIp = createLimiter({ max: 5, windowMs: 15 * 60_000 });
+/** Failures across every client. Stops a flood of spoofed IPs from evading the per-IP limit. */
+const loginAll = createLimiter({ max: 30, windowMs: 15 * 60_000, maxKeys: 1 });
+const ALL_CLIENTS = "all";
+/** Every failed or locked attempt waits this long, so guessing is slow even before a lock. */
+const FAILURE_DELAY_MS = 600;
+const MAX_PASSWORD_LENGTH = 200;
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+function lockedMessage(retryAfterMs: number): ActionState {
+  const minutes = Math.max(1, Math.ceil(retryAfterMs / 60_000));
+  return {
+    ok: false,
+    message: `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+  };
+}
 
 export async function loginAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!process.env.TRACK_PASSWORD)
-    return { ok: false, message: "Sign-in is not configured on this server." };
-
   const requestHeaders = await headers();
-  const ip =
-    requestHeaders.get("cf-connecting-ip") ??
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "local";
-  const now = Date.now();
-  const entry = attempts.get(ip);
-  if (entry && entry.resetAt > now && entry.count >= MAX_ATTEMPTS)
-    return { ok: false, message: "Too many attempts. Try again in a few minutes." };
+  if (!verifyOriginHeaders(requestHeaders).ok)
+    return { ok: false, message: "Sign-in request was rejected." };
 
-  const password = String(formData.get("password") ?? "");
+  const session = readSessionConfig(process.env);
+  if (!session.ok) {
+    // Logged server-side only; the problem text names env vars, never values.
+    console.error(`[auth] sign-in disabled: ${session.problem}`);
+    return { ok: false, message: "Sign-in is not configured on this server." };
+  }
+
+  const ip = clientIpFrom(requestHeaders);
+  const waits = [loginByIp.status(ip), loginAll.status(ALL_CLIENTS)].flatMap(
+    (status) => (status.locked ? [status.retryAfterMs] : []),
+  );
+  if (waits.length > 0) {
+    await wait(FAILURE_DELAY_MS);
+    return lockedMessage(Math.max(...waits));
+  }
+
+  const password = String(formData.get("password") ?? "").slice(0, MAX_PASSWORD_LENGTH);
   if (!(await passwordMatches(password))) {
-    attempts.set(ip, {
-      count: entry && entry.resetAt > now ? entry.count + 1 : 1,
-      resetAt: entry && entry.resetAt > now ? entry.resetAt : now + WINDOW_MS,
-    });
+    loginByIp.recordFailure(ip);
+    loginAll.recordFailure(ALL_CLIENTS);
+    await wait(FAILURE_DELAY_MS);
     return { ok: false, message: "Wrong password." };
   }
 
-  attempts.delete(ip);
-  const token = await createSessionToken();
+  loginByIp.reset(ip);
+  const token = await createSessionToken(process.env);
   if (!token) return { ok: false, message: "Could not start a session." };
-  (await cookies()).set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.TRACK_COOKIE_SECURE === "1",
-    path: "/",
-    maxAge: SESSION_DAYS * 86_400,
-  });
+  (await cookies()).set(
+    SESSION_COOKIE,
+    token,
+    sessionCookieOptions(requestHeaders, SESSION_DAYS * 86_400),
+  );
   redirect("/");
 }
 
 export async function logoutAction(): Promise<void> {
-  (await cookies()).delete(SESSION_COOKIE);
+  const requestHeaders = await headers();
+  // A cross-site form cannot sign the user out. Its request is simply ignored.
+  if (!verifyOriginHeaders(requestHeaders).ok) return;
+  // Same attributes as the set, so the browser replaces the exact cookie.
+  (await cookies()).set(
+    SESSION_COOKIE,
+    "",
+    sessionCookieOptions(requestHeaders, 0),
+  );
   redirect("/login");
 }

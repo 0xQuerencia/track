@@ -1,0 +1,27 @@
+.dreamer-chief{display:grid;gap:1.1rem;max-width:100%;min-width:0}
+.dreamer-chief-history{display:grid;gap:.85rem;max-height:540px;overflow-y:auto;overscroll-behavior:contain;padding:.2rem}
+.dreamer-chief-turn{border:1px solid var(--border, #dedbd4);border-radius:14px;padding:1rem;max-width:95%;overflow-wrap:anywhere}
+.dreamer-chief-turn[data-role=user]{justify-self:end;background:var(--surface-2, rgba(127,127,127,.07));max-width:85%}
+.dreamer-chief-turn[data-role=chief]{justify-self:stretch}
+.dreamer-chief-turn-head{display:flex;gap:.75rem;justify-content:space-between;font-weight:650;font-size:.82rem;margin-bottom:.65rem}
+.dreamer-chief-turn-head time{font-weight:400;color:var(--text-muted,#888);font-size:.73rem}
+.dreamer-chief-compose{display:grid;gap:.7rem;margin-top:1.1rem}
+.dreamer-chief-compose textarea{width:100%;border:1px solid var(--border,#d5d5d5);border-radius:10px;background:transparent;color:inherit;padding:.8rem;font:inherit;resize:vertical}
+.dreamer-chief-compose-footer{display:flex;justify-content:space-between;gap:.8rem;align-items:center;flex-wrap:wrap}
+.dreamer-chief-opt{display:flex;align-items:center;gap:.45rem;max-width:580px;font-size:.8rem;color:var(--text-muted,#777)}
+.dreamer-chief-compose small,.dreamer-chief-candidate p,.dreamer-chief-settings>p{font-size:.79rem;color:var(--text-muted,#777)}
+.dreamer-chief-candidates{display:grid;gap:.8rem}
+.dreamer-chief-candidate{padding:.9rem;border:1px solid var(--border,#d5d5d5);border-radius:11px;display:grid;gap:.6rem}
+.dreamer-chief-candidate b{font-size:.9rem}
+.dreamer-chief-candidate details,.dreamer-chief-settings,.dreamer-chief-trace,.dreamer-chief-skills{font-size:.82rem}
+.dreamer-chief-candidate summary,.dreamer-chief-settings summary,.dreamer-chief-trace summary,.dreamer-chief-skills summary{cursor:pointer}
+.dreamer-chief-steps{display:grid;gap:1rem;margin-top:.75rem}
+.dreamer-chief-steps section{border-left:2px solid var(--border,#aaa);padding-left:.7rem}
+.dreamer-chief-settings{border:1px solid var(--border,#d5d5d5);border-radius:12px;padding:1rem}
+.dreamer-chief-agent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.65rem;margin-top:.9rem}
+.dreamer-chief-agent{display:grid;gap:.55rem;padding:.75rem;border:1px solid var(--border,#ddd);border-radius:10px}
+.dreamer-chief-agent label{display:grid;gap:.3rem;font-size:.78rem}
+.dreamer-chief-agent label:has([type=checkbox]){display:flex;gap:.4rem;align-items:center}
+.dreamer-chief-agent input[type=text]{min-width:0;width:100%;border:1px solid var(--border,#ddd);border-radius:6px;background:transparent;color:inherit;padding:.45rem}
+@media(max-width:600px){.dreamer-chief-compose-footer{align-items:flex-start;flex-direction:column}.dreamer-chief-turn{max-width:100%}.dreamer-chief-turn[data-role=user]{max-width:94%}}
+

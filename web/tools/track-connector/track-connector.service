@@ -1,0 +1,17 @@
+# Example systemd USER unit. Install as ~/.config/systemd/user/track-connector.service
+# Replace the paths with your own. Runs as your user, never as root.
+[Unit]
+Description=Track connector: send repo and AI-session metadata once
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Holds TRACK_CONNECTOR_TOKEN=trk_... (chmod 600). The token is never in config.json.
+EnvironmentFile=%h/.config/track-connector/env
+ExecStart=/usr/bin/node %h/path/to/track/web/tools/track-connector/connector.mjs once --config %h/.config/track-connector/config.json
+# Read-only view of the home folder; the only writable place is the connector's state folder.
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/track-connector %h/.config/track-connector
+ProtectSystem=strict
+PrivateTmp=yes
+NoNewPrivileges=yes

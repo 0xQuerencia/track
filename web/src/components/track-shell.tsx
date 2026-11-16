@@ -3,46 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
-import {
-  BookMarked,
-  BookOpen,
-  Briefcase,
-  Crosshair,
-  HeartPulse,
-  Home,
-  LogOut,
-  NotebookPen,
-  Notebook,
-  Search,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+import { LogOut, Search } from "lucide-react";
 import { logoutAction } from "@/app/actions";
+import { CommandPalette } from "@/components/track/command-palette";
+import { NavGroupSection, useCollapsedGroups } from "@/components/track/nav-group";
 import { Wordmark } from "@/components/brand/wordmark";
 import { PageMotion } from "@/components/motion/page-motion";
+import { COMMAND_CENTER, NAV_GROUPS, isNavActive } from "@/lib/nav";
 import { useNavRail } from "@/lib/motion/use-nav-rail";
-
-type NavItem = { href: string; label: string; icon: LucideIcon };
-
-const navItems: NavItem[] = [
-  { href: "/", label: "Command Center", icon: Home },
-  { href: "/study", label: "Study HQ", icon: BookOpen },
-  { href: "/focus", label: "Focus", icon: Crosshair },
-  { href: "/plans", label: "Plans", icon: NotebookPen },
-  { href: "/health", label: "Health", icon: HeartPulse },
-  { href: "/media", label: "Media", icon: BookMarked },
-  { href: "/projects", label: "Projects", icon: Briefcase },
-  { href: "/money", label: "Money", icon: Wallet },
-  { href: "/journal", label: "Journal", icon: Notebook },
-];
 
 export function TrackShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   useNavRail(navRef, pathname);
+  const { collapsed, toggle } = useCollapsedGroups();
 
   // The sign-in page stands alone, without the app chrome.
   if (pathname === "/login") return <>{children}</>;
+
+  const CommandIcon = COMMAND_CENTER.icon;
+  const commandCurrent = isNavActive(COMMAND_CENTER.href, pathname);
 
   return (
     <div className="shell tk-shell">
@@ -57,23 +37,26 @@ export function TrackShell({ children }: { children: React.ReactNode }) {
         <nav ref={navRef} aria-label="Application" className="primary-nav">
           <span className="nav-indicator" aria-hidden="true" />
           <span className="nav-hover" aria-hidden="true" />
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const current =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
-            return (
-              <div className="nav-item-wrap" key={href}>
-                <Link
-                  href={href}
-                  className="navlink"
-                  aria-label={label}
-                  aria-current={current ? "page" : undefined}
-                >
-                  <Icon aria-hidden="true" size={16} strokeWidth={1.5} />
-                  <span>{label}</span>
-                </Link>
-              </div>
-            );
-          })}
+          <div className="nav-item-wrap">
+            <Link
+              href={COMMAND_CENTER.href}
+              className="navlink"
+              aria-label={COMMAND_CENTER.label}
+              aria-current={commandCurrent ? "page" : undefined}
+            >
+              <CommandIcon aria-hidden="true" size={16} strokeWidth={1.5} />
+              <span>{COMMAND_CENTER.label}</span>
+            </Link>
+          </div>
+          {NAV_GROUPS.map((group) => (
+            <NavGroupSection
+              key={group.id}
+              group={group}
+              pathname={pathname}
+              collapsed={collapsed[group.id] === true}
+              onToggle={() => toggle(group.id, collapsed[group.id] === true)}
+            />
+          ))}
         </nav>
       </aside>
       <div className="tk-content">
@@ -83,7 +66,7 @@ export function TrackShell({ children }: { children: React.ReactNode }) {
             <input
               type="search"
               name="q"
-              placeholder="Search everything"
+              placeholder="Search everything (Ctrl K)"
               aria-label="Search everything"
               minLength={2}
               maxLength={80}
@@ -98,6 +81,7 @@ export function TrackShell({ children }: { children: React.ReactNode }) {
         </header>
         <PageMotion>{children}</PageMotion>
       </div>
+      <CommandPalette />
     </div>
   );
 }

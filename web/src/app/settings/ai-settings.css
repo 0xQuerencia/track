@@ -1,0 +1,89 @@
+.set-ai-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 18px;
+}
+.set-ai-status > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-1);
+}
+.set-ai-status dt {
+  color: var(--text-3);
+  font-size: 11px;
+}
+.set-ai-status dd {
+  margin: 4px 0 0;
+  color: var(--text-1);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.set-ai-status code,
+.set-ai-calls code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.set-ai-form fieldset {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.set-ai-form legend {
+  padding: 0 6px;
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+.set-ai-form fieldset:disabled {
+  opacity: 0.72;
+}
+.set-ai-form fieldset:disabled input,
+.set-ai-form fieldset:disabled button {
+  cursor: wait;
+}
+.set-ai-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.set-ai-option input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+.set-ai-limit {
+  max-width: 280px;
+}
+.set-ai-note {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.set-ai-calls {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+.set-ai-calls h3 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .set-ai-status {
+    grid-template-columns: 1fr;
+  }
+}

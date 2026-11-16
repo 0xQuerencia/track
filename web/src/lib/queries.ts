@@ -345,6 +345,6 @@ export function latestHealth(): Row | undefined {
 
 export function activeProjects(limit = 3): Row[] {
   return all<Row>(
-    `SELECT * FROM projects WHERE status = 'Active' ORDER BY id DESC LIMIT ${Math.trunc(limit)}`,
+    `SELECT * FROM projects WHERE status = 'Active' AND archived = 0 ORDER BY id DESC LIMIT ${Math.trunc(limit)}`,
   );
 }

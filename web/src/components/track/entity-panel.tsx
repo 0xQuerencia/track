@@ -50,6 +50,7 @@ export function EntityPanel({
   empty,
   limit = 50,
   formOpen,
+  formExclude = [],
 }: {
   entityKey: string;
   rows: Row[];
@@ -59,6 +60,8 @@ export function EntityPanel({
   empty?: string;
   limit?: number;
   formOpen?: boolean;
+  /** Field names left out of the add form (set by a dedicated action instead). */
+  formExclude?: readonly string[];
 }) {
   const entity = getEntity(entityKey);
   if (!entity) throw new Error(`Unknown entity: ${entityKey}`);
@@ -67,7 +70,7 @@ export function EntityPanel({
   const cols: Column[] =
     columns ??
     entity.fields
-      .filter((f) => f.type !== "textarea")
+      .filter((f) => f.type !== "textarea" && f.type !== "markdown")
       .map((f) => ({ name: f.name }));
   const defaults: Record<string, string | number> = {};
   for (const f of entity.fields) {
@@ -90,7 +93,7 @@ export function EntityPanel({
         <summary>Add {entity.singular.toLowerCase()}</summary>
         <EntityForm
           entityKey={entity.key}
-          fields={entity.fields}
+          fields={entity.fields.filter((f) => !formExclude.includes(f.name))}
           defaults={defaults}
           submitLabel={`Add ${entity.singular.toLowerCase()}`}
         />
@@ -117,7 +120,7 @@ export function EntityPanel({
             </thead>
             <tbody>
               {shown.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} id={`${entity.key}-${row.id}`}>
                   {cols.map((col) => {
                     const field = fieldByName.get(col.name);
                     return (

@@ -1,0 +1,261 @@
+/* Document vault. Colours come from tokens.css. */
+
+.docs-form {
+  display: grid;
+  gap: 14px;
+}
+
+.docs-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 14px;
+}
+
+.docs-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.docs-field[data-wide] {
+  grid-column: 1 / -1;
+}
+
+.docs-field > span {
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.docs-field input:not([type="file"]),
+.docs-field select,
+.docs-field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 14px;
+}
+
+.docs-field input[type="file"] {
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.docs-field input:focus-visible,
+.docs-field select:focus-visible,
+.docs-field textarea:focus-visible,
+.docs-title:focus-visible,
+.docs-download:focus-visible,
+.docs-pager a:focus-visible,
+.docs-back a:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+.docs-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.docs-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.docs-filters .docs-field {
+  min-width: 180px;
+}
+
+.docs-title {
+  color: var(--text-1);
+  font-weight: 540;
+  text-decoration: none;
+}
+
+.docs-title:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.docs-muted {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.docs-table td > span {
+  display: block;
+}
+
+.docs-deadline {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.docs-download {
+  color: var(--accent-ink);
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.docs-download:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.docs-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-tag);
+  color: var(--text-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.docs-badge[data-tone="expired"] {
+  border-color: rgb(239 137 129 / 40%);
+  color: var(--negative);
+  background: rgb(239 137 129 / 8%);
+}
+
+.docs-badge[data-tone="soon"] {
+  border-color: rgb(216 181 108 / 40%);
+  color: var(--warning);
+  background: rgb(216 181 108 / 8%);
+}
+
+.docs-attention-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-attention-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.docs-attention-list a {
+  color: var(--text-1);
+  text-decoration: none;
+}
+
+.docs-attention-list a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.docs-attention-list time {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.docs-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.docs-pager a {
+  color: var(--accent-ink);
+}
+
+.docs-back {
+  margin: 0;
+  font-size: 13px;
+}
+
+.docs-back a {
+  color: var(--text-3);
+  text-decoration: none;
+}
+
+.docs-summary {
+  display: grid;
+  gap: 16px;
+}
+
+.docs-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px 22px;
+  margin: 0;
+}
+
+.docs-facts div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.docs-facts dt {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.docs-facts dd {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.docs-checksum {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.docs-notes {
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.docs-file-actions {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+
+.docs-danger {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .docs-attention-list li {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

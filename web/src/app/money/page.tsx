@@ -1,87 +1,60 @@
-import { BarsChart, Donut, PALETTE } from "@/components/track/charts";
-import { EntityPanel } from "@/components/track/entity-panel";
-import { Page, Panel, SplitPanels, StatGrid } from "@/components/track/page";
-import { StatCard } from "@/components/track/stat-card";
-import { listRows } from "@/lib/crud";
-import { expensesByCategory, incomeVersusExpense, moneyMonth } from "@/lib/queries";
+import "@/styles/money.css";
+import { Page } from "@/components/track/page";
+import { monthStart, todayStr } from "@/lib/dates";
+import { isMonth, monthOf } from "@/lib/money/format";
+import { BudgetsTab } from "./_tabs/budgets";
+import { ExportTab } from "./_tabs/export";
+import { GoalsTab } from "./_tabs/goals";
+import { IncomeTab } from "./_tabs/income";
+import { OverviewTab } from "./_tabs/overview";
+import { RecurringTab } from "./_tabs/recurring";
+import { TabNav, isMoneyTab, type MoneyTab } from "./_tabs/tab-nav";
+import { TimelineTab } from "./_tabs/timeline";
+import { TransactionsTab } from "./_tabs/transactions";
 
 export const dynamic = "force-dynamic";
 
-const inr = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
+type Params = { tab?: string | string[]; month?: string | string[]; from?: string | string[]; to?: string | string[] };
 
-export default function MoneyPage() {
-  const month = moneyMonth();
-  const goals = listRows("savings_goals");
-  const saved = goals.reduce((sum, g) => sum + Number(g.saved ?? 0), 0);
-  const target = goals.reduce((sum, g) => sum + Number(g.target ?? 0), 0);
+const first = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
+
+export default async function MoneyPage({ searchParams }: { searchParams: Promise<Params> }) {
+  const params = await searchParams;
+  const requestedTab = first(params.tab);
+  const tab: MoneyTab = isMoneyTab(requestedTab) ? requestedTab : "overview";
+  const requestedMonth = first(params.month);
+  const month = isMonth(requestedMonth) ? requestedMonth : monthOf(todayStr());
 
   return (
     <Page
       kicker="Money"
       title="Money"
-      lede="Income, spending and savings goals, in rupees."
+      lede="Income, spending, budgets and savings goals, in rupees."
     >
-      <StatGrid>
-        <StatCard label="Income this month" value={month.income} currency />
-        <StatCard label="Spent this month" value={month.expense} currency />
-        <StatCard
-          label="Net this month"
-          value={month.net}
-          currency
-          tone={month.net < 0 ? "negative" : month.net > 0 ? "positive" : undefined}
-        />
-        <StatCard
-          label="Saved toward goals"
-          value={saved}
-          currency
-          hint={target > 0 ? `of ${inr.format(target)}` : undefined}
-        />
-      </StatGrid>
-      <SplitPanels>
-        <Panel title="Income vs spending, 6 months">
-          <BarsChart
-            data={incomeVersusExpense(6)}
-            series={[
-              { key: "income", color: PALETTE[0] },
-              { key: "expense", color: PALETTE[5] },
-            ]}
-            emptyNote="Add transactions to see the comparison."
-          />
-        </Panel>
-        <Panel title="Spending by category, this month">
-          <Donut data={expensesByCategory()} centerLabel="INR" emptyNote="No spending recorded this month." />
-        </Panel>
-      </SplitPanels>
-      <EntityPanel
-        entityKey="transactions"
-        title="Transactions"
-        rows={listRows("transactions")}
-      />
-      <EntityPanel
-        entityKey="savings_goals"
-        title="Savings goals"
-        rows={goals}
-        columns={[
-          { name: "name" },
-          { name: "target" },
-          { name: "saved", inline: true },
-          {
-            name: "progress",
-            label: "Progress",
-            render: (row) => {
-              const pct = Number(row.target) > 0
-                ? Math.min(100, Math.round((Number(row.saved ?? 0) / Number(row.target)) * 100))
-                : 0;
-              return <progress max={100} value={pct} aria-label={`${pct}% saved`} title={`${pct}%`} />;
-            },
-          },
-          { name: "deadline" },
-        ]}
-      />
+      <TabNav current={tab} month={month} />
+      {renderTab(tab, month, first(params.from), first(params.to))}
     </Page>
   );
+}
+
+function renderTab(tab: MoneyTab, month: string, from?: string, to?: string) {
+  switch (tab) {
+    case "overview":
+      return <OverviewTab month={month} />;
+    case "transactions":
+      return <TransactionsTab />;
+    case "budgets":
+      return <BudgetsTab month={month} tab={tab} />;
+    case "income":
+      return <IncomeTab month={month} />;
+    case "recurring":
+      return <RecurringTab />;
+    case "goals":
+      return <GoalsTab />;
+    case "timeline":
+      return <TimelineTab month={month} tab={tab} />;
+    case "export":
+      return <ExportTab from={from ?? monthStart()} to={to} />;
+  }
 }

@@ -23,7 +23,14 @@ const STORAGE_KEY = "track.home.layout";
 
 function reconcile(layout: Layout, ids: string[]): Layout {
   const known = layout.order.filter((id) => ids.includes(id));
-  const order = [...known, ...ids.filter((id) => !known.includes(id))];
+  // A widget the saved layout has never seen goes where the defaults put it,
+  // not at the bottom: after its default predecessor, or first if it has none.
+  const order = [...known];
+  ids.forEach((id, index) => {
+    if (known.includes(id)) return;
+    const before = ids.slice(0, index).reverse().find((candidate) => order.includes(candidate));
+    order.splice(before === undefined ? 0 : order.indexOf(before) + 1, 0, id);
+  });
   return { order, hidden: layout.hidden.filter((id) => ids.includes(id)) };
 }
 
@@ -56,9 +63,11 @@ export function WidgetBoard({
   const ids = widgets.map((w) => w.id);
   const [layout, setLayout] = useState<Layout>({ order: ids, hidden: [] });
   const [editing, setEditing] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = readLayout(ids);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from browser storage after hydration
     if (stored) setLayout(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ids are stable for a given page build
   }, []);
@@ -80,6 +89,14 @@ export function WidgetBoard({
     const to = from + delta;
     if (from < 0 || to < 0 || to >= order.length) return;
     [order[from], order[to]] = [order[to], order[from]];
+    apply({ ...layout, order });
+  };
+  const moveTo = (id: string, target: string) => {
+    if (id === target) return;
+    const order = layout.order.filter((x) => x !== id);
+    const at = order.indexOf(target);
+    if (at < 0) return;
+    order.splice(at, 0, id);
     apply({ ...layout, order });
   };
   const toggle = (id: string) =>
@@ -142,6 +159,24 @@ export function WidgetBoard({
               className="tk-widget"
               data-wide={widget.wide || undefined}
               data-editing={editing || undefined}
+              data-dragging={dragId === id || undefined}
+              draggable={editing || undefined}
+              onDragStart={(e) => {
+                if (!editing) return;
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", id);
+                setDragId(id);
+              }}
+              onDragOver={(e) => {
+                if (editing && dragId) e.preventDefault();
+              }}
+              onDrop={(e) => {
+                if (!editing || !dragId) return;
+                e.preventDefault();
+                moveTo(dragId, id);
+                setDragId(null);
+              }}
+              onDragEnd={() => setDragId(null)}
             >
               <header className="tk-widget-head">
                 <h2>{widget.title}</h2>

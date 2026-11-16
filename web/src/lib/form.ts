@@ -5,6 +5,17 @@ export type Value = string | number | null;
 export type Coerced = { value: Value } | { error: string };
 
 const MAX_TEXT = 2000;
+const MAX_TAG = 40;
+const MAX_TAGS = 20;
+
+/** "a, b ,a" becomes "a, b": trimmed, de-duplicated, comma-separated. */
+export function normalizeTags(text: string): string {
+  const tags = text
+    .split(",")
+    .map((tag) => tag.trim().slice(0, MAX_TAG))
+    .filter(Boolean);
+  return [...new Set(tags)].slice(0, MAX_TAGS).join(", ");
+}
 
 /** Validates one raw input against its field definition. */
 export function coerceValue(
@@ -16,9 +27,15 @@ export function coerceValue(
 
   switch (field.type) {
     case "text":
-    case "textarea": {
+    case "textarea":
+    case "markdown": {
       if (!text) return field.required ? required() : { value: null };
       return { value: text.slice(0, MAX_TEXT) };
+    }
+    case "tags": {
+      const tags = normalizeTags(text);
+      if (!tags) return field.required ? required() : { value: null };
+      return { value: tags.slice(0, MAX_TEXT) };
     }
     case "url": {
       if (!text) return field.required ? required() : { value: null };

@@ -1,0 +1,7 @@
+{
+  "serverUrl": "https://track.example.com",
+  "roots": ["/home/you/code"],
+  "maxDepth": 3,
+  "tools": ["claude_code", "codex", "opencode"],
+  "sendTitles": false
+}
