@@ -39,10 +39,10 @@ export function configureAgent(db: DatabaseSync, key: string, name: string, enab
 export function selectSpecialists(objective: string, agents: readonly AgentConfig[]): AgentConfig[] {
   const text = objective.toLowerCase();
   let keys: AgentKey[];
-  if (/\b(workflow|automate|automation|repeat|skill|session|routine)\b/.test(text)) keys = ["analyst", "operator", "critic"];
-  else if (/\b(study|exam|math|physics|chemistry|revision|practice|syllabus)\b/.test(text)) keys = ["scholar", "strategist", "critic"];
+  if (/\b(study|exam|math|physics|chemistry|revision|practice|syllabus)\b/.test(text)) keys = ["scholar", "strategist", "critic"];
   else if (/\b(code|repo|github|software|bug|architecture|pull request|pr)\b/.test(text)) keys = ["engineer", "strategist", "critic"];
-  else if (/\b(idea|invent|product|build|startup|prototype|business)\b/.test(text)) keys = ["inventor", "researcher", "strategist", "critic"];
+  else if (/\b(idea|invent|product|startup|prototype|business)\b/.test(text)) keys = ["inventor", "researcher", "strategist", "critic"];
+  else if (/\b(workflow|automate|automation|repeat|skill|session|routine)\b/.test(text)) keys = ["analyst", "operator", "critic"];
   else if (/\b(alert|monitor|watch|deadline|track changes)\b/.test(text)) keys = ["sentinel", "strategist", "critic"];
   else keys = ["archivist", "strategist", "critic"];
   return keys.map((key) => agents.find((agent) => agent.key === key)).filter((agent): agent is AgentConfig => Boolean(agent?.enabled)).slice(0, 4);
