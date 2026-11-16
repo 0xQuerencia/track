@@ -14,10 +14,10 @@ export function ChiefComposer() {
         placeholder="Find a useful idea from my notes, challenge it and produce a realistic plan..."
         onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey&&!event.nativeEvent.isComposing){event.preventDefault();event.currentTarget.form?.requestSubmit();}}}/>
       <div className="dreamer-chief-compose-footer">
-        <label className="dreamer-chief-opt"><input type="checkbox" name="include_context"/> Include redacted Track insights, goals, projects and session titles in this request</label>
+        <label className="dreamer-chief-opt"><input type="checkbox" name="include_context"/> Include redacted Track context: journal, notes, ideas, insights, goals, projects and sessions</label>
         <button className="tk-button" type="submit" disabled={pending}>{pending?"Chief is working…":"Send to Chief"}</button>
       </div>
-      <small>Only Chief replies here. Specialist work is stored under each mission. AI calls require Dreamer consent. Nothing is published, executed or sent to other accounts.</small>
+      <small>To ask about your own journal or notes, check the context box above. Only Chief replies here. Specialist work is stored under each mission. AI calls require Dreamer consent. Nothing is published, executed or sent to other accounts.</small>
       {state&&!state.ok?<p role="alert" className="dreamer-notice">{state.message}</p>:null}
     </form>
   );

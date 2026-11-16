@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   buildDisclosure,
   chatJson,
+  chatText,
   getAiStatus,
   getConsent,
   getRecentAiCalls,
@@ -314,6 +315,44 @@ describe("shared AI client", () => {
     assert.deepEqual(JSON.parse(sentMessages[0]!.content), JSON.parse(JSON.stringify(disclosure)));
     assert.equal(JSON.stringify(outgoingBody).includes("fake.user@example.test"), false);
     assert.equal(disclosure.totalChars, excerpt.length);
+  });
+
+  it("accepts plaintext Markdown for specialist agents without forcing JSON mode", async () => {
+    configureAndConsent();
+    let requestBody: Record<string, unknown> = {};
+    const result = await chatText({
+      feature:"dreamer",purpose:"Chief delegated planning",
+      messages:[{role:"user",content:"Create a useful plan."}],maxTokens:3500,effort:"low",
+    },{db,fetch:async (_url,init)=>{
+      requestBody=JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({choices:[{message:{content:"## Plan\\nA practical, grounded plan with milestones and tests."}}],usage:{prompt_tokens:9,completion_tokens:22}}),{status:200});
+    }});
+    assert.equal(result.ok,true);
+    if(result.ok)assert.match(result.data,/practical/);
+    assert.equal("response_format" in requestBody,false);
+    assert.equal(requestBody.reasoning_effort,"low");
+    assert.equal(requestBody.max_tokens,3500);
+    assert.equal(getRecentAiCalls(db)[0]?.ok,true);
+  });
+
+  it("unwraps JSON-wrapped prose and supports text content arrays", async () => {
+    configureAndConsent();
+    const requests=[
+      JSON.stringify({choices:[{message:{content:'\`\`\`json\\n{"report":"This is a long and useful report for the task."}\\n\`\`\`'}}]}),
+      JSON.stringify({choices:[{message:{content:[{type:"text",text:"Markdown text with actionable steps."}]}}]}),
+    ];
+    for(const response of requests){
+      const result=await chatText({feature:"dreamer",purpose:"text response",messages:[{role:"user",content:"test"}]},{db,fetch:async()=>new Response(response,{status:200})});
+      assert.equal(result.ok,true);
+      if(result.ok)assert.match(result.data,/(report|Markdown text)/);
+    }
+  });
+
+  it("refuses empty or missing text without leaking response contents", async()=>{
+    configureAndConsent();
+    const result=await chatText({feature:"dreamer",purpose:"text",messages:[{role:"user",content:"test"}]},{db,fetch:async()=>new Response(JSON.stringify({choices:[{message:{content:" "}}]}),{status:200})});
+    assert.equal(result.ok,false);
+    if(!result.ok)assert.equal(result.code,"invalid_output");
   });
 
   it("records no prompt or response content in the usage log", async () => {

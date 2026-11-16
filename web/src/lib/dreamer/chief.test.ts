@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DatabaseSync } from "node:sqlite";
-import { setConsent, type ChatJsonRequest } from "@/lib/ai";
+import { setConsent, type ChatTextRequest } from "@/lib/ai";
 import { runMigrations } from "@/lib/migrations";
 import { runChiefMission, listChiefMessages, type AiCaller } from "./chief";
 
@@ -15,13 +15,13 @@ test("Chief delegates real, separate specialist calls, including strategy and cr
     setConsent(db,"dreamer",true);
     const purposes:string[]=[];
     const disclosures:string[]=[];
-    const fake:AiCaller=async <T>(request:ChatJsonRequest<T>)=>{
+    const fake:AiCaller=async (request:ChatTextRequest)=>{
       purposes.push(request.purpose);
       disclosures.push(JSON.stringify(request.messages));
       const value = request.purpose === "Chief mission synthesis"
-        ? {answer:"## Project plan\nA grounded product idea with milestones, validation and risks."}
-        : {report:"This agent produced a separate grounded analysis and actionable considerations."};
-      return {ok:true,data:request.schema.parse(value),model:"test-stub",usage:{promptTokens:10,completionTokens:20}};
+        ? "## Project plan\nA grounded product idea with milestones, validation and risks."
+        : "This agent produced a separate grounded analysis and actionable considerations.";
+      return {ok:true,data:value,model:"test-stub",usage:{promptTokens:10,completionTokens:20}};
     };
     const result=await runChiefMission(db,"Build a product idea for a useful local workflow",{includeContext:false},fake);
     assert.equal(result.ok,true);
@@ -46,9 +46,9 @@ test("Chief refuses model delegation without Dreamer consent",async()=>{
   try {
     runMigrations(db,{backup:false});
     let called=false;
-    const fake:AiCaller=async<T>(request:ChatJsonRequest<T>)=>{
+    const fake:AiCaller=async()=>{
       called=true;
-      return {ok:true,data:request.schema.parse({report:"invalid"}),model:"test-stub",usage:{promptTokens:null,completionTokens:null}};
+      return {ok:true,data:"Unexpected model call",model:"test-stub",usage:{promptTokens:null,completionTokens:null}};
     };
     const result=await runChiefMission(db,"Please evaluate my idea",{},fake);
     assert.equal(result.ok,false);
@@ -57,3 +57,24 @@ test("Chief refuses model delegation without Dreamer consent",async()=>{
   }finally{db.close();}
 });
 
+
+
+test("journal request without explicit Track context tells user to opt in without calling provider",async()=>{
+  const previousKey=process.env.AI_API_KEY;
+  const db=new DatabaseSync(":memory:");
+  try {
+    process.env.AI_API_KEY="test-never-used-for-network";
+    runMigrations(db,{backup:false});
+    setConsent(db,"dreamer",true);
+    let called=false;
+    const fake:AiCaller=async()=>{ called=true; return {ok:true,data:"Unexpected",model:"test",usage:{promptTokens:0,completionTokens:0}}; };
+    const result=await runChiefMission(db,"Find an idea in my journal",{},fake);
+    assert.equal(result.ok,false);
+    assert.match(result.message,/select.*include redacted track context/i);
+    assert.equal(called,false);
+    assert.equal((db.prepare("SELECT count(*) AS n FROM dreamer_missions").get() as {n:number}).n,0);
+  } finally {
+    db.close();
+    if(previousKey===undefined)delete process.env.AI_API_KEY;else process.env.AI_API_KEY=previousKey;
+  }
+});
