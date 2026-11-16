@@ -19,18 +19,20 @@ import {
   updateGraphLinkAction,
 } from "./actions";
 import "@/styles/dreamer.css";
+import "@/styles/dreamer-collective.css";
+import { ChiefPanel } from "./chief-panel";
 
 export const dynamic = "force-dynamic";
 
-const TABS = ["brief", "insights", "suggestions", "graph", "weekly", "sources"] as const;
+const TABS = ["chief", "brief", "insights", "suggestions", "graph", "weekly", "sources"] as const;
 type Tab = (typeof TABS)[number];
 const LABELS: Record<Tab, string> = {
-  brief: "Brief", insights: "Insights", suggestions: "Suggestions", graph: "Graph", weekly: "Weekly", sources: "Sources & Privacy",
+  chief: "Chief", brief: "Brief", insights: "Insights", suggestions: "Suggestions", graph: "Graph", weekly: "Weekly", sources: "Sources & Privacy",
 };
 
 export default async function DreamerPage({ searchParams }: { searchParams: Promise<{ tab?: string; kind?: string; state?: string; page?: string }> }) {
   const params = await searchParams;
-  const activeTab: Tab = TABS.includes(params.tab as Tab) ? params.tab as Tab : "brief";
+  const activeTab: Tab = TABS.includes(params.tab as Tab) ? params.tab as Tab : "chief";
   const db = getDb();
   await runDailyCycle(db);
   const date = todayStr();
@@ -45,6 +47,7 @@ export default async function DreamerPage({ searchParams }: { searchParams: Prom
       <nav className="dreamer-tabs" aria-label="Dreamer sections">
         {TABS.map((tab) => <Link key={tab} href={`/dreamer?tab=${tab}`} aria-current={activeTab === tab ? "page" : undefined}>{LABELS[tab]}</Link>)}
       </nav>
+      {activeTab === "chief" ? <ChiefPanel /> : null}
       {activeTab === "brief" ? <BriefSection date={date} body={briefs[0]?.period_key === date ? briefs[0].body_md : null} run={latestDaily} disclosure={disclosure} aiEnabled={consentView.consent.enabled} sourcesEnabled={consentView.sources.some((source) => source.enabled)} /> : null}
       {activeTab === "insights" ? <InsightSection kind={params.kind} state={params.state} page={params.page} /> : null}
       {activeTab === "suggestions" ? <SuggestionSection /> : null}

@@ -7,6 +7,7 @@ import { enhanceThemesWithAi, type ChatJsonCaller } from "./layer-b";
 import { getSourceSetting } from "./engine";
 import { analyzeSources } from "./engine";
 import type { RunSummary } from "./types";
+import { discoverOvernightSkills } from "./chief";
 
 type RunRow = { id: number; notes: string | null; new_insights: number; new_suggestions: number };
 
@@ -123,6 +124,7 @@ export async function runDailyCycle(db: DatabaseSync, now = new Date(), options:
     aiNotice = notes.aiNotice ?? null;
   }
 
+  discoverOvernightSkills(db);
   const brief = writeDailyBrief(db, { date: periodKey, runId, newInsights, newSuggestions, processed, unchanged, aiNotice });
   db.prepare(`UPDATE dreamer_runs SET finished_at = ?, ok = 1, new_insights = ?, new_suggestions = ?, notes = ? WHERE id = ?`)
     .run(now.toISOString(), newInsights, newSuggestions, JSON.stringify(notes), runId);
@@ -199,6 +201,7 @@ export function runWeeklyReflection(db: DatabaseSync, weekStart: string, now = n
 
 export function deleteAllDreamerData(db: DatabaseSync): void {
   for (const table of [
+    "dreamer_skills", "dreamer_workflow_candidates", "dreamer_agent_steps", "dreamer_chief_messages", "dreamer_missions", "dreamer_agent_config",
     "dreamer_feedback", "dreamer_suggestion_projects", "dreamer_suggestion_evidence", "dreamer_suggestions",
     "dreamer_insight_projects", "dreamer_insight_evidence", "dreamer_insights", "dreamer_terms", "dreamer_evidence",
     "dreamer_briefs", "dreamer_runs", "dreamer_documents", "dreamer_sources", "dreamer_links", "dreamer_settings",
