@@ -1,0 +1,3 @@
+# Break chat (text only)
+
+Room participants may post plain text in lobby or scheduled breaks, not during focus. Message IDs make retries idempotent. Joined current pod members may read up to 50 messages per request; block filtering applies in both directions. Host and pod moderators can mute eligible members or remove messages; members can erase their own messages. Erasure clears message text and leaves only a tombstone for retry protection. Chats are limited to 1,000 records per room and only the last seven days are served; old records are pruned on new posts. No attachments, HTML rendering, recording, voice, video or screen sharing are enabled. Scheduled retention, moderation workflow and client rendering tests remain release gates.
