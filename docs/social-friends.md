@@ -1,0 +1,3 @@
+# Friends and moderation API
+
+All endpoints require the independent social bearer token. Request by exact handle, accept as recipient, remove as either member. A block deletes the friendship immediately in both directions and prevents new requests until unblocked. Unblocking does not restore the relationship. No directory of all users is exposed. GET /v1/friends and GET /v1/blocks return only the caller's relationships. POST /v1/reports stores a bounded private report; it does not automatically punish the subject. Reports currently require host-side review; moderation UI and operational handling are release gates. Group-chat and pod block semantics are addressed separately; do not expose publicly yet.

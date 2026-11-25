@@ -1,6 +1,7 @@
 import {DatabaseSync} from "node:sqlite";
 import {mkdirSync,openSync,closeSync,lstatSync,realpathSync,chmodSync} from "node:fs";
 import path from "node:path";
+import {friendsSchema} from "./schema/friends.mjs";
 import {identitySchema} from "./schema/identity.mjs";
 const APP_ID=0x54534f43; // TSOC
 const SCHEMA=`CREATE TABLE IF NOT EXISTS social_schema(version INTEGER PRIMARY KEY, applied_ms INTEGER NOT NULL);
@@ -16,6 +17,7 @@ export function migrate(db){
   db.exec("BEGIN IMMEDIATE");
   try{db.exec(SCHEMA);db.exec("COMMIT");}catch(e){db.exec("ROLLBACK");throw e;}
   applyVersion(db,2,identitySchema);
+  applyVersion(db,3,friendsSchema);
   return db;
 }
 /** Deliberately accepts only a dedicated directory; never accepts an existing arbitrary DB path. */
