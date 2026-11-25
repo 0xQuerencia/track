@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Track Pulse",
+  "version": "0.1.0",
+  "description": "Opt-in foreground browser activity for your own Track server. No URLs collected.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "idle"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "incognito": "not_allowed"
+}
