@@ -48,9 +48,11 @@ export function listJobs(db:DatabaseSync){
  const rows=db.prepare("SELECT id,objective,state,attempts_reserved,attempt_budget,created_ms,updated_ms,finished_ms FROM dreamer_jobs ORDER BY created_ms DESC,id LIMIT 30").all();
  return rows.map(r=>({id:String(r.id),objective:String(r.objective),state:String(r.state) as StepState,attemptsReserved:Number(r.attempts_reserved),attemptBudget:Number(r.attempt_budget),createdMs:Number(r.created_ms),updatedMs:Number(r.updated_ms),finishedMs:r.finished_ms===null?null:Number(r.finished_ms)}));
 }
-export function createJob(db:DatabaseSync,id:string,input:JobPlan,now=Date.now()):DurableJob{
+export function createJob(db:DatabaseSync,id:string,input:JobPlan,now=Date.now(),approvalSha256?:string):DurableJob{
  if(!ID.test(id)||!Number.isSafeInteger(now)||now<0)throw new Error("Invalid mission ID or time");
- const plan=normalizedPlan(input),fingerprint=createHash("sha256").update(JSON.stringify(plan)).digest("hex");
+ const plan=normalizedPlan(input);
+ if(approvalSha256!==undefined&&(!plan.includeContext||!/^[a-f0-9]{64}$/.test(approvalSha256)))throw new Error("Invalid disclosure approval");
+ const fingerprint=createHash("sha256").update(JSON.stringify(approvalSha256?{plan,approvalSha256}:plan)).digest("hex");
  return jobTransaction(db,()=>{
   const existing=db.prepare("SELECT fingerprint FROM dreamer_jobs WHERE id=?").get(id);
   if(existing){
@@ -61,6 +63,7 @@ export function createJob(db:DatabaseSync,id:string,input:JobPlan,now=Date.now()
   db.prepare("INSERT INTO dreamer_jobs(id,fingerprint,objective,include_context,state,attempt_budget,token_budget,created_ms,updated_ms) VALUES(?,?,?,?,'queued',?,?,?,?)").run(id,fingerprint,plan.objective,plan.includeContext?1:0,plan.attemptBudget,plan.tokenBudget,now,now);
   const insert=db.prepare("INSERT INTO dreamer_job_steps(job_id,step_id,ordinal,agent_key,depends_json,max_tokens,max_attempts,state,available_ms,updated_ms) VALUES(?,?,?,?,?,?,?,'queued',?,?)");
   plan.steps.forEach((s,i)=>insert.run(id,s.id,i,s.agentKey,JSON.stringify(s.dependsOn),s.maxTokens,s.maxAttempts,now,now));
+  if(approvalSha256)db.prepare("INSERT INTO dreamer_job_disclosures VALUES(?,?)").run(id,approvalSha256);
   return getJob(db,id)!;
  });
 }
