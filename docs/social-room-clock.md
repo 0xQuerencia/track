@@ -1,0 +1,3 @@
+# Synchronized room timer
+
+The room clock uses server timestamps and one authoritative revision. A room starts only after its lobby checks; clients derive countdowns from the latest serverNow and phase snapshot and must refresh before changing the clock. Only the host can pause/resume globally; conflicting stale revisions are rejected. Personal pause changes only the participant's status, not the room clock. Rejoining resets personal pause without restarting the room. A completed timer has phase complete until the host explicitly ends the room. No timer elapsed time is counted as verified personal focus. Configuration is bounded at 12 hours. Tests exercise multiple participants and boundary/revision behavior; real multi-device and clock-drift testing remains.
