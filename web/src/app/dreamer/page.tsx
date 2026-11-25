@@ -252,7 +252,7 @@ function SourcesSection({ view, disclosure }: { view: ReturnType<typeof getSourc
     <Panel title="Export and deletion" description="Exports include Dreamer-derived evidence excerpts. Keep the download private.">
       <p><Link className="tk-button tk-ghost" href="/api/dreamer/export">Export Dreamer data as JSON</Link></p>
       <form action={deleteAllDreamerAction} className="dreamer-delete-form">
-        <label>Type DELETE to remove Dreamer analysis, insights, suggestions, feedback and briefs. Sources are paused afterward.<input name="confirm" autoComplete="off" maxLength={6} required /></label>
+        <label>Type DELETE to remove Dreamer analysis, insights, suggestions, feedback, briefs and all durable missions/reports. Sources and AI consent are paused afterward.<input name="confirm" autoComplete="off" maxLength={6} required /></label>
         <button className="tk-button tk-danger" type="submit">Delete all Dreamer data</button>
       </form>
     </Panel>

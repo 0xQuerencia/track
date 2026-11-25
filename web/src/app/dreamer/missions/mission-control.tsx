@@ -81,6 +81,12 @@ export function MissionControl(){
   catch(e){setNotice(e instanceof Error?e.message:"Could not cancel mission");}
   finally{setBusy(false);}
  }
+ async function erase(id:string){
+  if(!window.confirm("Permanently delete this mission, its reports and receipts from Track? This cannot recall provider requests."))return;
+  setBusy(true);setNotice("");
+  try{await api("",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({command:"delete",id,confirm:true})});setSelected(null);setDetail(null);setRefresh(v=>v+1);setNotice("Mission deleted from local storage.");}
+  catch(e){setNotice(e instanceof Error?e.message:"Could not delete mission");}finally{setBusy(false);}
+ }
  const current=detail?.job.id===selected?detail:null;
  return <div className="dm-layout">
  <Panel title="Worker &amp; consent"><div className="dm-status-grid"><div><small>Worker</small><strong>{!snapshot?"Loading":snapshot.worker.online===0?"Offline":snapshot.worker.working>0?"Working":snapshot.worker.paused>0?"Paused":"Online"}</strong><span>{snapshot?time(snapshot.worker.lastSeenMs):"—"}</span></div><div><small>AI policy</small><strong>{!snapshot?"Loading":snapshot.policy?snapshot.policy.replaceAll("_"," "):"Available"}</strong><span>Shared Dreamer consent and provider</span></div><div><small>Queue</small><strong>{snapshot?snapshot.jobs.filter(j=>active(j.state)).length:"—"}</strong><span>Active recent missions</span></div></div>
@@ -99,7 +105,7 @@ export function MissionControl(){
  {selected?<Panel title="Mission detail">{!current?<p role="status">{detailError||"Loading mission…"}</p>:<>
  <div className="dm-heading"><h3>{current.job.objective}</h3><State state={current.job.state}/></div>
  <p>{current.job.attemptsReserved}/{current.job.attemptBudget} attempts · {current.job.tokensReserved}/{current.job.tokenBudget} requested output tokens reserved (not actual billing)</p>
- {active(current.job.state)?<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void cancel(current.job.id)}>Cancel mission</button>:null}
+ {active(current.job.state)?<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void cancel(current.job.id)}>Cancel mission</button>:<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void erase(current.job.id)}>Delete mission</button>}
  <ol className="dm-steps">{current.job.steps.map(s=><li key={s.id}><div className="dm-heading"><strong>{s.agentKey}</strong><State state={s.state}/></div><small>{s.dependsOn.length?"After "+s.dependsOn.join(", "):"No dependencies"} · attempt {s.attempt}/{s.maxAttempts}{s.errorCode?" · "+s.errorCode.replaceAll("_"," "):""}</small>{s.outputMd?<details open={s.agentKey==="chief"}><summary>Saved analysis</summary><pre>{s.outputMd}</pre></details>:null}</li>)}</ol>
  <details><summary>Execution receipts ({current.receipts.length})</summary><ul className="dm-receipts">{current.receipts.map(r=><li key={r.stepId+":"+r.attempt}>{r.stepId} · attempt {r.attempt} · {r.status} · {time(r.startedMs)}{r.errorCode?" · "+r.errorCode:""}{r.outputSha256?<code>SHA-256: {r.outputSha256}</code>:null}</li>)}</ul></details>
  </>}</Panel>:null}
