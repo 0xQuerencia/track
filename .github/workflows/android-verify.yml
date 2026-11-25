@@ -20,7 +20,7 @@ jobs:
           packages: 'platform-tools'
           log-accepted-android-sdk-licenses: 'false'
       - run: |
-          sdkmanager "platforms;android-37" "ndk;27.2.12479018"
+          sdkmanager --channel=3 "platforms;android-37" "ndk;27.2.12479018"
           rustup target add aarch64-linux-android armv7-linux-androideabi
           cargo install cargo-ndk --locked
       - working-directory: android
