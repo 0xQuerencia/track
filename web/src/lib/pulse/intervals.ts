@@ -1,8 +1,10 @@
+import {CATEGORIES,type Category} from "./classification";
 export type ActivitySource = "browser" | "desktop" | "android" | "editor" | "manual";
 export type ActivityInterval = Readonly<{
   eventId: string;
   deviceId: string;
   source: ActivitySource;
+  category?: Category;
   startMs: number;
   endMs: number;
 }>;
@@ -20,13 +22,14 @@ function validWindow(w: TimeWindow): boolean {
 export function parseActivityInterval(input: unknown): ActivityInterval | null {
   if (typeof input !== "object" || input === null || Array.isArray(input)) return null;
   const v = input as Record<string, unknown>;
-  if (Object.keys(v).some(k => !["eventId","deviceId","source","startMs","endMs"].includes(k))) return null;
+  if (Object.keys(v).some(k => !["eventId","deviceId","source","startMs","endMs","category"].includes(k))) return null;
   if (typeof v.eventId !== "string" || !ID.test(v.eventId)
       || typeof v.deviceId !== "string" || !ID.test(v.deviceId)
       || typeof v.source !== "string" || !SOURCES.has(v.source)
+      || (v.category!==undefined && !CATEGORIES.includes(v.category as Category))
       || typeof v.startMs !== "number" || typeof v.endMs !== "number") return null;
   const result = { eventId: v.eventId, deviceId: v.deviceId, source: v.source as ActivitySource,
-    startMs: v.startMs, endMs: v.endMs };
+    startMs: v.startMs, endMs: v.endMs, ...(v.category===undefined?{}:{category:v.category as Category}) };
   return validWindow(result) && result.endMs - result.startMs <= MAX_INTERVAL_MS ? result : null;
 }
 
@@ -58,7 +61,7 @@ export function activityTotals(intervals: readonly ActivityInterval[], window?: 
     const key = i.deviceId + ":" + i.eventId;
     const previous = events.get(key);
     if (previous) {
-      if (previous.startMs !== i.startMs || previous.endMs !== i.endMs || previous.source !== i.source)
+      if (previous.startMs !== i.startMs || previous.endMs !== i.endMs || previous.source !== i.source || previous.category !== i.category)
         throw new Error("Conflicting event replay");
       continue;
     }
