@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import {privacyStatus} from "./privacy";
 import { activityTotals, parseActivityInterval, type ActivityInterval } from "./intervals";
 export const RETENTION_MS=30*86400000;
 const BATCH_LIMIT=200;
@@ -20,7 +21,10 @@ export function ingestActivity(db:DatabaseSync,tokenId:number,raw:unknown,now=Da
     const find=db.prepare("SELECT source,start_ms,end_ms FROM pulse_intervals WHERE token_id=? AND event_id=?");
     const insert=db.prepare("INSERT INTO pulse_intervals(token_id,event_id,source,start_ms,end_ms,received_ms) VALUES(?,?,?,?,?,?)");
     let inserted=0;
+    const privacy=privacyStatus(db);
     for(const e of events){
+      // Acknowledged but intentionally discarded while paused or older than the erasure cutoff.
+      if(privacy.paused||e.startMs<privacy.cutoffMs)continue;
       const old=find.get(tokenId,e.eventId);
       if(old){
         if(old.source!==e.source||old.start_ms!==e.startMs||old.end_ms!==e.endMs){
