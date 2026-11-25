@@ -501,3 +501,15 @@ export function getVisibleCategoriesAndTags(db: DatabaseSync): { categories: str
 export function purgeExcludedNow(db: DatabaseSync): void {
   purgeExcludedDocuments(db);
 }
+
+/** Reject stale or excluded derived evidence at the moment of network disclosure. */
+export function currentDisclosureEvidenceIds(db:DatabaseSync,ids:readonly string[]):Set<string>{
+  if(ids.length===0)return new Set();
+  if(ids.length>8)throw new Error("Disclosure limit exceeded");
+  const docs=new Map(loadSourceDocuments(db,todayStr()).map(doc=>[doc.source+":"+doc.refId,doc]));
+  const rows=db.prepare("SELECT e.id,e.source,e.ref_id,d.content_hash FROM dreamer_evidence e JOIN dreamer_documents d ON d.id=e.document_id WHERE d.status='processed' AND e.id IN ("+ids.map(()=>"?").join(",")+")").all(...ids) as {id:number;source:DreamerSource;ref_id:string;content_hash:string}[];
+  return new Set(rows.filter(row=>{
+    const doc=docs.get(row.source+":"+row.ref_id);
+    return !!doc&&!isExcluded(db,doc)&&hashDocument(doc)===row.content_hash;
+  }).map(row=>String(row.id)));
+}
