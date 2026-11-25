@@ -45,3 +45,7 @@ scripts/ build-core.sh
 ## License
 
 MIT (see the repo root). See `NOTICE.md` for font licenses.
+
+## Optional Pulse activity tracking
+
+Use a separate scoped activity:write token from web Settings, not the phone sync token. In launcher Settings, grant Android usage access, enter the HTTPS origin and activity token, then explicitly enable Pulse. Only closed observed activity intervals are uploaded; app/package names and content are never included. The WorkManager job samples recent usage history, persists a bounded offline queue and retries with stable IDs. No pre-enablement history is collected. Android may delay jobs, deny permission or omit events; missing time is unknown. Disabling clears local credentials and unsent data, not already-uploaded server records; revoke or erase those separately in Track. An in-flight request may finish before cancellation.

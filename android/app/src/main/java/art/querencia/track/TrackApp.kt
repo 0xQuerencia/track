@@ -3,6 +3,8 @@ package art.querencia.track
 import android.app.Application
 import art.querencia.track.data.AppsRepo
 import art.querencia.track.data.Prefs
+import art.querencia.track.data.PulseStore
+import art.querencia.track.data.PulseWorker
 import art.querencia.track.data.SyncManager
 import art.querencia.track.data.SyncWorker
 import java.io.File
@@ -26,5 +28,6 @@ class TrackApp : Application() {
         sync = SyncManager(engine, prefs)
         apps = AppsRepo(this)
         SyncWorker.schedule(this)
+        if (PulseStore(this).config() != null) PulseWorker.schedule(this)
     }
 }
