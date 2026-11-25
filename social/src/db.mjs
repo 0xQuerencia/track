@@ -1,6 +1,7 @@
 import {DatabaseSync} from "node:sqlite";
 import {mkdirSync,openSync,closeSync,lstatSync,realpathSync,chmodSync} from "node:fs";
 import path from "node:path";
+import {identitySchema} from "./schema/identity.mjs";
 const APP_ID=0x54534f43; // TSOC
 const SCHEMA=`CREATE TABLE IF NOT EXISTS social_schema(version INTEGER PRIMARY KEY, applied_ms INTEGER NOT NULL);
 INSERT OR IGNORE INTO social_schema VALUES(1,unixepoch()*1000);`;
@@ -14,6 +15,7 @@ export function migrate(db){
   }
   db.exec("BEGIN IMMEDIATE");
   try{db.exec(SCHEMA);db.exec("COMMIT");}catch(e){db.exec("ROLLBACK");throw e;}
+  applyVersion(db,2,identitySchema);
   return db;
 }
 /** Deliberately accepts only a dedicated directory; never accepts an existing arbitrary DB path. */
@@ -28,6 +30,13 @@ export function openSocialDb(directory){
   if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||(stat.mode&0o077)!==0)throw new Error("Social database must be a private regular file");
   const db=new DatabaseSync(file);
   try{migrate(db);db.exec("PRAGMA journal_mode=WAL");chmodSync(file,0o600);return db;}catch(e){db.close();throw e;}
+}
+export function applyVersion(db,version,sql){
+  transaction(db,()=>{
+    if(db.prepare("SELECT 1 FROM social_schema WHERE version=?").get(version))return;
+    db.exec(sql);
+    db.prepare("INSERT INTO social_schema VALUES(?,?)").run(version,Date.now());
+  });
 }
 export function memoryDb(){return migrate(new DatabaseSync(":memory:"));}
 export function transaction(db,work){

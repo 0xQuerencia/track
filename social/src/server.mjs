@@ -1,6 +1,7 @@
 import {createServer} from "node:http";
 import {pathToFileURL} from "node:url";
 import {openSocialDb} from "./db.mjs";
+import {authRoutes} from "./routes/auth.mjs";
 import {HttpError,respond,limiter} from "./http.mjs";
 export function socialConfig(env=process.env){
   if(env.TRACK_SOCIAL_ENABLED!=="1")throw new Error("Social is disabled; explicitly set TRACK_SOCIAL_ENABLED=1");
@@ -10,7 +11,7 @@ export function socialConfig(env=process.env){
   return {directory:env.TRACK_SOCIAL_DATA,host:"127.0.0.1",port};
 }
 /** No routes, database connections, cookies, or credentials are shared with the personal OS. */
-export function makeServer(db,{routes=async()=>false}={}){
+export function makeServer(db,{routes=authRoutes()}={}){
   const allow=limiter({max:120,windowMs:60000});
   const server=createServer({requestTimeout:15000,headersTimeout:10000,maxHeaderSize:8192},async(req,res)=>{
     try{
