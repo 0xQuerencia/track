@@ -17,7 +17,7 @@ export function eraseActivity(db:DatabaseSync,now=Date.now()){
   }catch(e){db.exec("ROLLBACK");throw e;}
 }
 export function exportActivity(db:DatabaseSync,now=Date.now()){
-  const rows=db.prepare("SELECT token_id,event_id,source,start_ms,end_ms FROM pulse_intervals WHERE end_ms>=? ORDER BY start_ms,token_id,event_id LIMIT 50001").all(now-30*86400000);
+  const rows=db.prepare("SELECT token_id,event_id,source,start_ms,end_ms,category FROM pulse_intervals WHERE end_ms>=? ORDER BY start_ms,token_id,event_id LIMIT 50001").all(now-30*86400000);
   if(rows.length>50000)throw new RangeError("Activity export exceeds 50000 rows");
-  return {version:1,exportedAt:new Date(now).toISOString(),intervals:rows.map(r=>({deviceId:"token-"+r.token_id,eventId:r.event_id,source:r.source,startMs:r.start_ms,endMs:r.end_ms}))};
+  return {version:1,exportedAt:new Date(now).toISOString(),intervals:rows.map(r=>({deviceId:"token-"+r.token_id,eventId:r.event_id,source:r.source,startMs:r.start_ms,endMs:r.end_ms,category:r.category}))};
 }

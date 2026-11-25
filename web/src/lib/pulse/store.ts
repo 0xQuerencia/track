@@ -1,5 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import {privacyStatus} from "./privacy";
+import {categoryTime} from "./category-report";
+import type {Category} from "./classification";
 import { activityTotals, parseActivityInterval, type ActivityInterval } from "./intervals";
 export const RETENTION_MS=30*86400000;
 const BATCH_LIMIT=200;
@@ -18,8 +20,8 @@ export function ingestActivity(db:DatabaseSync,tokenId:number,raw:unknown,now=Da
   }
   db.exec("BEGIN IMMEDIATE");
   try{
-    const find=db.prepare("SELECT source,start_ms,end_ms FROM pulse_intervals WHERE token_id=? AND event_id=?");
-    const insert=db.prepare("INSERT INTO pulse_intervals(token_id,event_id,source,start_ms,end_ms,received_ms) VALUES(?,?,?,?,?,?)");
+    const find=db.prepare("SELECT source,start_ms,end_ms,category FROM pulse_intervals WHERE token_id=? AND event_id=?");
+    const insert=db.prepare("INSERT INTO pulse_intervals(token_id,event_id,source,start_ms,end_ms,received_ms,category) VALUES(?,?,?,?,?,?,?)");
     let inserted=0;
     const privacy=privacyStatus(db);
     for(const e of events){
@@ -27,11 +29,11 @@ export function ingestActivity(db:DatabaseSync,tokenId:number,raw:unknown,now=Da
       if(privacy.paused||e.startMs<privacy.cutoffMs)continue;
       const old=find.get(tokenId,e.eventId);
       if(old){
-        if(old.source!==e.source||old.start_ms!==e.startMs||old.end_ms!==e.endMs){
+        if(old.source!==e.source||old.start_ms!==e.startMs||old.end_ms!==e.endMs||old.category!==(e.category??null)){
           db.exec("ROLLBACK");
           return {ok:false as const,error:"Conflicting event replay"};
         }
-      }else{insert.run(tokenId,e.eventId,e.source,e.startMs,e.endMs,now);inserted++;}
+      }else{insert.run(tokenId,e.eventId,e.source,e.startMs,e.endMs,now,e.category??null);inserted++;}
     }
     db.prepare("DELETE FROM pulse_intervals WHERE end_ms < ?").run(now-RETENTION_MS);
     db.exec("COMMIT");
@@ -40,8 +42,8 @@ export function ingestActivity(db:DatabaseSync,tokenId:number,raw:unknown,now=Da
 }
 export function readActivity(db:DatabaseSync,startMs:number,endMs:number){
   if(!Number.isSafeInteger(startMs)||!Number.isSafeInteger(endMs)||startMs<0||endMs<=startMs||endMs-startMs>RETENTION_MS)throw new RangeError("Invalid report window");
-  const rows=db.prepare("SELECT token_id,event_id,source,start_ms,end_ms FROM pulse_intervals WHERE end_ms>? AND start_ms<? ORDER BY start_ms LIMIT 50001").all(startMs,endMs);
+  const rows=db.prepare("SELECT token_id,event_id,source,start_ms,end_ms,category FROM pulse_intervals WHERE end_ms>? AND start_ms<? ORDER BY start_ms LIMIT 50001").all(startMs,endMs);
   if(rows.length>50000)throw new RangeError("Too many intervals; narrow report window");
-  const events=rows.map(r=>({eventId:String(r.event_id),deviceId:"token-"+String(r.token_id),source:String(r.source) as ActivityInterval["source"],startMs:Number(r.start_ms),endMs:Number(r.end_ms)}));
-  return {...activityTotals(events,{startMs,endMs}),eventCount:events.length};
+  const events=rows.map(r=>({eventId:String(r.event_id),deviceId:"token-"+String(r.token_id),source:String(r.source) as ActivityInterval["source"],startMs:Number(r.start_ms),endMs:Number(r.end_ms),...(r.category===null?{}:{category:String(r.category) as Category})}));
+  return {...activityTotals(events,{startMs,endMs}),eventCount:events.length,categoryMs:categoryTime(events.map(e=>({...e,category:e.category??"Other"})),{startMs,endMs})};
 }
