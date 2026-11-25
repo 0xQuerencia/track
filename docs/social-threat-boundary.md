@@ -1,0 +1,5 @@
+# Social trust boundary
+
+Personal Track is a single-owner OS. Social is a different service, database, identity namespace and deployment principal. Friends or group members must never get the owner cookie, integration tokens, database connection or unrestricted personal API. No automatic copy of tasks, journal, finances, documents, private logs or Dreamer memories. Future sharing is an explicit allowlisted projection authored by the member. Treat shared content as untrusted text; no HTML rendering or execution.
+
+The social process must use a separate OS user/container with only its own volume; a path check is not an OS sandbox. Bind loopback behind a dedicated TLS proxy and enforce resource limits. Before enabling public access: independently review authentication, access controls, invitation replay, presence revocation, moderation, data erasure, rate limiting, backups and network isolation. Do not claim this initial boundary is a completed penetration test.
