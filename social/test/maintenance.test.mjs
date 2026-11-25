@@ -19,8 +19,9 @@ test("maintenance dry run is non-mutating; only expired records are pruned",()=>
  const db=memoryDb();try{
   const a=account(db,"alice"),b=account(db,"bob");
   const pod=createPod(db,a,{name:"Pod"}).id,room=createRoom(db,pod,a,{objective:"Shared"},now-8*day).id;
-  postMessage(db,room,a,{clientId:randomUUID(),body:"Old message"},now-8*day);
   postMessage(db,room,a,{clientId:randomUUID(),body:"Recent message"},now-1);
+  // Seed an expired row after the live post, which itself prunes stale chat.
+  postMessage(db,room,a,{clientId:randomUUID(),body:"Old message"},now-8*day);
   publishPresence(db,b,{status:"focusing"},now-1);
   db.prepare("INSERT INTO social_presence VALUES(?,?,?)").run(a,"available",now-1);
   db.prepare("INSERT INTO social_sessions VALUES(?,?,?,?)").run("expired",a,now-2*day,now-1);
