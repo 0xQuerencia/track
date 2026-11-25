@@ -11,10 +11,11 @@ async function authorized(){
   const token=(await cookies()).get(SESSION_COOKIE)?.value;
   return !!token&&await verifySessionToken(token);
 }
-export async function GET(){
+export async function GET(request:Request){
   if(!await authorized())return errorResponse(401,"Unauthorized");
   const db=getDb();
-  return jsonResponse({ok:true,serverNow:Date.now(),session:activeSession(db),recent:recentSessions(db)});
+  const snapshot={ok:true,serverNow:Date.now(),session:activeSession(db)};
+  return jsonResponse(new URL(request.url).searchParams.get("active")==="1"?snapshot:{...snapshot,recent:recentSessions(db)});
 }
 export async function POST(request:Request){
   if(!await authorized())return errorResponse(401,"Unauthorized");
