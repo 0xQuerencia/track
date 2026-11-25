@@ -2,6 +2,8 @@ import {readFileSync} from "node:fs";
 const assets=new Map([
  ["/",["index.html","text/html; charset=utf-8"]],
  ["/app.mjs",["app.mjs","text/javascript; charset=utf-8"]],
+ ["/room-ui.mjs",["room-ui.mjs","text/javascript; charset=utf-8"]],
+ ["/room-time.mjs",["room-time.mjs","text/javascript; charset=utf-8"]],
  ["/styles.css",["styles.css","text/css; charset=utf-8"]]
 ]);
 export function parseClientOrigin(raw){

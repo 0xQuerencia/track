@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "test": "node --test && node --check public/app.mjs",
+    "test": "node --test && node --check public/app.mjs && node --check public/room-ui.mjs && node --check public/room-time.mjs",
     "start": "node src/server.mjs"
   }
 }
