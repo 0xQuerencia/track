@@ -5,6 +5,7 @@ import {Page,Panel,StatGrid} from "@/components/track/page";
 import {StatCard} from "@/components/track/stat-card";
 import {SESSION_COOKIE,verifySessionToken} from "@/lib/session";
 import {getDb} from "@/lib/db";
+import {resolveTarget} from "@/lib/lock-in/targets";
 import {getSession} from "@/lib/lock-in/sessions";
 import {reportForSession} from "@/lib/lock-in/report";
 import {saveReflectionAction} from "../../report-actions";
@@ -17,6 +18,7 @@ export default async function SessionReport({params}:{params:Promise<{id:string}
   if(!/^[a-zA-Z0-9_-]{1,80}$/.test(id))notFound();
   const db=getDb(),s=getSession(db,id);
   if(!s||s.endedMs===null||s.outcome!=="saved")notFound();
+  const target=s.target?resolveTarget(db,s.target):null;
   const {summary:r,reflection,logExists}=reportForSession(db,s);
   return <Page kicker="Lock-In / Report" title={s.label||"Focus report"} lede="Timer elapsed time is not proof of attention. Device coverage is observed activity within the whole session, including breaks.">
     <StatGrid>
@@ -29,6 +31,7 @@ export default async function SessionReport({params}:{params:Promise<{id:string}
       <StatCard label="Observed device time" value={minutes(r.observedMs)} suffix=" min" decimals={1}/>
       <StatCard label="Unobserved time" value={minutes(r.unknownMs)} suffix=" min" decimals={1}/>
     </StatGrid>
+    {s.target?<Panel title="Linked objective">{target?<Link href={target.href}>{target.title}</Link>:<p>Linked record was removed.</p>}</Panel>:null}
     <Panel title="Reflection" description="Private self-reported outcome, not an AI judgment.">
       <form action={saveReflectionAction} className="tk-stack">
         <input type="hidden" name="id" value={s.id}/>

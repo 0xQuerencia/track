@@ -1,11 +1,14 @@
 import type { DatabaseSync } from "node:sqlite";
+import {resolveTarget} from "./targets";
+import {parseTarget,type Target} from "./target-types";
 import {plannedDurationMs} from "./profiles";
 import { changeClock,roomPhase,startClock,validateConfig,type ClockState,type PomodoroConfig } from "./clock";
 
-export type Session = {id:string;label:string;config:PomodoroConfig;clock:ClockState;endedMs:number|null;outcome:"saved"|"discarded"|null;focusMs:number|null;logId:number|null};
-type Row={id:string;label:string;config_json:string;started_ms:number;paused_ms:number|null;paused_total_ms:number;revision:number;ended_ms:number|null;outcome:Session["outcome"];focus_ms:number|null;log_id:number|null};
+export type Session = {id:string;label:string;config:PomodoroConfig;clock:ClockState;endedMs:number|null;outcome:"saved"|"discarded"|null;focusMs:number|null;logId:number|null;target?:Target};
+type Row={id:string;label:string;config_json:string;started_ms:number;paused_ms:number|null;paused_total_ms:number;revision:number;ended_ms:number|null;outcome:Session["outcome"];focus_ms:number|null;log_id:number|null;target_type?:string|null;target_id?:number|null};
 function decode(row:Row):Session{
-  return {id:row.id,label:row.label,config:JSON.parse(row.config_json) as PomodoroConfig,clock:{startedAtMs:row.started_ms,pausedAtMs:row.paused_ms,pausedTotalMs:row.paused_total_ms,revision:row.revision},endedMs:row.ended_ms,outcome:row.outcome,focusMs:row.focus_ms,logId:row.log_id};
+  const target=parseTarget({type:row.target_type,id:row.target_id});
+  return {id:row.id,...(target?{target}:{}),label:row.label,config:JSON.parse(row.config_json) as PomodoroConfig,clock:{startedAtMs:row.started_ms,pausedAtMs:row.paused_ms,pausedTotalMs:row.paused_total_ms,revision:row.revision},endedMs:row.ended_ms,outcome:row.outcome,focusMs:row.focus_ms,logId:row.log_id};
 }
 const idPattern=/^[a-zA-Z0-9_-]{1,80}$/;
 export function getSession(db:DatabaseSync,id:string):Session|null{
@@ -23,7 +26,7 @@ function transaction<T>(db:DatabaseSync,work:()=>T):T{
   db.exec("BEGIN IMMEDIATE");
   try{const result=work();db.exec("COMMIT");return result;}catch(e){db.exec("ROLLBACK");throw e;}
 }
-export function beginSession(db:DatabaseSync,id:string,label:string,config:PomodoroConfig,now:number):Session{
+export function beginSession(db:DatabaseSync,id:string,label:string,config:PomodoroConfig,now:number,target?:Target):Session{
   if(!idPattern.test(id)||typeof label!=="string"||label.length>200)throw new Error("Invalid focus objective or ID");
   validateConfig(config);startClock(now);
   // Cap a planned session at twelve hours, including breaks.
@@ -31,11 +34,13 @@ export function beginSession(db:DatabaseSync,id:string,label:string,config:Pomod
   return transaction(db,()=>{
     const existing=getSession(db,id);
     if(existing){
-      if(existing.label!==label.trim()||JSON.stringify(existing.config)!==JSON.stringify(config))throw new Error("Conflicting session replay");
+      if(existing.label!==label.trim()||JSON.stringify(existing.config)!==JSON.stringify(config)||JSON.stringify(existing.target)!==JSON.stringify(target))throw new Error("Conflicting session replay");
       return existing;
     }
+    if(target&&!resolveTarget(db,target))throw new Error("Focus target not found");
     if(activeSession(db))throw new Error("A session is already active");
     db.prepare("INSERT INTO lock_in_sessions(id,label,config_json,started_ms) VALUES(?,?,?,?)").run(id,label.trim(),JSON.stringify(config),now);
+    if(target)db.prepare("UPDATE lock_in_sessions SET target_type=?,target_id=? WHERE id=?").run(target.type,target.id,id);
     return getSession(db,id)!;
   });
 }
