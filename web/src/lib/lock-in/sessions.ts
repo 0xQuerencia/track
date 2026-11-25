@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import {plannedDurationMs} from "./profiles";
 import { changeClock,roomPhase,startClock,validateConfig,type ClockState,type PomodoroConfig } from "./clock";
 
 export type Session = {id:string;label:string;config:PomodoroConfig;clock:ClockState;endedMs:number|null;outcome:"saved"|"discarded"|null;focusMs:number|null;logId:number|null};
@@ -26,7 +27,7 @@ export function beginSession(db:DatabaseSync,id:string,label:string,config:Pomod
   if(!idPattern.test(id)||typeof label!=="string"||label.length>200)throw new Error("Invalid focus objective or ID");
   validateConfig(config);startClock(now);
   // Cap a planned session at twelve hours, including breaks.
-  if(config.focusMs*config.rounds+Math.max(config.shortBreakMs,config.longBreakMs)*(config.rounds-1)>12*3600000)throw new Error("Session exceeds twelve hours");
+  if(plannedDurationMs(config)>12*3600000)throw new Error("Session exceeds twelve hours");
   return transaction(db,()=>{
     const existing=getSession(db,id);
     if(existing){

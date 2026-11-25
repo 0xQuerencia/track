@@ -12,10 +12,10 @@ export function parseCommand(raw:unknown):LockInCommand|null{
   if(r.command==="start"){
     if(typeof r.label!=="string"||r.label.length>200||Object.keys(r).some(k=>!["command","id","label","config"].includes(k)))return null;
     const c=record(r.config);
-    if(!c||Object.keys(c).length!==5)return null;
+    if(!c||Object.keys(c).some(k=>!["focusMs","shortBreakMs","longBreakMs","rounds","longBreakEvery","mode"].includes(k))||(c.mode!==undefined&&c.mode!=="flow"))return null;
     const keys=["focusMs","shortBreakMs","longBreakMs","rounds","longBreakEvery"] as const;
     if(keys.some(k=>typeof c[k]!=="number"))return null;
-    const config={focusMs:Number(c.focusMs),shortBreakMs:Number(c.shortBreakMs),longBreakMs:Number(c.longBreakMs),rounds:Number(c.rounds),longBreakEvery:Number(c.longBreakEvery)};
+    const config={focusMs:Number(c.focusMs),shortBreakMs:Number(c.shortBreakMs),longBreakMs:Number(c.longBreakMs),rounds:Number(c.rounds),longBreakEvery:Number(c.longBreakEvery),...(c.mode==="flow"?{mode:"flow" as const}:{})};
     try{validateConfig(config);}catch{return null;}
     return {command:"start",id:r.id,label:r.label,config};
   }
