@@ -1,0 +1,3 @@
+# Friend presence
+
+No status is shared until the account explicitly publishes it. POST /v1/presence accepts a status (available, focusing, break, away) and optional ttlSeconds (30–300, default 120). GET returns the caller's own current status plus only accepted friends with nonexpired status. DELETE clears immediately. A removed friendship or a block hides presence immediately; a missed heartbeat naturally expires. No objective, website, project, location or historical status log is shared. Clients must not publish private timer state without explicit opt-in. This service does not yet include a public client.
