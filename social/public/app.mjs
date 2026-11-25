@@ -1,11 +1,12 @@
+import {createRoomUI} from "./room-ui.mjs";
 const $=id=>document.getElementById(id);
 let token=null,me=null,selectedPod=null,friendRows=[],podRows=[],selectedPodData=null;
-let generation=0;
+let generation=0;let roomUI;
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);if(cls)n.className=cls;return n;};
 const button=(label,fn,cls)=>{const b=el("button",label,cls);b.type="button";b.addEventListener("click",()=>run(fn,b));return b;};
 function notify(message,error=false){$("notice").textContent=message;$("notice").classList.toggle("error",error);}
 function reset(){
- generation++;token=null;me=null;selectedPod=null;selectedPodData=null;friendRows=[];podRows=[];
+ roomUI?.close();generation++;token=null;me=null;selectedPod=null;selectedPodData=null;friendRows=[];podRows=[];
  $("auth").hidden=false;$("dashboard").hidden=true;$("logout").hidden=true;$("identity").textContent="";
  $("pod-view").replaceChildren(el("p","Select or create a Pod to open its workspace.","muted"));$("room-view").replaceChildren();$("room-view").hidden=true;
  for(const id of ["pods","friends","blocked","presence-list"])$(id).replaceChildren();
@@ -17,7 +18,7 @@ async function api(path,{method="GET",data}={}){
  const body=await response.json();
  if(requestGeneration!==generation)throw Error("Session changed");
  if(response.status===401&&token){reset();throw Error("Session expired. Sign in again.");}
- if(!response.ok||!body.ok)throw Error(typeof body.error==="string"?body.error:"Request failed");
+ if(!response.ok||!body.ok){const e=Error(typeof body.error==="string"?body.error:"Request failed");e.status=response.status;throw e;}
  return body;
 }
 const post=(path,data)=>api(path,{method:"POST",data});
@@ -76,6 +77,7 @@ async function refreshPods(){
 }
 async function refresh(){await Promise.all([refreshFriends(),refreshPresence(),refreshPods()]);if(selectedPod&&podRows.some(p=>p.id===selectedPod))await openPod(selectedPod);}
 async function openPod(id){
+ if(selectedPod!==id)roomUI?.close();
  selectedPod=id;
  const r=await api("/v1/pods/"+id);if(selectedPod!==id)return;
  const pod=r.pod;selectedPodData=pod;
@@ -96,8 +98,34 @@ async function openPod(id){
    }));
   }else members.append(el("p","Accept a friend request before inviting someone.","muted"));
  }
- if(pod.role!=="owner")members.append(button("Leave Pod",async()=>{if(!confirm("Leave this Pod and remove your shared workspace/progress?"))return;await post("/v1/pods/"+id+"/leave",{});selectedPod=null;selectedPodData=null;target.replaceChildren(el("p","You left the Pod.","muted"));await refreshPods();},"danger"));
- target.append(members,el("p","Room and workspace controls will be added in the next client slice.","muted"));
- $("room-view").hidden=true;
+ if(pod.role!=="owner")members.append(button("Leave Pod",async()=>{if(!confirm("Leave this Pod and remove your shared workspace/progress?"))return;await post("/v1/pods/"+id+"/leave",{});roomUI?.close();selectedPod=null;selectedPodData=null;target.replaceChildren(el("p","You left the Pod.","muted"));await refreshPods();},"danger"));
+ const roomSection=section("Lock-In rooms");target.append(roomSection,members);
+ await renderRooms(id,roomSection);
+ target.append(el("p","Workspace controls follow in the next client slice.","muted"));
  await refreshPods();
 }
+
+const presets={
+ classic:{focusMs:1500000,shortBreakMs:300000,longBreakMs:900000,rounds:4,longBreakEvery:4},
+ deep:{focusMs:3000000,shortBreakMs:600000,longBreakMs:1200000,rounds:2,longBreakEvery:2},
+ single:{focusMs:3600000,shortBreakMs:300000,longBreakMs:900000,rounds:1,longBreakEvery:1}
+};
+roomUI=createRoomUI({view:$("room-view"),api,post,el,button,row,section,field,input,select,inlineForm,notify,account:()=>me,podRole:()=>selectedPodData?.role});
+async function renderRooms(pod,target){
+ const {rooms}=await api("/v1/pods/"+pod+"/rooms");
+ if(selectedPod!==pod)return;
+ target.replaceChildren(el("h3","Lock-In rooms"));
+ for(const r of rooms.filter(r=>r.state!=="ended"))target.append(row(r.objective,r.state+(r.scheduledMs?" · "+new Date(r.scheduledMs).toLocaleString():""),[button("Open room",()=>roomUI.open(r.id))]));
+ if(!rooms.some(r=>r.state!=="ended"))target.append(el("p","No open rooms.","muted"));
+ const objective=input("objective","Study together");objective.maxLength=200;
+ const scheduled=input("scheduled","", "datetime-local");scheduled.required=false;
+ target.append(inlineForm([field("Shared objective",objective),field("Timer",select("preset",[["classic","Classic · 25/5 × 4"],["deep","Deep work · 50/10 × 2"],["single","Single focus · 60 min"]])),field("Earliest start (optional, local time)",scheduled)],"Create room",async(data,f)=>{
+  const scheduledMs=data.scheduled?new Date(data.scheduled).getTime():null;
+  if(scheduledMs!==null&&!Number.isFinite(scheduledMs))throw Error("Invalid scheduled time");
+  const result=await post("/v1/pods/"+pod+"/rooms",{objective:data.objective,config:presets[data.preset],...(scheduledMs===null?{}:{scheduledMs})});
+  f.reset();await renderRooms(pod,target);await roomUI.open(result.room.id);
+ }));
+ const previous=rooms.filter(r=>r.state==="ended").slice(0,5);
+ if(previous.length){const history=el("details");history.append(el("summary","Recently ended rooms"));for(const r of previous)history.append(row(r.objective,"Ended",[button("View",()=>roomUI.open(r.id))]));target.append(history);}
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&roomUI?.current())void roomUI.refresh();});
