@@ -76,6 +76,8 @@ fun AppDrawer(
     onHide: (AppEntry) -> Unit,
     onToggleDock: (AppEntry) -> Unit,
     mono: Boolean,
+    protectedApps: Set<String> = emptySet(),
+    onToggleProtection: (AppEntry) -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
     var menuFor by remember { mutableStateOf<AppEntry?>(null) }
@@ -156,6 +158,7 @@ fun AppDrawer(
             title = app.label,
             actions = listOf(
                 (if (pinned) "Remove from dock" else "Add to dock") to { onToggleDock(app) },
+                (if (app.packageName in protectedApps) "Remove from focus protection" else "Add to focus protection") to { onToggleProtection(app) },
                 "Hide from drawer" to { onHide(app) },
                 "App info" to { repo.appInfo(app.packageName) },
                 "Uninstall" to { repo.uninstall(app.packageName) },
