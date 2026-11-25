@@ -1,7 +1,8 @@
+import {createWorkspaceUI} from "./workspace-ui.mjs";
 import {createRoomUI} from "./room-ui.mjs";
 const $=id=>document.getElementById(id);
 let token=null,me=null,selectedPod=null,friendRows=[],podRows=[],selectedPodData=null;
-let generation=0;let roomUI;
+let generation=0;let roomUI,workspaceUI;
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);if(cls)n.className=cls;return n;};
 const button=(label,fn,cls)=>{const b=el("button",label,cls);b.type="button";b.addEventListener("click",()=>run(fn,b));return b;};
 function notify(message,error=false){$("notice").textContent=message;$("notice").classList.toggle("error",error);}
@@ -98,10 +99,16 @@ async function openPod(id){
    }));
   }else members.append(el("p","Accept a friend request before inviting someone.","muted"));
  }
+ if(pod.role==="owner"){
+  const candidates=pod.members.filter(m=>m.id!==me.id);
+  if(candidates.length)members.append(inlineForm([field("New owner",select("accountId",candidates.map(a=>[a.id,a.displayName])))],"Transfer ownership",async data=>{if(!confirm("Transfer ownership of this Pod?"))return;await post("/v1/pods/"+id+"/transfer",data);await openPod(id);}));
+  members.append(button("Delete Pod",async()=>{if(!confirm("Permanently delete this Pod and its shared rooms, messages, workspace and progress?"))return;await post("/v1/pods/"+id+"/delete",{confirmation:"delete"});roomUI?.close();selectedPod=null;selectedPodData=null;target.replaceChildren(el("p","Pod deleted.","muted"));await refreshPods();},"danger"));
+ }
  if(pod.role!=="owner")members.append(button("Leave Pod",async()=>{if(!confirm("Leave this Pod and remove your shared workspace/progress?"))return;await post("/v1/pods/"+id+"/leave",{});roomUI?.close();selectedPod=null;selectedPodData=null;target.replaceChildren(el("p","You left the Pod.","muted"));await refreshPods();},"danger"));
  const roomSection=section("Lock-In rooms");target.append(roomSection,members);
  await renderRooms(id,roomSection);
- target.append(el("p","Workspace controls follow in the next client slice.","muted"));
+ const workspace=section("Pod workspace"),progress=section("Shared progress");target.append(workspace,progress);
+ await Promise.all([workspaceUI.render(pod,workspace),workspaceUI.progress(pod,progress)]);
  await refreshPods();
 }
 
@@ -110,6 +117,7 @@ const presets={
  deep:{focusMs:3000000,shortBreakMs:600000,longBreakMs:1200000,rounds:2,longBreakEvery:2},
  single:{focusMs:3600000,shortBreakMs:300000,longBreakMs:900000,rounds:1,longBreakEvery:1}
 };
+workspaceUI=createWorkspaceUI({api,post,el,button,row,section,field,input,select,inlineForm,notify,account:()=>me,currentPod:()=>selectedPod});
 roomUI=createRoomUI({view:$("room-view"),api,post,el,button,row,section,field,input,select,inlineForm,notify,account:()=>me,podRole:()=>selectedPodData?.role});
 async function renderRooms(pod,target){
  const {rooms}=await api("/v1/pods/"+pod+"/rooms");

@@ -4,6 +4,7 @@ const assets=new Map([
  ["/app.mjs",["app.mjs","text/javascript; charset=utf-8"]],
  ["/room-ui.mjs",["room-ui.mjs","text/javascript; charset=utf-8"]],
  ["/room-time.mjs",["room-time.mjs","text/javascript; charset=utf-8"]],
+ ["/workspace-ui.mjs",["workspace-ui.mjs","text/javascript; charset=utf-8"]],
  ["/styles.css",["styles.css","text/css; charset=utf-8"]]
 ]);
 export function parseClientOrigin(raw){
