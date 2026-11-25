@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {DEFAULT_POMODORO,roomPhase,type PomodoroConfig} from "@/lib/lock-in/clock";
 import {FOCUS_PROFILES,validCustomConfig} from "@/lib/lock-in/profiles";
@@ -75,6 +76,6 @@ export function LockInTimer(){
       <button className="tk-button tk-primary" disabled={pending||!validCustomConfig(config)} type="submit">{pending?"Connecting...":"Start lock-in"}</button>
     </form>}
     <h3>Recent sessions</h3>
-    {!snapshot?.recent.length?<p className="tk-empty">No completed lock-in sessions yet.</p>:<ul className="tk-list">{snapshot.recent.map(r=><li key={r.id}><span>{r.label||"Untitled"}</span><small>{r.outcome==="saved"?Math.floor((r.focusMs??0)/60000)+" min planned focus":"Discarded"}</small></li>)}</ul>}
+    {!snapshot?.recent.length?<p className="tk-empty">No completed lock-in sessions yet.</p>:<ul className="tk-list">{snapshot.recent.map(r=><li key={r.id}><span>{r.label||"Untitled"}</span><small>{r.outcome==="saved"?Math.floor((r.focusMs??0)/60000)+" min planned focus":"Discarded"}</small>{r.outcome==="saved"?<Link href={"/lock-in/report/"+r.id}>Report</Link>:null}</li>)}</ul>}
   </div>;
 }
