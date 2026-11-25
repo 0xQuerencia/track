@@ -5,6 +5,7 @@ import {DEFAULT_POMODORO,roomPhase,type PomodoroConfig} from "@/lib/lock-in/cloc
 import {FOCUS_PROFILES,validCustomConfig} from "@/lib/lock-in/profiles";
 import type {TargetOption} from "@/lib/lock-in/target-types";
 import type {Session} from "@/lib/lock-in/sessions";
+import {ZenMode,PhaseAlerts} from "./zen";
 import type {LockInCommand} from "@/lib/lock-in/commands";
 type Snapshot={ok:true;serverNow:number;session:Session|null;recent:Session[];result?:Session};
 function display(ms:number){const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");}
@@ -57,13 +58,17 @@ export function LockInTimer({targets=[]}:{targets?:TargetOption[]}){
   };
   const s=snapshot?.session;
   const phase=s?roomPhase(s.config,s.clock,Math.max(s.clock.startedAtMs,s.clock.pausedAtMs??0,Math.round(now+offset))):null;
+  const phaseText=phase?(phase.paused?"Paused":phase.phase.replaceAll("_"," ")):"";
+  const timeText=s&&phase?display(s.config.mode==="flow"?s.config.focusMs-phase.remainingMs:phase.remainingMs):"";
   return <div className="tk-stack">
     {error?<p role="alert">{error}</p>:null}{notice?<p role="status">{notice}</p>:null}
     {!snapshot?<p className="tk-empty">Connecting to your session...</p>:s&&phase?<div className="tk-timer">
       <p className="tk-kicker">{s.label||"Untitled focus"} · {s.config.mode==="flow"?"Flow":("Round "+phase.round+"/"+s.config.rounds)}</p>
       {s.target?<p>{(()=>{const t=targets.find(x=>x.type===s.target?.type&&x.id===s.target.id);return t?<Link href={t.href}>{t.title}</Link>:"Linked objective";})()}</p>:null}
-      <p>{phase.paused?"Paused":phase.phase.replaceAll("_"," ")}</p>
-      <output className="tk-timer-time" aria-live="off">{display(s.config.mode==="flow"?s.config.focusMs-phase.remainingMs:phase.remainingMs)}</output>
+      <p>{phaseText}</p>
+      <output className="tk-timer-time" aria-live="off">{timeText}</output>
+      <ZenMode><p className="tk-kicker">{s.label||"Untitled focus"}</p><p>{phaseText} · Round {phase.round}/{s.config.rounds}</p><output className="tk-timer-time" aria-live="off">{timeText}</output><div className="tk-timer-controls">{phase.phase!=="complete"?<button className="tk-button" disabled={pending} onClick={()=>void command({command:phase.paused?"resume":"pause",id:s.id,revision:s.clock.revision})}>{phase.paused?"Resume":"Pause"}</button>:null}<button className="tk-button tk-primary" disabled={pending} onClick={()=>void command({command:"save",id:s.id,revision:s.clock.revision})}>End &amp; save</button></div>{error?<p role="alert">{error}</p>:null}</ZenMode>
+      <PhaseAlerts marker={{id:s.id,phase:phase.phase,round:phase.round}}/>
       <div className="tk-timer-controls">
         {phase.phase!=="complete"?<button className="tk-button" disabled={pending} onClick={()=>void command({command:phase.paused?"resume":"pause",id:s.id,revision:s.clock.revision})}>{phase.paused?"Resume":"Pause"}</button>:null}
         <button className="tk-button tk-primary" disabled={pending} onClick={()=>void command({command:"save",id:s.id,revision:s.clock.revision})}>End &amp; save</button>
