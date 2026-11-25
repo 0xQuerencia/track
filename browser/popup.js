@@ -1,10 +1,11 @@
 import {blockConfig} from "./blocker.mjs";
 import {parseRuleText} from "./rules.mjs";
+const api=globalThis.browser??globalThis.chrome;
 const $=id=>document.getElementById(id);
 let pairedServer="";
 async function send(type,extra={}){
   try{
-    const s=await chrome.runtime.sendMessage({type,...extra});
+    const s=await api.runtime.sendMessage({type,...extra});
     if(!s.ok){$("status").textContent=s.error;return;}
     $("pair").hidden=!!s.server;$("controls").hidden=!s.server;$("rule-settings").hidden=!s.server;$("block-settings").hidden=!s.server;pairedServer=s.server;
     const blocking=Number(s.blockUntil)>Date.now();$("block-form").hidden=blocking;$("stop-block").hidden=!blocking;$("block-status").textContent=blocking?"Blocking until "+new Date(s.blockUntil).toLocaleTimeString():"No active block";if(blocking)$("block-settings").open=true;
@@ -20,7 +21,7 @@ $("pair").addEventListener("submit",async e=>{
   try{
     const url=new URL($("server").value);
     if(url.protocol!=="https:"||url.pathname!=="/"||url.username||url.password||url.search||url.hash)throw new Error("Enter an HTTPS server origin.");
-    if(!await chrome.permissions.request({origins:[url.origin+"/*"]}))throw new Error("Permission denied.");
+    if(!await api.permissions.request({origins:[url.origin+"/*"]}))throw new Error("Permission denied.");
     await send("pair",{server:url.origin,token:$("token").value.trim()});$("token").value="";
   }catch(e){$("status").textContent=e.message;}
 });
@@ -31,7 +32,7 @@ $("rules").addEventListener("submit",async e=>{
   e.preventDefault();
   try{
     const config=parseRuleText($("rule-text").value,$("exclusions").value);
-    if(!await chrome.permissions.request({permissions:["tabs"]}))throw new Error("Tab permission denied.");
+    if(!await api.permissions.request({permissions:["tabs"]}))throw new Error("Tab permission denied.");
     await send("rules",{enabled:true,...config});
   }catch(e){$("status").textContent=e.message;}
 });
@@ -40,7 +41,7 @@ $("block-form").addEventListener("submit",async e=>{
   e.preventDefault();
   try{
     const c=blockConfig($("block-domains").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),Number($("block-minutes").value),pairedServer);
-    if(!await chrome.permissions.request({origins:c.origins}))throw new Error("Site permission denied.");
+    if(!await api.permissions.request({origins:c.origins}))throw new Error("Site permission denied.");
     await send("start-block",{domains:c.domains,minutes:c.minutes});
   }catch(e){$("status").textContent=e.message;}
 });

@@ -48,5 +48,6 @@ jobs:
           if [ -d browser ]; then
             find browser \( -name '*.js' -o -name '*.mjs' \) -exec node --check {} \;
             if compgen -G 'browser/*.test.mjs' > /dev/null; then node --test browser/*.test.mjs; fi
+            if [ -f browser/build.mjs ]; then node browser/build.mjs; fi
             if [ -f browser/manifest.json ]; then node -e "JSON.parse(require('fs').readFileSync('browser/manifest.json','utf8'))"; fi
           fi
