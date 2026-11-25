@@ -21,6 +21,7 @@ import {
   Settings,
   Sparkles,
   Target,
+  Timer,
   Users,
   Wallet,
   type LucideIcon,
@@ -43,6 +44,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { href: "/study", label: "Study HQ", icon: BookOpen },
       { href: "/focus", label: "Focus", icon: Crosshair },
+      { href: "/lock-in", label: "Lock-In", icon: Timer },
       { href: "/activity", label: "Activity", icon: Activity },
       { href: "/plans", label: "Plans & Goals", icon: Target },
       { href: "/calendar", label: "Calendar", icon: CalendarDays },

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useRef } from "react";
 import { LogOut, Search } from "lucide-react";
 import { logoutAction } from "@/app/actions";
+import { LockInMiniPlayer } from "@/components/track/lock-in-mini-player";
 import { CommandPalette } from "@/components/track/command-palette";
 import { NavGroupSection, useCollapsedGroups } from "@/components/track/nav-group";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -72,6 +73,7 @@ export function TrackShell({ children }: { children: React.ReactNode }) {
               maxLength={80}
             />
           </form>
+          {!pathname.startsWith("/lock-in")&&<LockInMiniPlayer />}
           <form action={logoutAction}>
             <button type="submit" className="tk-button tk-ghost">
               <LogOut size={14} strokeWidth={1.5} aria-hidden="true" />
