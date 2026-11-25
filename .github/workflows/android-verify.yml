@@ -16,6 +16,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: 'false'
       - run: |
           sdkmanager "platforms;android-37" "ndk;27.2.12479018"
           rustup target add aarch64-linux-android armv7-linux-androideabi
