@@ -1,4 +1,4 @@
-export type PomodoroConfig = Readonly<{focusMs:number; shortBreakMs:number; longBreakMs:number; rounds:number; longBreakEvery:number}>;
+export type PomodoroConfig = Readonly<{focusMs:number; shortBreakMs:number; longBreakMs:number; rounds:number; longBreakEvery:number;mode?:"flow"}>;
 export type Phase = "waiting" | "focus" | "short_break" | "long_break" | "complete";
 export type ClockState = Readonly<{startedAtMs:number; pausedAtMs:number|null; pausedTotalMs:number; revision:number}>;
 const MIN = 60_000;
@@ -7,7 +7,9 @@ function integer(value:number,min:number,max:number) {
   return Number.isSafeInteger(value) && value>=min && value<=max;
 }
 export function validateConfig(c:PomodoroConfig):void {
-  if (!integer(c.focusMs,MIN,180*MIN)||!integer(c.shortBreakMs,MIN,60*MIN)
+  if(c.mode!==undefined&&c.mode!=="flow")throw new RangeError("Invalid focus mode");
+  if(c.mode==="flow"&&(c.focusMs!==720*MIN||c.rounds!==1))throw new RangeError("Invalid flow configuration");
+  if (!integer(c.focusMs,MIN,c.mode==="flow"?720*MIN:180*MIN)||!integer(c.shortBreakMs,MIN,60*MIN)
       ||!integer(c.longBreakMs,MIN,120*MIN)||!integer(c.rounds,1,24)
       ||!integer(c.longBreakEvery,1,24)) throw new RangeError("Invalid Pomodoro configuration");
 }

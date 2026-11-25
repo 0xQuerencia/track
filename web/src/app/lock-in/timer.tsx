@@ -1,10 +1,10 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {DEFAULT_POMODORO,roomPhase,type PomodoroConfig} from "@/lib/lock-in/clock";
+import {FOCUS_PROFILES,validCustomConfig} from "@/lib/lock-in/profiles";
 import type {Session} from "@/lib/lock-in/sessions";
 import type {LockInCommand} from "@/lib/lock-in/commands";
 type Snapshot={ok:true;serverNow:number;session:Session|null;recent:Session[];result?:Session};
-const PRESETS=[{name:"25 / 5",config:DEFAULT_POMODORO},{name:"50 / 10",config:{focusMs:3000000,shortBreakMs:600000,longBreakMs:1200000,rounds:4,longBreakEvery:4}},{name:"90 / 15",config:{focusMs:5400000,shortBreakMs:900000,longBreakMs:1800000,rounds:2,longBreakEvery:2}}];
 function display(ms:number){const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");}
 export function LockInTimer(){
   const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
@@ -12,6 +12,7 @@ export function LockInTimer(){
   const [offset,setOffset]=useState(0);
   const [label,setLabel]=useState("");
   const [config,setConfig]=useState<PomodoroConfig>(DEFAULT_POMODORO);
+  const [custom,setCustom]=useState(false);
   const [pending,setPending]=useState(false);
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
@@ -56,19 +57,22 @@ export function LockInTimer(){
   return <div className="tk-stack">
     {error?<p role="alert">{error}</p>:null}{notice?<p role="status">{notice}</p>:null}
     {!snapshot?<p className="tk-empty">Connecting to your session...</p>:s&&phase?<div className="tk-timer">
-      <p className="tk-kicker">{s.label||"Untitled focus"} · Round {phase.round}/{s.config.rounds}</p>
+      <p className="tk-kicker">{s.label||"Untitled focus"} · {s.config.mode==="flow"?"Flow":("Round "+phase.round+"/"+s.config.rounds)}</p>
       <p>{phase.paused?"Paused":phase.phase.replaceAll("_"," ")}</p>
-      <output className="tk-timer-time" aria-live="off">{display(phase.remainingMs)}</output>
+      <output className="tk-timer-time" aria-live="off">{display(s.config.mode==="flow"?s.config.focusMs-phase.remainingMs:phase.remainingMs)}</output>
       <div className="tk-timer-controls">
         {phase.phase!=="complete"?<button className="tk-button" disabled={pending} onClick={()=>void command({command:phase.paused?"resume":"pause",id:s.id,revision:s.clock.revision})}>{phase.paused?"Resume":"Pause"}</button>:null}
         <button className="tk-button tk-primary" disabled={pending} onClick={()=>void command({command:"save",id:s.id,revision:s.clock.revision})}>End &amp; save</button>
         <button className="tk-button tk-ghost" disabled={pending} onClick={()=>{if(window.confirm("Discard this session without creating a focus log?"))void command({command:"discard",id:s.id,revision:s.clock.revision});}}>Discard</button>
       </div>
-    </div>:<form className="tk-stack" onSubmit={e=>{e.preventDefault();startId.current??=crypto.randomUUID();void command({command:"start",id:startId.current,label,config});}}>
+    </div>:<form className="tk-stack" onSubmit={e=>{e.preventDefault();if(!validCustomConfig(config)){setError("Choose a valid session under 12 hours.");return;}startId.current??=crypto.randomUUID();void command({command:"start",id:startId.current,label,config});}}>
       <label className="tk-field"><span>Intention</span><input value={label} maxLength={200} placeholder="Physics revision, coding..." onChange={e=>{startId.current=null;setLabel(e.target.value);}} disabled={pending}/></label>
-      <div className="tk-timer-controls">{PRESETS.map(p=><button key={p.name} type="button" className="tk-button" aria-pressed={JSON.stringify(config)===JSON.stringify(p.config)} onClick={()=>{startId.current=null;setConfig(p.config);}} disabled={pending}>{p.name}</button>)}</div>
-      <p>{config.focusMs/60000} min focus · {config.shortBreakMs/60000} min break · {config.rounds} rounds</p>
-      <button className="tk-button tk-primary" disabled={pending} type="submit">{pending?"Connecting...":"Start lock-in"}</button>
+      <div className="tk-timer-controls">{FOCUS_PROFILES.map(p=><button key={p.name} type="button" className="tk-button" aria-pressed={JSON.stringify(config)===JSON.stringify(p.config)} onClick={()=>{startId.current=null;setConfig(p.config);setCustom(false);}} disabled={pending}>{p.name} · {p.description}</button>)}</div>
+      <button type="button" className="tk-button" onClick={()=>{setCustom(v=>!v);if(config.mode==="flow"){startId.current=null;setConfig(DEFAULT_POMODORO);}}}>Custom intervals</button>
+      {custom?<div className="tk-stack">{([{key:"focusMs",name:"Focus minutes",min:1,max:180,scale:60000},{key:"shortBreakMs",name:"Short break",min:1,max:60,scale:60000},{key:"longBreakMs",name:"Long break",min:1,max:120,scale:60000},{key:"rounds",name:"Rounds",min:1,max:24,scale:1},{key:"longBreakEvery",name:"Long break every N rounds",min:1,max:24,scale:1}] as const).map(f=><label key={f.key} className="tk-field"><span>{f.name}</span><input type="number" min={f.min} max={f.max} required value={config[f.key]/f.scale} onChange={e=>{startId.current=null;setConfig(c=>({...c,[f.key]:Number(e.target.value)*f.scale}));}} disabled={pending}/></label>)}</div>:null}
+      <p>{config.mode==="flow"?"Count up until you finish (maximum 12 hours).":config.focusMs/60000+" min focus · "+config.shortBreakMs/60000+" min break · "+config.rounds+" rounds"}</p>
+      {!validCustomConfig(config)?<p role="alert">Session must fit within 12 hours and valid interval bounds.</p>:null}
+      <button className="tk-button tk-primary" disabled={pending||!validCustomConfig(config)} type="submit">{pending?"Connecting...":"Start lock-in"}</button>
     </form>}
     <h3>Recent sessions</h3>
     {!snapshot?.recent.length?<p className="tk-empty">No completed lock-in sessions yet.</p>:<ul className="tk-list">{snapshot.recent.map(r=><li key={r.id}><span>{r.label||"Untitled"}</span><small>{r.outcome==="saved"?Math.floor((r.focusMs??0)/60000)+" min planned focus":"Discarded"}</small></li>)}</ul>}
