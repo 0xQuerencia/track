@@ -8,7 +8,7 @@ async function send(type,extra={}){
     const s=await api.runtime.sendMessage({type,...extra});
     if(!s.ok){$("status").textContent=s.error;return;}
     $("pair").hidden=!!s.server;$("controls").hidden=!s.server;$("rule-settings").hidden=!s.server;$("block-settings").hidden=!s.server;pairedServer=s.server;
-    const blocking=Number(s.blockUntil)>Date.now();$("block-form").hidden=blocking;$("stop-block").hidden=!blocking;$("block-status").textContent=blocking?"Blocking until "+new Date(s.blockUntil).toLocaleTimeString():"No active block";if(blocking)$("block-settings").open=true;
+    const blocking=Number(s.blockUntil)>Date.now();$("block-form").hidden=blocking||s.autoFocus;$("auto-form").hidden=blocking||s.autoFocus;$("stop-block").hidden=!blocking&&!s.autoFocus;$("block-status").textContent=blocking?"Blocking until "+new Date(s.blockUntil).toLocaleTimeString():"No active block";if(s.autoFocus)$("block-status").textContent="Automatic · "+s.autoStatus;if(blocking||s.autoFocus)$("block-settings").open=true;
     if(type==="status"||type==="rules"||type==="pair"){ $("rule-text").value=(s.rules??[]).map(r=>r.suffix+","+r.category).join("\n");$("exclusions").value=(s.excluded??[]).join("\n"); }
     $("enable-rules").textContent=s.domainRulesEnabled?"Update rules":"Enable and save rules";
     $("pause").textContent=s.enabled?"Pause":"Resume";
@@ -43,6 +43,14 @@ $("block-form").addEventListener("submit",async e=>{
     const c=blockConfig($("block-domains").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),Number($("block-minutes").value),pairedServer);
     if(!await api.permissions.request({origins:c.origins}))throw new Error("Site permission denied.");
     await send("start-block",{domains:c.domains,minutes:c.minutes});
+  }catch(e){$("status").textContent=e.message;}
+});
+$("auto-form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  try{
+    const c=blockConfig($("auto-domains").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),1,pairedServer);
+    if(!await api.permissions.request({origins:c.origins}))throw new Error("Site permission denied.");
+    await send("start-auto",{domains:c.domains});
   }catch(e){$("status").textContent=e.message;}
 });
 $("stop-block").onclick=()=>send("stop-block");

@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath,pathToFileURL} from "node:url";
 const here=path.dirname(fileURLToPath(import.meta.url));
-const ASSETS=["worker.js","tracker.mjs","rules.mjs","blocker.mjs","popup.html","popup.css","popup.js"];
+const ASSETS=["worker.js","tracker.mjs","rules.mjs","blocker.mjs","focus-policy.mjs","popup.html","popup.css","popup.js"];
 export function manifestFor(source,target){
   const manifest=structuredClone(source);
   if(target==="chromium")return manifest;

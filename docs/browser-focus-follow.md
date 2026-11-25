@@ -1,0 +1,5 @@
+# Follow Lock-In from the browser
+
+Pair with a new token that includes activity:write and focus:read. Open Focus protection, choose the domain list under Follow Lock-In, and grant access only to those domains. The browser checks the private phase projection periodically (normally every 30 seconds), blocks top-level navigation during focus, and removes automatic rules during breaks, pause, completion or failed refresh.
+
+The renewable block lease is capped at 75 seconds and at the reported remaining focus duration. Browser alarms can be delayed by OS suspension; this is a voluntary aid, not a guaranteed enforcement boundary. Emergency exit disables automatic mode and removes its rules and host permissions. Restart disables automatic mode and requires another explicit opt-in. Tracking pause controls activity collection independently of focus blocking. The owner's objective and history are never returned to the extension. Manual blocking remains available separately.
