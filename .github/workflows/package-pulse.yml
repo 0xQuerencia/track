@@ -1,0 +1,37 @@
+name: Package Pulse collectors
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'browser/**'
+      - 'web/tools/pulse-collector/**'
+      - '.github/workflows/package-pulse.yml'
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test browser/*.test.mjs web/tools/pulse-collector/*.test.mjs
+      - run: node browser/build.mjs
+      - name: Package only approved runtime files
+        run: |
+          mkdir -p out/linux
+          (cd browser/dist/chromium && zip -q -r "$GITHUB_WORKSPACE/out/track-pulse-chromium.zip" .)
+          (cd browser/dist/firefox && zip -q -r "$GITHUB_WORKSPACE/out/track-pulse-firefox.zip" .)
+          for file in collector.mjs queue.mjs activitywatch.mjs editor.mjs editor.md install.md track-pulse.service env.example; do
+            cp "web/tools/pulse-collector/$file" "out/linux/$file"
+          done
+          tar -czf out/track-pulse-linux.tar.gz -C out/linux .
+          rm -r out/linux
+          (cd out && sha256sum track-pulse-* > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: track-pulse-collectors
+          path: out/
+          if-no-files-found: error
+          retention-days: 14
