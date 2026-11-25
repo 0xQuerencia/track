@@ -1,0 +1,3 @@
+# Mission Control
+
+Owner-only /dreamer/missions provides explicit queue submission, optional current source disclosure approval, worker health, recent missions, cancellation, step dependencies, bounded retry state and execution receipts. No automatic mission starts occur on navigation. Reports are rendered as escaped text, not actionable links, HTML or tool invocations. The interface polls real server data and distinguishes worker-offline and policy-unavailable states. Browser visual/device review is still needed.
