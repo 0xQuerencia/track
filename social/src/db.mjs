@@ -1,6 +1,7 @@
 import {DatabaseSync} from "node:sqlite";
 import {mkdirSync,openSync,closeSync,lstatSync,realpathSync,chmodSync} from "node:fs";
 import path from "node:path";
+import {roomsSchema} from "./schema/rooms.mjs";
 import {podsSchema} from "./schema/pods.mjs";
 import {presenceSchema} from "./schema/presence.mjs";
 import {friendsSchema} from "./schema/friends.mjs";
@@ -22,6 +23,7 @@ export function migrate(db){
   applyVersion(db,3,friendsSchema);
   applyVersion(db,4,presenceSchema);
   applyVersion(db,5,podsSchema);
+  applyVersion(db,6,roomsSchema);
   return db;
 }
 /** Deliberately accepts only a dedicated directory; never accepts an existing arbitrary DB path. */
