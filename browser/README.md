@@ -7,3 +7,7 @@ Use the popup's local rules section. Rules are domain suffixes, with a category 
 
 ## Temporary distraction protection
 Choose domains and a duration in the popup; approve per-domain host access. Only top-level navigation is blocked. Stop immediately from the popup. Session rules are cleared on browser restart; alarms and periodic checks remove expired rules. This is voluntary protection, not a tamper-proof lock, and is not yet automatically synchronized with server room timers. The Track server itself is excluded.
+
+## Firefox and Chromium builds
+
+Run `node browser/build.mjs` from repository root (Node 22+). Only extension runtime files are copied into `browser/dist/chromium` and `browser/dist/firefox`. Chromium: load unpacked from the first directory. Firefox 128+: open about:debugging, This Firefox, Load Temporary Add-on, and choose the Firefox manifest. Firefox uses an MV3 event page instead of a service worker; shared Promise-based APIs use the browser namespace where available. See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background. Both retain the same explicit opt-in and exclusions. Temporary installation is not store signing; live Firefox/Chromium permission, background suspension and blocking smoke tests remain required.
