@@ -46,7 +46,8 @@ jobs:
           node-version: '24'
       - run: |
           if [ -d browser ]; then
-            find browser -name '*.js' -exec node --check {} \;
+            find browser \( -name '*.js' -o -name '*.mjs' \) -exec node --check {} \;
+            if compgen -G 'browser/*.test.mjs' > /dev/null; then node --test browser/*.test.mjs; fi
             if [ -f browser/manifest.json ]; then node -e "JSON.parse(require('fs').readFileSync('browser/manifest.json','utf8'))"; fi
           fi
 
