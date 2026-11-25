@@ -32,6 +32,7 @@ export async function createIntegrationTokenAction(
   const result = createIntegrationToken(getDb(), formData.get("label"), formData.getAll("scope"));
   if (!result.ok) return { ok: false, message: result.error };
   revalidatePath("/settings");
+  revalidatePath("/activity/devices");
   return {
     ok: true,
     message: "Token created. Copy it now: it is shown only once.",
@@ -45,4 +46,5 @@ export async function revokeIntegrationTokenAction(formData: FormData): Promise<
   if (!(await allowed())) return;
   revokeIntegrationToken(getDb(), formData.get("id"));
   revalidatePath("/settings");
+  revalidatePath("/activity/devices");
 }
