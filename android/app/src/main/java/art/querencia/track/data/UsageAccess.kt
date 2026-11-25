@@ -12,7 +12,7 @@ import android.provider.Settings
 @Suppress("DEPRECATION")
 object UsageAccess {
     fun granted(context: Context): Boolean = runCatching {
-        val ops = context.getSystemService(AppOpsManager::class.java)
+        val ops = context.getSystemService(AppOpsManager::class.java) ?: return false
         ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName) ==
             AppOpsManager.MODE_ALLOWED
     }.getOrDefault(false)
@@ -24,8 +24,8 @@ object UsageAccess {
     /** No query until the user has enabled collection and Android granted access. */
     fun query(context: Context, since: Long, until: Long): List<UsageMark> {
         require(granted(context)) { "Usage access is not granted." }
-        require(context.getSystemService(UserManager::class.java).isUserUnlocked) { "Device is locked." }
-        val manager = context.getSystemService(UsageStatsManager::class.java)
+        require(context.getSystemService(UserManager::class.java)?.isUserUnlocked == true) { "Device is locked." }
+        val manager = context.getSystemService(UsageStatsManager::class.java) ?: error("Usage service unavailable")
         val events = manager.queryEvents(since, until) ?: return emptyList()
         val marks = ArrayList<UsageMark>()
         val e = UsageEvents.Event()
