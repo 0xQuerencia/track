@@ -1,4 +1,5 @@
 import {
+  Activity,
   Bot,
   Briefcase,
   Brain,
@@ -42,6 +43,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { href: "/study", label: "Study HQ", icon: BookOpen },
       { href: "/focus", label: "Focus", icon: Crosshair },
+      { href: "/activity", label: "Activity", icon: Activity },
       { href: "/plans", label: "Plans & Goals", icon: Target },
       { href: "/calendar", label: "Calendar", icon: CalendarDays },
       { href: "/health", label: "Health", icon: HeartPulse },
