@@ -1,0 +1,3 @@
+# Durable Dreamer mission foundation
+
+The new job tables are additive; legacy Dreamer missions and conversation remain intact. An owner-requested objective becomes a bounded, server-generated specialist DAG with a Critic dependency and one final Chief synthesis. No model output is treated as a command. Jobs carry explicit optional-context consent, attempt caps and reserved requested output-token budgets; the latter are not a bill estimate or provider usage accounting. The storage layer is idle: no job runs merely because it is created or because the migration executes. Leases, recovery and worker consent gates follow. No external tools, social records, arbitrary host execution or autonomous writes are included.
