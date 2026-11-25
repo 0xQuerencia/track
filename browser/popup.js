@@ -1,9 +1,12 @@
+import {parseRuleText} from "./rules.mjs";
 const $=id=>document.getElementById(id);
 async function send(type,extra={}){
   try{
     const s=await chrome.runtime.sendMessage({type,...extra});
     if(!s.ok){$("status").textContent=s.error;return;}
-    $("pair").hidden=!!s.server;$("controls").hidden=!s.server;
+    $("pair").hidden=!!s.server;$("controls").hidden=!s.server;$("rule-settings").hidden=!s.server;
+    if(type==="status"||type==="rules"||type==="pair"){ $("rule-text").value=(s.rules??[]).map(r=>r.suffix+","+r.category).join("\n");$("exclusions").value=(s.excluded??[]).join("\n"); }
+    $("enable-rules").textContent=s.domainRulesEnabled?"Update rules":"Enable and save rules";
     $("pause").textContent=s.enabled?"Pause":"Resume";
     $("pause").dataset.enabled=String(s.enabled);
     $("status").textContent=(s.enabled?"Tracking":"Paused")+" · "+s.queued+" queued · "+s.dropped+" dropped"+(s.error?" · "+s.error:"");
@@ -21,4 +24,13 @@ $("pair").addEventListener("submit",async e=>{
 $("pause").onclick=()=>send($("pause").dataset.enabled==="true"?"pause":"resume");
 $("sync").onclick=()=>send("sync");
 $("disconnect").onclick=()=>send("disconnect");
+$("rules").addEventListener("submit",async e=>{
+  e.preventDefault();
+  try{
+    const config=parseRuleText($("rule-text").value,$("exclusions").value);
+    if(!await chrome.permissions.request({permissions:["tabs"]}))throw new Error("Tab permission denied.");
+    await send("rules",{enabled:true,...config});
+  }catch(e){$("status").textContent=e.message;}
+});
+$("disable-rules").onclick=()=>send("rules",{enabled:false});
 send("status");
