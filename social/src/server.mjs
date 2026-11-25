@@ -1,6 +1,7 @@
 import {createServer} from "node:http";
 import {pathToFileURL} from "node:url";
 import {openSocialDb} from "./db.mjs";
+import {roomStreamRoutes} from "./routes/room-stream.mjs";
 import {roomRoutes} from "./routes/rooms.mjs";
 import {podRoutes} from "./routes/pods.mjs";
 import {presenceRoutes} from "./routes/presence.mjs";
@@ -15,7 +16,7 @@ export function socialConfig(env=process.env){
   return {directory:env.TRACK_SOCIAL_DATA,host:"127.0.0.1",port};
 }
 /** No routes, database connections, cookies, or credentials are shared with the personal OS. */
-function defaultRoutes(){const handlers=[authRoutes(),friendRoutes(),presenceRoutes(),podRoutes(),roomRoutes()];return async ctx=>{for(const handler of handlers)if(await handler(ctx))return true;return false;};}
+function defaultRoutes(){const handlers=[authRoutes(),friendRoutes(),presenceRoutes(),podRoutes(),roomRoutes(),roomStreamRoutes()];return async ctx=>{for(const handler of handlers)if(await handler(ctx))return true;return false;};}
 export function makeServer(db,{routes=defaultRoutes()}={}){
   const allow=limiter({max:120,windowMs:60000});
   const server=createServer({requestTimeout:15000,headersTimeout:10000,maxHeaderSize:8192},async(req,res)=>{
