@@ -1,19 +1,25 @@
+import {classifyUrl,validateRules} from "./rules.mjs";
 import {sampleInterval,appendQueue,pruneQueue,acceptAck,backoffMs} from "./tracker.mjs";
 const KEY="pulseState";
 let serial=Promise.resolve();
 function run(fn){const next=serial.then(fn,fn);serial=next.catch(()=>{});return next;}
-const empty=()=>({enabled:false,server:"",token:"",last:null,queue:[],dropped:0,failures:0,nextSyncMs:0,error:""});
+const empty=()=>({enabled:false,server:"",token:"",last:null,queue:[],dropped:0,failures:0,nextSyncMs:0,error:"",domainRulesEnabled:false,rules:[],excluded:[]});
 async function load(){const old=(await chrome.storage.local.get(KEY))[KEY];return old?{...empty(),...old,last:typeof old.last==="number"?null:old.last}:empty();}
 async function save(s){await chrome.storage.local.set({[KEY]:s});}
-async function observe(){
+async function observe(s){
   const [windows,idle]=await Promise.all([chrome.windows.getAll({windowTypes:["normal"]}),chrome.idle.queryState(60)]);
-  return idle==="active"&&windows.some(w=>w.focused&&!w.incognito)?{}:null;
+  const window=windows.find(w=>w.focused&&!w.incognito);
+  if(idle!=="active"||!window)return null;
+  if(!s.domainRulesEnabled)return {};
+  if(!await chrome.permissions.contains({permissions:["tabs"]}))return null;
+  const [tab]=await chrome.tabs.query({active:true,windowId:window.id});
+  return tab?.url?classifyUrl(tab.url,s.rules,s.excluded):null;
 }
 async function sample(){
   const s=await load(),now=Date.now();
   if(!s.enabled){s.last=null;await save(s);return;}
   let observed=null;
-  try{observed=await observe();}catch{/* Unknown state is never counted. */}
+  try{observed=await observe(s);}catch{/* Unknown state is never counted. */}
   const next=sampleInterval(s.last,now,observed,()=>crypto.randomUUID());
   Object.assign(s,appendQueue(s.queue,next.event,s.dropped),{last:next.last});
   await save(s);
@@ -36,6 +42,8 @@ async function tick(force=false){await sample();await flush(force);}
 async function resetSample(){const s=await load();s.last=null;await save(s);await chrome.alarms.create("pulse",{periodInMinutes:0.5});}
 chrome.alarms.onAlarm.addListener(a=>{if(a.name==="pulse")void run(tick).catch(()=>{});});
 chrome.windows.onFocusChanged.addListener(()=>void run(sample).catch(()=>{}));
+chrome.tabs.onActivated.addListener(()=>void run(sample).catch(()=>{}));
+chrome.tabs.onUpdated.addListener((_id,change)=>{if(change.url||change.status==="complete")void run(sample).catch(()=>{});});
 chrome.idle.onStateChanged.addListener(()=>void run(sample).catch(()=>{}));
 chrome.runtime.onInstalled.addListener(()=>void run(resetSample).catch(()=>{}));
 chrome.runtime.onStartup.addListener(()=>void run(resetSample).catch(()=>{}));
@@ -50,9 +58,17 @@ chrome.runtime.onMessage.addListener((m,sender,reply)=>{
       await save({...empty(),enabled:true,server:url.origin,token:m.token});await resetSample();await tick(true);
     }else if(m.type==="pause"){s.enabled=false;s.last=null;await save(s);}
     else if(m.type==="resume"){if(!s.token)throw new Error("Pair first.");s.enabled=true;s.last=null;await save(s);await tick(true);}
-    else if(m.type==="disconnect"){await save(empty());if(s.server)await chrome.permissions.remove({origins:[s.server+"/*"]});}
+    else if(m.type==="disconnect"){await save(empty());if(s.server)await chrome.permissions.remove({origins:[s.server+"/*"]});await chrome.permissions.remove({permissions:["tabs"]});}
+    else if(m.type==="rules"){
+      if(!s.token)throw new Error("Pair first.");
+      if(m.enabled===true){
+        if(!await chrome.permissions.contains({permissions:["tabs"]}))throw new Error("Tab permission is required for local rules.");
+        Object.assign(s,validateRules(m.rules,m.excluded),{domainRulesEnabled:true,last:null});
+      }else{Object.assign(s,{domainRulesEnabled:false,rules:[],excluded:[],last:null});await chrome.permissions.remove({permissions:["tabs"]});}
+      await save(s);
+    }
     else if(m.type==="sync")await tick(true);
     else if(m.type!=="status")throw new Error("Unknown command");
-    const next=await load();reply({ok:true,enabled:next.enabled,server:next.server,queued:next.queue.length,dropped:next.dropped,lastSync:next.lastSync,error:next.error});
+    const next=await load();reply({ok:true,enabled:next.enabled,server:next.server,queued:next.queue.length,dropped:next.dropped,lastSync:next.lastSync,error:next.error,domainRulesEnabled:next.domainRulesEnabled,rules:next.rules,excluded:next.excluded});
   }).catch(e=>reply({ok:false,error:e instanceof Error?e.message:"Request failed"}));return true;
 });
