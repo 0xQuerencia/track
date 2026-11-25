@@ -1,0 +1,3 @@
+# Lock-In Zen and alerts
+
+Enter Zen mode from an active session. A native modal dialog covers the viewport, keeps keyboard focus inside, and offers an explicit exit and Escape. Closing the dialog never ends the session. Pause/resume/save use the same revision-checked server commands. The screen reader announcement changes at phase boundaries, not every tick. Desktop notifications are opt-in per page and permission-gated; they are not a background alarm or a guarantee when the browser suspends the page. Sound and scheduled session launch remain separate work. Keyboard, contrast, screen-reader and real browser checks are still required before release.
