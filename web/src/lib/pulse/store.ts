@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import {privacyStatus} from "./privacy";
+import {privacyStatus,pruneExpiredActivity} from "./privacy";
 import {categoryTime} from "./category-report";
 import type {Category} from "./classification";
 import { activityTotals, parseActivityInterval, type ActivityInterval } from "./intervals";
@@ -35,7 +35,7 @@ export function ingestActivity(db:DatabaseSync,tokenId:number,raw:unknown,now=Da
         }
       }else{insert.run(tokenId,e.eventId,e.source,e.startMs,e.endMs,now,e.category??null);inserted++;}
     }
-    db.prepare("DELETE FROM pulse_intervals WHERE end_ms < ?").run(now-RETENTION_MS);
+    pruneExpiredActivity(db,now);
     db.exec("COMMIT");
     return {ok:true as const,inserted,ack:events.map(e=>e.eventId)};
   }catch(error){db.exec("ROLLBACK");throw error;}

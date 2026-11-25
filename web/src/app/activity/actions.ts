@@ -4,7 +4,7 @@ import {revalidatePath} from "next/cache";
 import {getDb} from "@/lib/db";
 import {SESSION_COOKIE,verifySessionToken} from "@/lib/session";
 import {verifyOriginHeaders} from "@/lib/security/origin";
-import {eraseActivity,setCollectionPaused} from "@/lib/pulse/privacy";
+import {eraseActivity,setCollectionPaused,eraseDeviceActivity,pruneExpiredActivity} from "@/lib/pulse/privacy";
 async function allowed(){
   const token=(await cookies()).get(SESSION_COOKIE)?.value;
   return !!token&&await verifySessionToken(token)&&verifyOriginHeaders(await headers()).ok;
@@ -15,4 +15,15 @@ export async function changeCollectionAction(data:FormData){
   if(action==="pause"||action==="resume")setCollectionPaused(getDb(),action==="pause");
   if(action==="erase"&&data.get("confirm")==="on")eraseActivity(getDb());
   revalidatePath("/activity");
+}
+
+export async function pruneActivityAction(){
+  if(!await allowed())return;
+  pruneExpiredActivity(getDb());
+  revalidatePath("/activity");revalidatePath("/activity/devices");
+}
+export async function eraseDeviceAction(data:FormData){
+  if(!await allowed()||data.get("confirm")!=="on")return;
+  eraseDeviceActivity(getDb(),Number(data.get("id")));
+  revalidatePath("/activity");revalidatePath("/activity/devices");revalidatePath("/settings");
 }
