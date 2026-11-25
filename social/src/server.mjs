@@ -2,6 +2,7 @@ import {createServer} from "node:http";
 import {pathToFileURL} from "node:url";
 import {openSocialDb} from "./db.mjs";
 import {parseClientOrigin,clientRoute} from "./routes/client.mjs";
+import {accountRoutes} from "./routes/account.mjs";
 import {workspaceRoutes} from "./routes/workspace.mjs";
 import {progressRoutes} from "./routes/progress.mjs";
 import {chatRoutes} from "./routes/chat.mjs";
@@ -20,7 +21,7 @@ export function socialConfig(env=process.env){
   return {directory:env.TRACK_SOCIAL_DATA,host:"127.0.0.1",port,origin:parseClientOrigin(env.TRACK_SOCIAL_ORIGIN)};
 }
 /** No routes, database connections, cookies, or credentials are shared with the personal OS. */
-function defaultRoutes(){const handlers=[authRoutes(),friendRoutes(),presenceRoutes(),podRoutes(),roomRoutes(),roomStreamRoutes(),chatRoutes(),progressRoutes(),workspaceRoutes()];return async ctx=>{for(const handler of handlers)if(await handler(ctx))return true;return false;};}
+function defaultRoutes(){const handlers=[authRoutes(),accountRoutes(),friendRoutes(),presenceRoutes(),podRoutes(),roomRoutes(),roomStreamRoutes(),chatRoutes(),progressRoutes(),workspaceRoutes()];return async ctx=>{for(const handler of handlers)if(await handler(ctx))return true;return false;};}
 export function makeServer(db,{routes=defaultRoutes(),origin=null}={}){
   const allow=limiter({max:120,windowMs:60000});
   const server=createServer({requestTimeout:15000,headersTimeout:10000,maxHeaderSize:8192},async(req,res)=>{

@@ -7,7 +7,7 @@ function content(input,now){
  exact(input,["kind","title","detail","url","startsMs","completed"]);
  const kind=input.kind;
  if(!KINDS.includes(kind))throw new HttpError(400,"Invalid workspace kind");
- const title=textField(input.title,1,120),detail=input.detail===undefined?"":textField(input.detail,kind==="flashcard"?1:0,2000);
+ const title=textField(input.title,1,120),detail=textField(input.detail??"",kind==="flashcard"?1:0,2000);
  let url=null,startsMs=null,completed=0;
  if(kind==="resource"){
    if(typeof input.url!=="string"||input.url.length>2048)throw new HttpError(400,"HTTPS resource URL required");
