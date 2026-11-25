@@ -26,10 +26,10 @@ export async function POST(request:Request){
   if(!c)return errorResponse(400,"Invalid command");
   const db=getDb(),now=Date.now();
   try{
-    const result=c.command==="start"?beginSession(db,c.id,c.label,c.config,now):updateSession(db,c.id,c.revision,c.command,now,todayStr());
+    const result=c.command==="start"?beginSession(db,c.id,c.label,c.config,now,c.target):updateSession(db,c.id,c.revision,c.command,now,todayStr());
     return jsonResponse({ok:true,serverNow:now,result,session:activeSession(db),recent:recentSessions(db)});
   }catch(error){
-    const known=["A session is already active","Conflicting session replay","Session not found","Session already ended","Stale session revision","Room is not active","Invalid room transition","Session exceeds twelve hours"];
+    const known=["A session is already active","Conflicting session replay","Session not found","Session already ended","Stale session revision","Room is not active","Invalid room transition","Session exceeds twelve hours","Focus target not found"];
     const message=error instanceof Error?error.message:"";
     return errorResponse(known.includes(message)?409:500,known.includes(message)?message:"Could not update session");
   }

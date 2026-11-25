@@ -3,14 +3,16 @@ import Link from "next/link";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {DEFAULT_POMODORO,roomPhase,type PomodoroConfig} from "@/lib/lock-in/clock";
 import {FOCUS_PROFILES,validCustomConfig} from "@/lib/lock-in/profiles";
+import type {TargetOption} from "@/lib/lock-in/target-types";
 import type {Session} from "@/lib/lock-in/sessions";
 import type {LockInCommand} from "@/lib/lock-in/commands";
 type Snapshot={ok:true;serverNow:number;session:Session|null;recent:Session[];result?:Session};
 function display(ms:number){const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");}
-export function LockInTimer(){
+export function LockInTimer({targets=[]}:{targets?:TargetOption[]}){
   const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
   const [now,setNow]=useState(0);
   const [offset,setOffset]=useState(0);
+  const [targetKey,setTargetKey]=useState("");
   const [label,setLabel]=useState("");
   const [config,setConfig]=useState<PomodoroConfig>(DEFAULT_POMODORO);
   const [custom,setCustom]=useState(false);
@@ -54,11 +56,12 @@ export function LockInTimer(){
     finally{busy.current=false;setPending(false);void refresh();}
   };
   const s=snapshot?.session;
-  const phase=s?roomPhase(s.config,s.clock,Math.max(s.clock.startedAtMs,s.clock.pausedAtMs??0,now+offset)):null;
+  const phase=s?roomPhase(s.config,s.clock,Math.max(s.clock.startedAtMs,s.clock.pausedAtMs??0,Math.round(now+offset))):null;
   return <div className="tk-stack">
     {error?<p role="alert">{error}</p>:null}{notice?<p role="status">{notice}</p>:null}
     {!snapshot?<p className="tk-empty">Connecting to your session...</p>:s&&phase?<div className="tk-timer">
       <p className="tk-kicker">{s.label||"Untitled focus"} · {s.config.mode==="flow"?"Flow":("Round "+phase.round+"/"+s.config.rounds)}</p>
+      {s.target?<p>{(()=>{const t=targets.find(x=>x.type===s.target?.type&&x.id===s.target.id);return t?<Link href={t.href}>{t.title}</Link>:"Linked objective";})()}</p>:null}
       <p>{phase.paused?"Paused":phase.phase.replaceAll("_"," ")}</p>
       <output className="tk-timer-time" aria-live="off">{display(s.config.mode==="flow"?s.config.focusMs-phase.remainingMs:phase.remainingMs)}</output>
       <div className="tk-timer-controls">
@@ -66,8 +69,9 @@ export function LockInTimer(){
         <button className="tk-button tk-primary" disabled={pending} onClick={()=>void command({command:"save",id:s.id,revision:s.clock.revision})}>End &amp; save</button>
         <button className="tk-button tk-ghost" disabled={pending} onClick={()=>{if(window.confirm("Discard this session without creating a focus log?"))void command({command:"discard",id:s.id,revision:s.clock.revision});}}>Discard</button>
       </div>
-    </div>:<form className="tk-stack" onSubmit={e=>{e.preventDefault();if(!validCustomConfig(config)){setError("Choose a valid session under 12 hours.");return;}startId.current??=crypto.randomUUID();void command({command:"start",id:startId.current,label,config});}}>
+    </div>:<form className="tk-stack" onSubmit={e=>{e.preventDefault();if(!validCustomConfig(config)){setError("Choose a valid session under 12 hours.");return;}startId.current??=crypto.randomUUID();const target=targets.find(t=>t.type+":"+t.id===targetKey);void command({command:"start",id:startId.current,label,config,...(target?{target:{type:target.type,id:target.id}}:{})});}}>
       <label className="tk-field"><span>Intention</span><input value={label} maxLength={200} placeholder="Physics revision, coding..." onChange={e=>{startId.current=null;setLabel(e.target.value);}} disabled={pending}/></label>
+      <label className="tk-field"><span>Link an objective (optional)</span><select value={targetKey} disabled={pending} onChange={e=>{startId.current=null;setTargetKey(e.target.value);}}><option value="">No linked record</option>{targets.map(t=><option key={t.type+":"+t.id} value={t.type+":"+t.id}>{t.type}: {t.title}</option>)}</select></label>
       <div className="tk-timer-controls">{FOCUS_PROFILES.map(p=><button key={p.name} type="button" className="tk-button" aria-pressed={JSON.stringify(config)===JSON.stringify(p.config)} onClick={()=>{startId.current=null;setConfig(p.config);setCustom(false);}} disabled={pending}>{p.name} · {p.description}</button>)}</div>
       <button type="button" className="tk-button" onClick={()=>{setCustom(v=>!v);if(config.mode==="flow"){startId.current=null;setConfig(DEFAULT_POMODORO);}}}>Custom intervals</button>
       {custom?<div className="tk-stack">{([{key:"focusMs",name:"Focus minutes",min:1,max:180,scale:60000},{key:"shortBreakMs",name:"Short break",min:1,max:60,scale:60000},{key:"longBreakMs",name:"Long break",min:1,max:120,scale:60000},{key:"rounds",name:"Rounds",min:1,max:24,scale:1},{key:"longBreakEvery",name:"Long break every N rounds",min:1,max:24,scale:1}] as const).map(f=><label key={f.key} className="tk-field"><span>{f.name}</span><input type="number" min={f.min} max={f.max} required value={config[f.key]/f.scale} onChange={e=>{startId.current=null;setConfig(c=>({...c,[f.key]:Number(e.target.value)*f.scale}));}} disabled={pending}/></label>)}</div>:null}
