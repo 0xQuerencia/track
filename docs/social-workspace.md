@@ -1,0 +1,3 @@
+# Pod workspace API
+
+A Pod can contain explicitly authored tasks, HTTPS resource links, UTC calendar events, and flashcards. Only current members can list items. Authors and Pod moderators may update or delete with a revision check; stale edits never overwrite newer data. Blocks filter list visibility. Leaving/removal deletes that member's authored workspace records, rather than silently retaining them. Resource URLs are not fetched by the server; a client must render text safely and treat links as external. No private Track records are copied. Repeating events, notification delivery and collaborative task assignment remain follow-up work.
