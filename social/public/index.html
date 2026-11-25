@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Track Social · Pods</title><link rel="stylesheet" href="/styles.css"><script type="module" src="/app.mjs"></script></head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="/">track<span>.</span> <small>SOCIAL</small></a><div class="top-actions"><span id="identity" class="muted"></span><button id="logout" hidden>Sign out</button></div></header>
+<main id="main">
+ <div class="intro"><p class="eyebrow">PRIVATE CIRCLES / SHARED FOCUS</p><h1>Show up. Lock in. Together.</h1><p>Make time with people who help you stay intentional. Your personal Track OS is not connected here.</p></div>
+ <p id="notice" role="status" aria-live="polite"></p>
+ <section id="auth" class="auth-grid">
+  <article class="panel"><h2>Sign in</h2><form id="login"><label>Handle<input name="handle" required autocomplete="username" pattern="[a-z0-9_]{3,32}"></label><label>Password<input name="password" type="password" required autocomplete="current-password"></label><button class="primary">Sign in</button></form></article>
+  <article class="panel"><h2>Join with an invite</h2><form id="register"><label>Account invitation<input name="invite" required autocomplete="off" type="password"></label><label>Handle<input name="handle" required autocomplete="username" pattern="[a-z0-9_]{3,32}"></label><label>Display name<input name="displayName" required maxlength="64"></label><label>New password (12+ UTF-8 bytes)<input name="password" required minlength="12" type="password" autocomplete="new-password"></label><button class="primary">Create account</button></form></article>
+ </section>
+ <section id="dashboard" hidden>
+  <div class="layout">
+   <aside class="rail">
+    <article class="panel"><div class="section-head"><h2>Your Pods</h2><button id="refresh">Refresh</button></div><div id="pods" class="stack"></div>
+     <form id="create-pod"><label>New Pod<input name="name" required maxlength="80" placeholder="Evening study"></label><label>Description<input name="description" maxlength="500"></label><button class="primary">Create Pod</button></form>
+     <form id="join-pod"><label>Pod invitation<input name="invite" required type="password" autocomplete="off"></label><button>Join Pod</button></form>
+    </article>
+    <article class="panel"><h2>Friends</h2><form id="friend-request"><label>Exact handle<input name="handle" required pattern="[a-z0-9_]{3,32}"></label><button>Send request</button></form><div id="friends" class="stack"></div><details><summary>Blocked accounts</summary><div id="blocked" class="stack"></div></details></article>
+    <article class="panel"><h2>Presence</h2><p class="muted">Share a status with accepted friends for two minutes. No automatic activity sharing.</p><form id="presence"><label>Status<select name="status"><option value="available">Available</option><option value="focusing">Focusing</option><option value="break">On a break</option><option value="away">Away</option></select></label><button>Publish status</button><button id="clear-presence" type="button">Hide status</button></form><div id="presence-list" class="stack"></div></article>
+   </aside>
+   <div class="workspace">
+    <article id="pod-view" class="panel"><p class="muted">Select or create a Pod to open its workspace.</p></article>
+    <article id="room-view" class="panel" hidden></article>
+   </div>
+  </div>
+ </section>
+ <footer>Development preview · Invite-only · No private browsing data, owner password or personal Track records.</footer>
+</main>
+</body></html>
