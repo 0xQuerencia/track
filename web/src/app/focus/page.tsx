@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BarsChart, Donut } from "@/components/track/charts";
 import { EntityPanel } from "@/components/track/entity-panel";
 import { FocusTimer } from "@/components/track/focus-timer";
@@ -23,7 +24,8 @@ export default function FocusPage() {
       title="Focus"
       lede="Time you protected for real work, and where the rest of the screen time went."
     >
-      <Panel title="Timer" description="Stopping the timer saves the session automatically.">
+      <Panel title="Lock-In" description="Synchronized, recoverable focus and Pomodoro sessions."><Link className="tk-button tk-primary" href="/lock-in">Open Lock-In</Link></Panel>
+      <Panel title="Legacy timer" description="Finish an existing local timer here before starting a new Lock-In session.">
         <FocusTimer />
       </Panel>
       <StatGrid>

@@ -4,8 +4,10 @@ export function privacyStatus(db:DatabaseSync){
   if(!row)throw new Error("Pulse privacy not initialized");
   return {cutoffMs:Number(row.cutoff_ms),paused:row.paused===1};
 }
-export function setCollectionPaused(db:DatabaseSync,paused:boolean){
-  db.prepare("UPDATE pulse_privacy SET paused=? WHERE id=1").run(paused?1:0);
+export function setCollectionPaused(db:DatabaseSync,paused:boolean,now=Date.now()){
+  if(!Number.isSafeInteger(now)||now<0)throw new RangeError("Invalid cutoff");
+  // Drop offline samples from before resumption; queued paused-time observations cannot reappear.
+  db.prepare("UPDATE pulse_privacy SET cutoff_ms=CASE WHEN paused=1 AND ?=0 THEN MAX(cutoff_ms,?) ELSE cutoff_ms END, paused=? WHERE id=1").run(paused?1:0,now,paused?1:0);
 }
 export function eraseActivity(db:DatabaseSync,now=Date.now()){
   if(!Number.isSafeInteger(now)||now<0)throw new RangeError("Invalid cutoff");
