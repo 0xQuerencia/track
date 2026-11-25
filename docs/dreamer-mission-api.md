@@ -1,0 +1,3 @@
+# Private mission API
+
+The personal Track owner session cookie is required. GET /api/dreamer/missions returns the bounded recent queue and actual worker heartbeat health; ?preview=1 includes the current approved-context preview and fingerprint. ?id=MISSION_ID returns that mission's reports and sanitized receipts. No lease token is exposed. POST is same-origin, bounded JSON and strict allowlisted commands. Enqueue: command, id, objective, includeContext, and approvalSha256 only when context is selected. Cancel: command and id. Retries of an identical enqueue return the existing job rather than duplicate it; conflicting payloads are rejected. No provider call occurs in the HTTP handler. No scheduler, integration bearer token or social identity may enqueue missions.
