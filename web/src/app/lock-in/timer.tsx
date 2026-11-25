@@ -30,12 +30,13 @@ export function LockInTimer(){
       if(epoch===requestEpoch.current){apply(s,t);setError("");}
     }catch{if(epoch===requestEpoch.current)setError("Connection unavailable. Session remains on the server.");}
   },[apply]);
+  const invalidate=useCallback(()=>{requestEpoch.current++;},[]);
   useEffect(()=>{
-    void refresh();
+    const first=window.setTimeout(()=>void refresh(),0);
     const sync=window.setInterval(()=>void refresh(),5000);
     const tick=window.setInterval(()=>setNow(Date.now()),500);
-    return()=>{window.clearInterval(sync);window.clearInterval(tick);requestEpoch.current++;};
-  },[refresh]);
+    return()=>{window.clearTimeout(first);window.clearInterval(sync);window.clearInterval(tick);invalidate();};
+  },[refresh,invalidate]);
   const command=async(c:LockInCommand)=>{
     if(busy.current)return;
     busy.current=true;requestEpoch.current++;setPending(true);setError("");setNotice("");
