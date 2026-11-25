@@ -49,3 +49,12 @@ jobs:
             find browser -name '*.js' -exec node --check {} \;
             if [ -f browser/manifest.json ]; then node -e "JSON.parse(require('fs').readFileSync('browser/manifest.json','utf8'))"; fi
           fi
+
+  pulse-collector:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test web/tools/pulse-collector/*.test.mjs
