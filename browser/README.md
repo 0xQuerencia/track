@@ -4,3 +4,6 @@ Load this directory with developer mode / Load unpacked in Chromium. Create a de
 
 ## Optional local rules
 Use the popup's local rules section. Rules are domain suffixes, with a category from Study, Coding, Media, Social, Games, Other. Exclusions override all rules. If tab permission is revoked, classified observation stops rather than silently bypassing exclusions. Disabling local rules removes tab permission and clears rules; coarse tracking can continue.
+
+## Temporary distraction protection
+Choose domains and a duration in the popup; approve per-domain host access. Only top-level navigation is blocked. Stop immediately from the popup. Session rules are cleared on browser restart; alarms and periodic checks remove expired rules. This is voluntary protection, not a tamper-proof lock, and is not yet automatically synchronized with server room timers. The Track server itself is excluded.
