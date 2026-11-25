@@ -1,0 +1,16 @@
+[Unit]
+Description=Track Pulse opt-in X11 activity collector
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/track-pulse/env
+ExecStart=/usr/bin/env node %h/.local/share/track-pulse/collector.mjs
+Restart=on-failure
+RestartSec=30
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=graphical-session.target
