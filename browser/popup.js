@@ -1,10 +1,13 @@
+import {blockConfig} from "./blocker.mjs";
 import {parseRuleText} from "./rules.mjs";
 const $=id=>document.getElementById(id);
+let pairedServer="";
 async function send(type,extra={}){
   try{
     const s=await chrome.runtime.sendMessage({type,...extra});
     if(!s.ok){$("status").textContent=s.error;return;}
-    $("pair").hidden=!!s.server;$("controls").hidden=!s.server;$("rule-settings").hidden=!s.server;
+    $("pair").hidden=!!s.server;$("controls").hidden=!s.server;$("rule-settings").hidden=!s.server;$("block-settings").hidden=!s.server;pairedServer=s.server;
+    const blocking=Number(s.blockUntil)>Date.now();$("block-form").hidden=blocking;$("stop-block").hidden=!blocking;$("block-status").textContent=blocking?"Blocking until "+new Date(s.blockUntil).toLocaleTimeString():"No active block";if(blocking)$("block-settings").open=true;
     if(type==="status"||type==="rules"||type==="pair"){ $("rule-text").value=(s.rules??[]).map(r=>r.suffix+","+r.category).join("\n");$("exclusions").value=(s.excluded??[]).join("\n"); }
     $("enable-rules").textContent=s.domainRulesEnabled?"Update rules":"Enable and save rules";
     $("pause").textContent=s.enabled?"Pause":"Resume";
@@ -33,4 +36,13 @@ $("rules").addEventListener("submit",async e=>{
   }catch(e){$("status").textContent=e.message;}
 });
 $("disable-rules").onclick=()=>send("rules",{enabled:false});
+$("block-form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  try{
+    const c=blockConfig($("block-domains").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),Number($("block-minutes").value),pairedServer);
+    if(!await chrome.permissions.request({origins:c.origins}))throw new Error("Site permission denied.");
+    await send("start-block",{domains:c.domains,minutes:c.minutes});
+  }catch(e){$("status").textContent=e.message;}
+});
+$("stop-block").onclick=()=>send("stop-block");
 send("status");

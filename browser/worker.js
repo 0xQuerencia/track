@@ -1,9 +1,10 @@
+import {blockConfig,isBlockRule,BLOCK_ALARM} from "./blocker.mjs";
 import {classifyUrl,validateRules} from "./rules.mjs";
 import {sampleInterval,appendQueue,pruneQueue,acceptAck,backoffMs} from "./tracker.mjs";
 const KEY="pulseState";
 let serial=Promise.resolve();
 function run(fn){const next=serial.then(fn,fn);serial=next.catch(()=>{});return next;}
-const empty=()=>({enabled:false,server:"",token:"",last:null,queue:[],dropped:0,failures:0,nextSyncMs:0,error:"",domainRulesEnabled:false,rules:[],excluded:[]});
+const empty=()=>({enabled:false,server:"",token:"",last:null,queue:[],dropped:0,failures:0,nextSyncMs:0,error:"",domainRulesEnabled:false,rules:[],excluded:[],blockUntil:0,blockDomains:[]});
 async function load(){const old=(await chrome.storage.local.get(KEY))[KEY];return old?{...empty(),...old,last:typeof old.last==="number"?null:old.last}:empty();}
 async function save(s){await chrome.storage.local.set({[KEY]:s});}
 async function observe(s){
@@ -38,9 +39,23 @@ async function flush(force=false){
   }catch(e){s.error=e instanceof Error?e.message:"Sync unavailable";s.failures++;s.nextSyncMs=Date.now()+backoffMs(s.failures);}
   await save(s);
 }
-async function tick(force=false){await sample();await flush(force);}
-async function resetSample(){const s=await load();s.last=null;await save(s);await chrome.alarms.create("pulse",{periodInMinutes:0.5});}
-chrome.alarms.onAlarm.addListener(a=>{if(a.name==="pulse")void run(tick).catch(()=>{});});
+async function clearBlock(s){
+  const rules=await chrome.declarativeNetRequest.getSessionRules();
+  await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:rules.filter(r=>isBlockRule(r.id)).map(r=>r.id)});
+  await chrome.alarms.clear(BLOCK_ALARM);
+  if(s.blockDomains.length){const origins=blockConfig(s.blockDomains,1,"").origins;await chrome.permissions.remove({origins});}
+  s.blockUntil=0;s.blockDomains=[];await save(s);
+}
+async function startBlock(s,domains,minutes){
+  const c=blockConfig(domains,minutes,s.server);
+  if(!await chrome.permissions.contains({origins:c.origins}))throw new Error("Site permissions required.");
+  if(s.blockUntil)throw new Error("Stop the existing block first.");
+  s.blockUntil=Date.now()+c.minutes*60000;s.blockDomains=c.domains;await save(s);
+  try{await chrome.alarms.create(BLOCK_ALARM,{when:s.blockUntil});await chrome.declarativeNetRequest.updateSessionRules({addRules:c.rules});}catch(e){await clearBlock(s);throw e;}
+}
+async function tick(force=false){const s=await load();if(s.blockUntil&&s.blockUntil<=Date.now())await clearBlock(s);await sample();await flush(force);}
+async function resetSample(){const s=await load();s.last=null;await clearBlock(s);await chrome.alarms.create("pulse",{periodInMinutes:0.5});}
+chrome.alarms.onAlarm.addListener(a=>{if(a.name==="pulse")void run(tick).catch(()=>{});else if(a.name===BLOCK_ALARM)void run(async()=>clearBlock(await load())).catch(()=>{});});
 chrome.windows.onFocusChanged.addListener(()=>void run(sample).catch(()=>{}));
 chrome.tabs.onActivated.addListener(()=>void run(sample).catch(()=>{}));
 chrome.tabs.onUpdated.addListener((_id,change)=>{if(change.url||change.status==="complete")void run(sample).catch(()=>{});});
@@ -58,7 +73,9 @@ chrome.runtime.onMessage.addListener((m,sender,reply)=>{
       await save({...empty(),enabled:true,server:url.origin,token:m.token});await resetSample();await tick(true);
     }else if(m.type==="pause"){s.enabled=false;s.last=null;await save(s);}
     else if(m.type==="resume"){if(!s.token)throw new Error("Pair first.");s.enabled=true;s.last=null;await save(s);await tick(true);}
-    else if(m.type==="disconnect"){await save(empty());if(s.server)await chrome.permissions.remove({origins:[s.server+"/*"]});await chrome.permissions.remove({permissions:["tabs"]});}
+    else if(m.type==="disconnect"){await clearBlock(s);await save(empty());if(s.server)await chrome.permissions.remove({origins:[s.server+"/*"]});await chrome.permissions.remove({permissions:["tabs"]});}
+    else if(m.type==="start-block"){if(!s.token)throw new Error("Pair first.");await startBlock(s,m.domains,m.minutes);}
+    else if(m.type==="stop-block"){await clearBlock(s);}
     else if(m.type==="rules"){
       if(!s.token)throw new Error("Pair first.");
       if(m.enabled===true){
@@ -69,6 +86,6 @@ chrome.runtime.onMessage.addListener((m,sender,reply)=>{
     }
     else if(m.type==="sync")await tick(true);
     else if(m.type!=="status")throw new Error("Unknown command");
-    const next=await load();reply({ok:true,enabled:next.enabled,server:next.server,queued:next.queue.length,dropped:next.dropped,lastSync:next.lastSync,error:next.error,domainRulesEnabled:next.domainRulesEnabled,rules:next.rules,excluded:next.excluded});
+    const next=await load();reply({ok:true,enabled:next.enabled,server:next.server,queued:next.queue.length,dropped:next.dropped,lastSync:next.lastSync,error:next.error,domainRulesEnabled:next.domainRulesEnabled,rules:next.rules,excluded:next.excluded,blockUntil:next.blockUntil,blockDomains:next.blockDomains});
   }).catch(e=>reply({ok:false,error:e instanceof Error?e.message:"Request failed"}));return true;
 });
