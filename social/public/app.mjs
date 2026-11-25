@@ -7,7 +7,7 @@ const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefine
 const button=(label,fn,cls)=>{const b=el("button",label,cls);b.type="button";b.addEventListener("click",()=>run(fn,b));return b;};
 function notify(message,error=false){$("notice").textContent=message;$("notice").classList.toggle("error",error);}
 function reset(){
- roomUI?.close();generation++;token=null;me=null;selectedPod=null;selectedPodData=null;friendRows=[];podRows=[];
+ roomUI?.close();document.querySelectorAll("form").forEach(f=>f.reset());generation++;token=null;me=null;selectedPod=null;selectedPodData=null;friendRows=[];podRows=[];
  $("auth").hidden=false;$("dashboard").hidden=true;$("logout").hidden=true;$("identity").textContent="";
  $("pod-view").replaceChildren(el("p","Select or create a Pod to open its workspace.","muted"));$("room-view").replaceChildren();$("room-view").hidden=true;
  for(const id of ["pods","friends","blocked","presence-list"])$(id).replaceChildren();
@@ -137,3 +137,12 @@ async function renderRooms(pod,target){
  if(previous.length){const history=el("details");history.append(el("summary","Recently ended rooms"));for(const r of previous)history.append(row(r.objective,"Ended",[button("View",()=>roomUI.open(r.id))]));target.append(history);}
 }
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&roomUI?.current())void roomUI.refresh();});
+
+$("export-account").onclick=()=>run(async()=>{
+ const {data}=await api("/v1/account/export");
+ const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+ const a=el("a");a.href=url;a.download="track-social-export.json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ notify("Social data export prepared. Keep it private.");
+},$("export-account"));
+form("revoke-sessions",async(data,f)=>{try{await post("/v1/account/revoke-sessions",data);reset();notify("All social sessions revoked.");}finally{f.reset();}});
+form("delete-account",async(data,f)=>{try{if(!confirm("Delete your social profile and authored shared records? Group-owned room objectives and minimal moderation metadata may remain."))return;await post("/v1/account/delete",data);reset();notify("Social account deleted.");}finally{f.reset();}});

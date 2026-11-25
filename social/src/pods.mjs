@@ -9,7 +9,7 @@ const forbidden=()=>new HttpError(403,"Role does not permit this action");
 const memberCount=(db,pod)=>Number(db.prepare("SELECT COUNT(*) AS n FROM social_pod_members WHERE pod_id=?").get(pod).n);
 const membershipCount=(db,actor)=>Number(db.prepare("SELECT COUNT(*) AS n FROM social_pod_members WHERE account_id=?").get(actor).n);
 export function requireMember(db,pod,actor){
- if(typeof pod!=="string"||!ID.test(pod))throw missing();
+ if(typeof pod!=="string"||!ID.test(pod)||typeof actor!=="string"||!ID.test(actor))throw missing();
  const row=db.prepare("SELECT m.role FROM social_pod_members m JOIN social_accounts a ON a.id=m.account_id WHERE m.pod_id=? AND m.account_id=? AND a.disabled_ms IS NULL").get(pod,actor);
  if(!row)throw missing();
  return row.role;

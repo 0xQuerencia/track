@@ -1,0 +1,5 @@
+# Social account privacy
+
+The independent social account can export its own profile, relationships, Pod memberships, authored workspace, published totals, challenge memberships, participation, authored messages and submitted reports. It never exports password hashes, raw tokens, invitations, another member's private records or personal Track OS data. Export is capped at 5,000 rows per collection and 8 MiB; larger requests require a reviewed admin procedure.
+
+Revoke all sessions or delete the account with the current password and explicit confirmation. Owners must first transfer or delete their Pods. Deletion revokes all sessions, removes friendship/block/presence records, invitations, membership-linked workspace and progress, participation and mutes, clears authored messages, scrubs free-form report notes, and replaces profile/credentials with a non-login tombstone. Group-owned room objectives and minimal moderation metadata may remain for integrity and abuse handling; backups expire according to separate retention. It is not a promise to erase already-copied information. Personal Track data and credentials are never affected.

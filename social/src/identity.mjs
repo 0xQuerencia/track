@@ -70,3 +70,11 @@ export function logout(db,authorization,now=Date.now()){
   db.prepare("DELETE FROM social_sessions WHERE hash=?").run(hash(authorization.slice(7)));
 }
 export function authThrottle(){return limiter({max:8,windowMs:300000,maxKeys:10000});}
+
+export async function verifyAccountPassword(db,id,raw){
+ let secret;try{secret=password(raw);}catch{throw authError();}
+ const row=db.prepare("SELECT password_salt,password_hash FROM social_accounts WHERE id=? AND disabled_ms IS NULL").get(id);
+ const derived=await passwordHash(secret,row?.password_salt??dummySalt);
+ const expected=row?Buffer.from(row.password_hash,"hex"):dummyHash;
+ if(!row||expected.length!==derived.length||!timingSafeEqual(expected,derived))throw authError();
+}
