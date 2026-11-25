@@ -1,0 +1,5 @@
+# Opt-in Dreamer worker
+
+Initialize/migrate the Track web database first, then run from web/ with the same private TRACK_DB and provider environment as the web app. Install the repository's locked dependencies (including tsx), use the Node version already supported by Track, and explicitly enable TRACK_DREAMER_WORKER_ENABLED=1. Command: npm run dreamer:worker. Add -- --once for a single bounded tick. Never put provider secrets in command-line arguments or logs.
+
+The process only handles explicitly queued missions, with up to three ready steps per tick and a global database lease limit of four. It does not schedule new missions. The shared AI kill switch is process environment configuration: set it on both web and worker and restart those processes when changing it. Feature consent is read from the database before each request and completion. Stopped or stale workers are excluded from health counts. Graceful stop finishes the current bounded batch; abrupt failure is handled by lease expiry. No deployment or automatic startup is included.

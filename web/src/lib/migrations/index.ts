@@ -25,6 +25,7 @@ import { migration as m181 } from "./m181_lock_in_reflections";
 import { migration as m182 } from "./m182_lock_in_targets";
 import { migration as m190 } from "./m190_dreamer_jobs";
 import { migration as m191 } from "./m191_dreamer_disclosures";
+import { migration as m192 } from "./m192_dreamer_workers";
 import type { Migration } from "./types";
 
 export type { Migration } from "./types";
@@ -59,6 +60,7 @@ export const MIGRATIONS: readonly Migration[] = [
   m182,
   m190,
   m191,
+  m192,
 ];
 
 function assertOrdered(list: readonly Migration[]): void {
