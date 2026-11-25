@@ -1,6 +1,7 @@
 import {DatabaseSync} from "node:sqlite";
 import {mkdirSync,openSync,closeSync,lstatSync,realpathSync,chmodSync} from "node:fs";
 import path from "node:path";
+import {operationsSchema} from "./schema/operations.mjs";
 import {workspaceSchema} from "./schema/workspace.mjs";
 import {progressSchema} from "./schema/progress.mjs";
 import {chatSchema} from "./schema/chat.mjs";
@@ -32,6 +33,7 @@ export function migrate(db){
   applyVersion(db,8,chatSchema);
   applyVersion(db,9,progressSchema);
   applyVersion(db,10,workspaceSchema);
+  applyVersion(db,11,operationsSchema);
   return db;
 }
 /** Deliberately accepts only a dedicated directory; never accepts an existing arbitrary DB path. */
