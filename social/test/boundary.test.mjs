@@ -18,7 +18,7 @@ test("refuses to migrate another application's database",()=>{
 });
 test("private dedicated database reopens without destructive migration",()=>{
  const dir=mkdtempSync(path.join(os.tmpdir(),"track-social-"));chmodSync(dir,0o700);
- try{let db=openSocialDb(dir);db.close();db=openSocialDb(dir);assert.equal(db.prepare("SELECT COUNT(*) AS n FROM social_schema").get().n,1);db.close();}finally{rmSync(dir,{recursive:true,force:true});}
+ try{let db=openSocialDb(dir);db.close();db=openSocialDb(dir);assert.equal(db.prepare("SELECT COUNT(*) AS n FROM social_schema").get().n,2);db.close();}finally{rmSync(dir,{recursive:true,force:true});}
 });
 test("service exposes no personal endpoints and denies browser cross-origin requests",async()=>{
  const db=memoryDb(),server=makeServer(db);
