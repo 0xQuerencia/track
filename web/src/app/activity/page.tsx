@@ -5,6 +5,8 @@ import {getDb} from "@/lib/db";
 import {readActivity} from "@/lib/pulse/store";
 export const dynamic="force-dynamic";
 export default function ActivityPage(){
+  // This is a dynamic server page; capture the report's real request-time boundary.
+  // eslint-disable-next-line react-hooks/purity -- server-only, no React client render
   const now=Date.now();
   const report=readActivity(getDb(),now-86400000,now);
   const mins=(n:number)=>Math.round(n/60000);
