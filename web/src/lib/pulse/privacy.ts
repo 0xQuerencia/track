@@ -23,3 +23,23 @@ export function exportActivity(db:DatabaseSync,now=Date.now()){
   if(rows.length>50000)throw new RangeError("Activity export exceeds 50000 rows");
   return {version:1,exportedAt:new Date(now).toISOString(),intervals:rows.map(r=>({deviceId:"token-"+r.token_id,eventId:r.event_id,source:r.source,startMs:r.start_ms,endMs:r.end_ms,category:r.category}))};
 }
+
+/** Safe for a scheduler: delete only expired intervals, never recent activity. */
+export function pruneExpiredActivity(db:DatabaseSync,now=Date.now()){
+  if(!Number.isSafeInteger(now)||now<0)throw new RangeError("Invalid cutoff");
+  return Number(db.prepare("DELETE FROM pulse_intervals WHERE end_ms < ?").run(now-30*86400000).changes);
+}
+/** Revoke a dedicated activity credential and erase its records atomically. */
+export function eraseDeviceActivity(db:DatabaseSync,id:number){
+  if(!Number.isSafeInteger(id)||id<=0)return false;
+  db.exec("BEGIN IMMEDIATE");
+  try{
+    const row=db.prepare("SELECT scopes FROM integration_tokens WHERE id=?").get(id);
+    let scopes:unknown;
+    try{scopes=JSON.parse(String(row?.scopes??"[]"));}catch{scopes=[];}
+    if(!Array.isArray(scopes)||!scopes.includes("activity:write")){db.exec("ROLLBACK");return false;}
+    db.prepare("UPDATE integration_tokens SET revoked_at=COALESCE(revoked_at,datetime('now')) WHERE id=?").run(id);
+    db.prepare("DELETE FROM pulse_intervals WHERE token_id=?").run(id);
+    db.exec("COMMIT");return true;
+  }catch(error){db.exec("ROLLBACK");throw error;}
+}

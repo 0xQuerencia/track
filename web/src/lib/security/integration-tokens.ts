@@ -18,6 +18,7 @@ export const INTEGRATION_SCOPES = [
   "dreamer:run",
   "study:jobs",
   "activity:write",
+  "activity:maintenance",
 ] as const;
 export type IntegrationScope = (typeof INTEGRATION_SCOPES)[number];
 
