@@ -1,0 +1,51 @@
+name: Verify Track web
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'browser/**'
+      - '.github/workflows/verify.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'browser/**'
+      - '.github/workflows/verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: |
+          corepack enable
+          corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          TRACK_PASSWORD: ci-only-test-password-not-for-deployment
+          TRACK_DB: /tmp/track-ci.db
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: |
+          if [ -d browser ]; then
+            find browser -name '*.js' -exec node --check {} \;
+            if [ -f browser/manifest.json ]; then node -e "JSON.parse(require('fs').readFileSync('browser/manifest.json','utf8'))"; fi
+          fi
