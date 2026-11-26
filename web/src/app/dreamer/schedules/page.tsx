@@ -15,7 +15,7 @@ export default async function SchedulePage(){
  if(!token||!await verifySessionToken(token))redirect("/login");
  const db=getDb();
  return <Page kicker="Dreamer / Recurring work" title="Schedules" lede="Approve a fixed recurring objective and an optional private AI Pod. A running worker is required; no external actions or private source excerpts are sent.">
- <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio">Studio</Link><Link href="/dreamer/schedules" aria-current="page">Schedules</Link></nav>
+ <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio">Studio</Link><Link href="/dreamer/schedules" aria-current="page">Schedules</Link><Link href="/dreamer/inbox">Inbox</Link></nav>
  <Schedules initial={scheduleSnapshot(db)} pods={listAIPods(db).map(p=>({id:p.id,name:p.name,enabled:p.enabled}))}/>
  </Page>;
 }

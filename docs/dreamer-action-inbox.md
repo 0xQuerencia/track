@@ -1,0 +1,3 @@
+# Action inbox
+
+A completed Chief report can be explicitly selected for a second bounded AI request. The exact redacted objective/report preview is shown before the user initiates proposal generation. Strict schemas restrict the response to at most three local create-record proposals. No tools are provided to the model. Each result remains pending until the owner approves its immutable parameters in the Inbox. The source and consent are checked again before storing drafts and before executing. A model's malicious report cannot authorize a tool. Receipts link to real Track records, and retries cannot create duplicate records. Provider request retries may repeat drafting costs. No external write or automated undo is provided.
