@@ -18,11 +18,11 @@ async function api<T>(query="",init?:RequestInit):Promise<T>{
 const time=(ms:number|null)=>ms===null?"—":new Date(ms).toLocaleString();
 const active=(state:string)=>state==="queued"||state==="running";
 function State({state}:{state:string}){return <span className="dm-state" data-state={state}>{state.replaceAll("_"," ")}</span>;}
-export function MissionControl({initialPod=""}:{initialPod?:string}){
+export function MissionControl({initialPod="",initialJob=null}:{initialPod?:string;initialJob?:string|null}){
  const [podId,setPodId]=useState(initialPod);
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
  const [detail,setDetail]=useState<Detail|null>(null);
- const [selected,setSelected]=useState<string|null>(null);
+ const [selected,setSelected]=useState<string|null>(initialJob);
  const [objective,setObjective]=useState("");
  const [context,setContext]=useState(false);
  const [preview,setPreview]=useState<Disclosure|null>(null);
