@@ -19,6 +19,7 @@ export default function ActivityPage(){
       <StatCard label="Reporting devices" value={Object.keys(report.byDevice).length}/>
       <StatCard label="Observed intervals" value={report.eventCount}/>
     </StatGrid>
+    <Link className="tk-button" href="/activity/analytics">Activity history and hourly timeline</Link>
     <Link className="tk-button" href="/activity/devices">Pair and manage devices</Link>
     <Panel title="By device" description="Device totals can overlap. Observed time above counts each moment only once.">
       {report.eventCount===0?<p className="tk-empty">No activity received. Create an activity-only integration token in <Link href="/settings">Settings</Link> and pair your collector.</p>:<ul className="tk-list">{Object.entries(report.byDevice).map(([id,ms])=><li key={id}><span>{id}</span><small>{mins(ms)} min</small></li>)}</ul>}
