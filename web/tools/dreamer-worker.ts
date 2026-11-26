@@ -17,7 +17,7 @@ async function main(){
  process.on("SIGTERM",shutdown);process.on("SIGINT",shutdown);
  try{
   db.exec("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON");
-  if(!db.prepare("SELECT version FROM schema_migrations WHERE version=192").get())throw new Error("Start the updated Track web app first to migrate the database");
+  if(!db.prepare("SELECT version FROM schema_migrations WHERE version=194").get())throw new Error("Start the updated Track web app first to migrate the database");
   workerHeartbeat(db,id,"idle");
   do{
    try{await runWorkerTick(db,id);}catch{workerHeartbeat(db,id,"error");console.error("Dreamer worker tick failed; leased work expires safely.");if(process.argv.includes("--once"))process.exitCode=1;}

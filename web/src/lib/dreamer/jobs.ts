@@ -60,11 +60,15 @@ export function listJobs(db:DatabaseSync){
  return rows.map(r=>({id:String(r.id),objective:String(r.objective),state:String(r.state) as StepState,attemptsReserved:Number(r.attempts_reserved),attemptBudget:Number(r.attempt_budget),createdMs:Number(r.created_ms),updatedMs:Number(r.updated_ms),finishedMs:r.finished_ms===null?null:Number(r.finished_ms)}));
 }
 export function createJob(db:DatabaseSync,id:string,input:JobPlan,now=Date.now(),approvalSha256?:string):DurableJob{
+ return jobTransaction(db,()=>createJobWithinTransaction(db,id,input,now,approvalSha256));
+}
+/** Only callers already holding the immediate write transaction may use this helper. */
+export function createJobWithinTransaction(db:DatabaseSync,id:string,input:JobPlan,now:number,approvalSha256?:string):DurableJob{
  if(!ID.test(id)||!Number.isSafeInteger(now)||now<0)throw new Error("Invalid mission ID or time");
  const plan=normalizedPlan(input);
  if(approvalSha256!==undefined&&(!plan.includeContext||!/^[a-f0-9]{64}$/.test(approvalSha256)))throw new Error("Invalid disclosure approval");
  const fingerprint=createHash("sha256").update(JSON.stringify(approvalSha256?{plan,approvalSha256}:plan)).digest("hex");
- return jobTransaction(db,()=>{
+ {
   const existing=db.prepare("SELECT fingerprint FROM dreamer_jobs WHERE id=?").get(id);
   if(existing){
    if(existing.fingerprint!==fingerprint)throw new Error("Conflicting mission replay");
@@ -79,5 +83,5 @@ export function createJob(db:DatabaseSync,id:string,input:JobPlan,now=Date.now()
   if(configuration)db.prepare("INSERT INTO dreamer_job_pods VALUES(?,?,?)").run(id,configuration.pod.id,configuration.digest);
   if(approvalSha256)db.prepare("INSERT INTO dreamer_job_disclosures VALUES(?,?)").run(id,approvalSha256);
   return getJob(db,id)!;
- });
+ }
 }

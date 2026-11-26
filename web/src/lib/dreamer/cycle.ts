@@ -1,3 +1,4 @@
+import {eraseSchedules} from "./schedules";
 import {eraseStudio} from "./studio";
 import {jobTransaction} from "./jobs";
 import {eraseAllMissionRows} from "./job-privacy";
@@ -206,6 +207,7 @@ export function runWeeklyReflection(db: DatabaseSync, weekStart: string, now = n
 export function deleteAllDreamerData(db: DatabaseSync): void {
   jobTransaction(db,()=>{
   eraseAllMissionRows(db);
+  eraseSchedules(db);
   eraseStudio(db);
   setConsent(db,"dreamer",false);
   for (const table of [
