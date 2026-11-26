@@ -19,6 +19,7 @@ import {
 } from "@/lib/dates";
 import { getEntity } from "@/lib/entities";
 import { extraWidgets } from "./home-widgets";
+import {nextWidgets} from "./next-widgets";
 import {
   activeProjects,
   focusTotals,
@@ -235,6 +236,9 @@ export default async function CommandCenter() {
 
   // The assistant (brief, then "what are you about to do?") is the first thing you see.
   const extras = await extraWidgets(todayStr());
+  // Request-time snapshot; live timer is available from Lock-In.
+  // eslint-disable-next-line react-hooks/purity
+  widgets.unshift(...nextWidgets(Date.now()));
   widgets.unshift(...extras.filter((w) => w.id === "assistant"));
   widgets.push(...extras.filter((w) => w.id !== "assistant"));
   const ids = widgets.map((w) => w.id);
@@ -247,10 +251,10 @@ export default async function CommandCenter() {
   });
   const presets: LayoutPreset[] = [
     { id: "balanced", label: "Balanced", order: ids, hidden: [] },
-    preset("study", "Study", ["qvault", "exam", "revision", "study", "focus", "priorities", "due", "trend", "agenda"]),
-    preset("development", "Development", ["projects", "sessions", "priorities", "ideas", "agenda", "system", "focus"]),
-    preset("personal", "Personal", ["assistant", "checkin", "dreamer", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
-    preset("minimal", "Minimal", ["assistant", "checkin", "priorities", "focus", "exam"]),
+    preset("study", "Study", ["qvault", "exam", "revision", "study", "lock-in", "pulse-coverage", "focus", "priorities", "due", "trend", "agenda"]),
+    preset("development", "Development", ["projects", "sessions", "priorities", "ideas", "agenda", "system", "lock-in", "pulse-coverage", "mission-queue", "focus"]),
+    preset("personal", "Personal", ["assistant", "checkin", "dreamer", "mission-queue", "pulse-coverage", "agenda", "habits", "health", "money", "goals", "deadlines", "timeline", "priorities"]),
+    preset("minimal", "Minimal", ["assistant", "checkin", "priorities", "lock-in", "focus", "exam"]),
   ];
 
   return (
