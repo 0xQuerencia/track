@@ -9,9 +9,9 @@ export const dynamic="force-dynamic";
 async function authorized(){const token=(await cookies()).get(SESSION_COOKIE)?.value;return !!token&&await verifySessionToken(token);}
 export async function GET(request:Request){
  if(!await authorized())return errorResponse(401,"Unauthorized");
- const namespace=new URL(request.url).searchParams.get("namespace")??"personal";
+ const query=new URL(request.url).searchParams,namespace=query.get("namespace")??"personal";
  if(!namespaceSchema.safeParse(namespace).success)return errorResponse(400,"Invalid memory namespace");
- return jsonResponse({ok:true,notes:listMemory(getDb(),namespace)});
+ return jsonResponse({ok:true,notes:listMemory(getDb(),namespace,Date.now(),query.get("includeExpired")==="1")});
 }
 export async function POST(request:Request){
  if(!await authorized())return errorResponse(401,"Unauthorized");

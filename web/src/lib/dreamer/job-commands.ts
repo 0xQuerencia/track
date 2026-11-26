@@ -32,6 +32,12 @@ export function applyJobCommand(db:DatabaseSync,c:JobCommand,now=Date.now()){
  if(missionPolicyError(db))throw new MissionCommandError(409,"AI delegation is disabled or the provider is unavailable");
  if(c.includeContext&&currentMissionDisclosure(db).sha256!==c.approvalSha256)throw new MissionCommandError(409,"Disclosure changed. Review the current preview and approve again.");
  try{return jobTransaction(db,()=>{
+  const replay=getJob(db,c.id);
+  if(replay){
+   const prior=replay.includeContext?db.prepare("SELECT approval_sha256 FROM dreamer_job_disclosures WHERE job_id=?").get(c.id)?.approval_sha256:undefined;
+   if(replay.objective!==c.objective||replay.includeContext!==c.includeContext||replay.podId!==c.podId||prior!==c.approvalSha256||!memoryMatches(db,c.id,c.memory))throw Error("Conflicting mission replay");
+   return replay;
+  }
   const job=createJobWithinTransaction(db,c.id,(c.podId?planPodJob(db,c.podId,c.objective):planChiefJob(db,c.objective,c.includeContext)),now,c.approvalSha256);
   if(c.memory)bindJobMemory(db,c.id,c.podId??"personal",c.memory,now);
   else if(!memoryMatches(db,c.id,undefined))throw Error("Conflicting mission replay");

@@ -15,11 +15,15 @@ export type MemorySelection=z.infer<typeof memorySelection>;
 type Row={id:string;namespace:string;title:string;body:string;source_job_id:string|null;revision:number;created_ms:number;updated_ms:number;expires_ms:number|null};
 const view=(r:Row):MemoryNote=>({id:r.id,namespace:r.namespace,title:r.title,body:r.body,sourceJobId:r.source_job_id,revision:r.revision,createdMs:r.created_ms,updatedMs:r.updated_ms,expiresMs:r.expires_ms});
 function get(db:DatabaseSync,id:string){const r=db.prepare("SELECT * FROM dreamer_memory WHERE id=?").get(id) as Row|undefined;return r?view(r):null;}
-export function listMemory(db:DatabaseSync,namespace:string,now=Date.now()){
+export function listMemory(db:DatabaseSync,namespace:string,now=Date.now(),includeExpired=false){
  if(!namespaceSchema.safeParse(namespace).success)throw Error("Invalid memory namespace");
- return (db.prepare("SELECT * FROM dreamer_memory WHERE namespace=? AND (expires_ms IS NULL OR expires_ms>?) ORDER BY updated_ms DESC,id LIMIT 200").all(namespace,now) as Row[]).map(view);
+ return (db.prepare("SELECT * FROM dreamer_memory WHERE namespace=? AND (?=1 OR expires_ms IS NULL OR expires_ms>?) ORDER BY updated_ms DESC,id LIMIT 200").all(namespace,includeExpired?1:0,now) as Row[]).map(view);
 }
 export function saveMemory(db:DatabaseSync,input:MemoryInput,id?:string,revision?:number,now=Date.now()){
+ return jobTransaction(db,()=>saveMemoryWithinTransaction(db,input,id,revision,now));
+}
+/** Only while holding an immediate write transaction. */
+export function saveMemoryWithinTransaction(db:DatabaseSync,input:MemoryInput,id?:string,revision?:number,now=Date.now()){
  const v=memoryInput.parse(input);
  if(v.namespace!=="personal"&&!getAIPod(db,v.namespace))throw Error("Memory Pod not found");
  if(v.expiresMs!==null&&(v.expiresMs<=now||v.expiresMs>now+365*DAY))throw Error("Memory expiry must be within one year");
@@ -27,7 +31,7 @@ export function saveMemory(db:DatabaseSync,input:MemoryInput,id?:string,revision
   const job=getJob(db,v.sourceJobId);
   if(job?.state!=="complete"||(job.podId??"personal")!==v.namespace)throw Error("Memory source is not a completed mission in this namespace");
  }
- return jobTransaction(db,()=>{
+ {
   if(id===undefined){
    db.prepare("DELETE FROM dreamer_memory WHERE expires_ms IS NOT NULL AND expires_ms<=?").run(now);
    if(Number(db.prepare("SELECT COUNT(*) AS n FROM dreamer_memory WHERE namespace=?").get(v.namespace)?.n)>=200)throw Error("Memory limit reached");
@@ -38,7 +42,7 @@ export function saveMemory(db:DatabaseSync,input:MemoryInput,id?:string,revision
    if(!changed.changes)throw Error("Memory changed or not found");
   }
   return get(db,id)!;
- });
+ }
 }
 export function removeMemory(db:DatabaseSync,id:string,revision:number){
  if(!db.prepare("DELETE FROM dreamer_memory WHERE id=? AND revision=?").run(id,revision).changes)throw Error("Memory changed or not found");
