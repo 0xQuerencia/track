@@ -17,7 +17,7 @@ function fixture() {
 
 test("Chief is always enabled; agents can be renamed and disabled without changing their identity", () => {
   const db=fixture();
-  assert.equal(listAgents(db).length,11);
+  assert.equal(listAgents(db).length,14);
   assert.equal(configureAgent(db,"chief","Coordinator",false),true);
   assert.equal(listAgents(db).find((a)=>a.key==="chief")?.enabled,true);
   assert.equal(configureAgent(db,"critic","Proofreader",false),true);

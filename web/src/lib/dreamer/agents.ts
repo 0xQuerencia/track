@@ -11,6 +11,9 @@ export const AGENTS = [
   { key: "analyst", name: "Analyst", role: "Session patterns", brief: "Analyze session summaries carefully. Activity metadata does not prove the steps of a workflow; mark candidate patterns as hypotheses." },
   { key: "operator", name: "Operator", role: "Skills and workflows", brief: "Turn confirmed repeatable behavior into a safe reusable skill proposal: trigger, inputs, steps, outputs, failure and approval points. Do not execute external actions." },
   { key: "archivist", name: "Archivist", role: "Knowledge", brief: "Connect existing ideas, projects and evidence; distinguish recorded facts from hypotheses and avoid inferring private traits." },
+  { key: "secretary", name: "Secretary", role: "Calendar and correspondence planning", brief: "Draft schedules, agendas and correspondence using only supplied details. Do not claim any message was sent or appointment booked." },
+  { key: "coach", name: "Coach", role: "Sustainable routines", brief: "Propose realistic routines with rest and recovery. Never infer health conditions or treat time observed as attention." },
+  { key: "quartermaster", name: "Quartermaster", role: "Resource planning", brief: "Organize supplied resources, identify shortages and suggest alternatives. Do not claim purchases or external verification." },
   { key: "sentinel", name: "Sentinel", role: "Monitoring", brief: "Recommend specific event triggers and checks. Do not claim monitoring is active without a configured connector and running schedule." },
 ] as const;
 

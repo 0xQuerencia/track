@@ -1,15 +1,16 @@
 import type {DatabaseSync} from "node:sqlite";
 import {createHash} from "node:crypto";
-import {AGENTS,listAgents,selectSpecialists,type AgentKey} from "./agents";
+import {AGENTS,listAgents,selectSpecialists} from "./agents";
+import {podConfiguration} from "./studio";
 import {validateMission,type StepState} from "./mission-policy";
 const ID=/^[a-zA-Z0-9_-]{1,80}$/;
 const MAX_ACTIVE=10;
-export type StepPlan=Readonly<{id:string;agentKey:AgentKey;dependsOn:readonly string[];maxTokens:number;maxAttempts:number}>;
-export type JobPlan=Readonly<{objective:string;includeContext:boolean;steps:readonly StepPlan[];attemptBudget:number;tokenBudget:number}>;
+export type StepPlan=Readonly<{id:string;agentKey:string;dependsOn:readonly string[];maxTokens:number;maxAttempts:number}>;
+export type JobPlan=Readonly<{objective:string;includeContext:boolean;steps:readonly StepPlan[];attemptBudget:number;tokenBudget:number;podId?:string}>;
 export type DurableStep=StepPlan&{state:StepState;attempt:number;availableMs:number;outputMd:string|null;errorCode:string|null};
-export type DurableJob={id:string;objective:string;includeContext:boolean;state:StepState;attemptBudget:number;tokenBudget:number;attemptsReserved:number;tokensReserved:number;createdMs:number;updatedMs:number;finishedMs:number|null;steps:DurableStep[]};
+export type DurableJob={id:string;objective:string;includeContext:boolean;state:StepState;attemptBudget:number;tokenBudget:number;attemptsReserved:number;tokensReserved:number;createdMs:number;updatedMs:number;finishedMs:number|null;podId?:string;steps:DurableStep[]};
 type JobRow={id:string;objective:string;include_context:number;state:StepState;attempt_budget:number;token_budget:number;attempts_reserved:number;tokens_reserved:number;created_ms:number;updated_ms:number;finished_ms:number|null};
-type StepRow={step_id:string;agent_key:AgentKey;depends_json:string;max_tokens:number;max_attempts:number;state:StepState;attempt:number;available_ms:number;output_md:string|null;error_code:string|null};
+type StepRow={step_id:string;agent_key:string;depends_json:string;max_tokens:number;max_attempts:number;state:StepState;attempt:number;available_ms:number;output_md:string|null;error_code:string|null};
 export function jobTransaction<T>(db:DatabaseSync,work:()=>T):T{
  db.exec("BEGIN IMMEDIATE");
  try{const result=work();db.exec("COMMIT");return result;}catch(e){db.exec("ROLLBACK");throw e;}
@@ -20,7 +21,7 @@ function normalizedPlan(plan:JobPlan):JobPlan{
  if(objective.length<3||objective.length>2200||!Array.isArray(plan.steps)||plan.steps.length<1||plan.steps.length>16)throw new Error("Invalid mission objective or size");
  const keys=new Set<string>(AGENTS.map(a=>a.key));
  const steps=plan.steps.map(s=>{
-  if(typeof s.id!=="string"||!ID.test(s.id)||!keys.has(s.agentKey)||!Array.isArray(s.dependsOn)||!s.dependsOn.every((d:unknown)=>typeof d==="string")||!Number.isInteger(s.maxTokens)||s.maxTokens<256||s.maxTokens>5800||!Number.isInteger(s.maxAttempts)||s.maxAttempts<1||s.maxAttempts>3)throw new Error("Invalid mission step");
+  if(typeof s.id!=="string"||!ID.test(s.id)||(!keys.has(s.agentKey)&&!(plan.podId&&/^custom-[a-f0-9-]{36}$/.test(s.agentKey)))||!Array.isArray(s.dependsOn)||!s.dependsOn.every((d:unknown)=>typeof d==="string")||!Number.isInteger(s.maxTokens)||s.maxTokens<256||s.maxTokens>5800||!Number.isInteger(s.maxAttempts)||s.maxAttempts<1||s.maxAttempts>3)throw new Error("Invalid mission step");
   return {id:s.id,agentKey:s.agentKey,dependsOn:[...s.dependsOn] as string[],maxTokens:s.maxTokens,maxAttempts:s.maxAttempts};
  });
  validateMission(steps.map(s=>({id:s.id,dependsOn:s.dependsOn,state:"queued"})));
@@ -28,7 +29,8 @@ function normalizedPlan(plan:JobPlan):JobPlan{
  // The built-in synthesis step is the single terminal node. No tools or arbitrary commands.
  const chiefs=steps.filter(s=>s.agentKey==="chief");
  if(chiefs.length!==1||chiefs[0].dependsOn.length!==steps.length-1||steps.some(s=>s!==chiefs[0]&&(!chiefs[0].dependsOn.includes(s.id)||s.dependsOn.includes(chiefs[0].id))))throw new Error("Chief must synthesize all specialists");
- return {objective,includeContext:plan.includeContext,steps,attemptBudget:plan.attemptBudget,tokenBudget:plan.tokenBudget};
+ if(plan.podId&&(plan.includeContext||!/^pod-[a-f0-9-]{36}$/.test(plan.podId)))throw new Error("Pod missions cannot use personal source context");
+ return {objective,includeContext:plan.includeContext,steps,attemptBudget:plan.attemptBudget,tokenBudget:plan.tokenBudget,...(plan.podId?{podId:plan.podId}:{})};
 }
 export function planChiefJob(db:DatabaseSync,objective:string,includeContext=false):JobPlan{
  const agents=selectSpecialists(objective,listAgents(db));
@@ -38,11 +40,20 @@ export function planChiefJob(db:DatabaseSync,objective:string,includeContext=fal
  const all:StepPlan[]=[...staged,{id:"chief",agentKey:"chief",dependsOn:staged.map(s=>s.id),maxTokens:4000,maxAttempts:2}];
  return normalizedPlan({objective,includeContext,steps:all,attemptBudget:Math.min(24,all.length*2),tokenBudget:all.reduce((n,s)=>n+s.maxTokens*2,0)});
 }
+export function planPodJob(db:DatabaseSync,podId:string,objective:string):JobPlan{
+ const {pod,team}=podConfiguration(db,podId);
+ const steps:StepPlan[]=team.map((agent,i)=>({id:"specialist-"+(i+1),agentKey:agent.key,dependsOn:[],maxTokens:agent.maxTokens,maxAttempts:2}));
+ const nonCritics=steps.filter(s=>s.agentKey!=="critic").map(s=>s.id);
+ const staged=steps.map(s=>s.agentKey==="critic"?{...s,dependsOn:nonCritics}:s);
+ const all:StepPlan[]=[...staged,{id:"chief",agentKey:"chief",dependsOn:staged.map(s=>s.id),maxTokens:4000,maxAttempts:2}];
+ return normalizedPlan({objective,includeContext:false,steps:all,attemptBudget:all.length*2,tokenBudget:pod.tokenBudget,podId});
+}
 export function getJob(db:DatabaseSync,id:string):DurableJob|null{
  const row=db.prepare("SELECT id,objective,include_context,state,attempt_budget,token_budget,attempts_reserved,tokens_reserved,created_ms,updated_ms,finished_ms FROM dreamer_jobs WHERE id=?").get(id) as JobRow|undefined;
  if(!row)return null;
  const steps=(db.prepare("SELECT step_id,agent_key,depends_json,max_tokens,max_attempts,state,attempt,available_ms,output_md,error_code FROM dreamer_job_steps WHERE job_id=? ORDER BY ordinal").all(id) as StepRow[]).map(s=>({id:s.step_id,agentKey:s.agent_key,dependsOn:JSON.parse(s.depends_json) as string[],maxTokens:s.max_tokens,maxAttempts:s.max_attempts,state:s.state,attempt:s.attempt,availableMs:s.available_ms,outputMd:s.output_md,errorCode:s.error_code}));
- return {id:row.id,objective:row.objective,includeContext:!!row.include_context,state:row.state,attemptBudget:row.attempt_budget,tokenBudget:row.token_budget,attemptsReserved:row.attempts_reserved,tokensReserved:row.tokens_reserved,createdMs:row.created_ms,updatedMs:row.updated_ms,finishedMs:row.finished_ms,steps};
+ const podId=db.prepare("SELECT pod_id FROM dreamer_job_pods WHERE job_id=?").get(id)?.pod_id;
+ return {id:row.id,...(typeof podId==="string"?{podId}:{}),objective:row.objective,includeContext:!!row.include_context,state:row.state,attemptBudget:row.attempt_budget,tokenBudget:row.token_budget,attemptsReserved:row.attempts_reserved,tokensReserved:row.tokens_reserved,createdMs:row.created_ms,updatedMs:row.updated_ms,finishedMs:row.finished_ms,steps};
 }
 export function listJobs(db:DatabaseSync){
  const rows=db.prepare("SELECT id,objective,state,attempts_reserved,attempt_budget,created_ms,updated_ms,finished_ms FROM dreamer_jobs ORDER BY created_ms DESC,id LIMIT 30").all();
@@ -59,10 +70,13 @@ export function createJob(db:DatabaseSync,id:string,input:JobPlan,now=Date.now()
    if(existing.fingerprint!==fingerprint)throw new Error("Conflicting mission replay");
    return getJob(db,id)!;
   }
+  const configuration=plan.podId?podConfiguration(db,plan.podId):null;
+  if(configuration&&JSON.stringify(plan)!==JSON.stringify(planPodJob(db,configuration.pod.id,plan.objective)))throw Error("Pod plan changed");
   if(Number(db.prepare("SELECT COUNT(*) AS n FROM dreamer_jobs WHERE state IN ('queued','running')").get()?.n)>=MAX_ACTIVE)throw new Error("Active mission limit reached");
   db.prepare("INSERT INTO dreamer_jobs(id,fingerprint,objective,include_context,state,attempt_budget,token_budget,created_ms,updated_ms) VALUES(?,?,?,?,'queued',?,?,?,?)").run(id,fingerprint,plan.objective,plan.includeContext?1:0,plan.attemptBudget,plan.tokenBudget,now,now);
   const insert=db.prepare("INSERT INTO dreamer_job_steps(job_id,step_id,ordinal,agent_key,depends_json,max_tokens,max_attempts,state,available_ms,updated_ms) VALUES(?,?,?,?,?,?,?,'queued',?,?)");
   plan.steps.forEach((s,i)=>insert.run(id,s.id,i,s.agentKey,JSON.stringify(s.dependsOn),s.maxTokens,s.maxAttempts,now,now));
+  if(configuration)db.prepare("INSERT INTO dreamer_job_pods VALUES(?,?,?)").run(id,configuration.pod.id,configuration.digest);
   if(approvalSha256)db.prepare("INSERT INTO dreamer_job_disclosures VALUES(?,?)").run(id,approvalSha256);
   return getJob(db,id)!;
  });
