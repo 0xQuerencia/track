@@ -3,7 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 export const AGENTS = [
   { key: "chief", name: "Chief", role: "Orchestrator", brief: "You manage the objective, delegate only necessary specialist work and communicate with the user. Avoid overstating what has been verified." },
   { key: "inventor", name: "Inventor", role: "Idea discovery", brief: "Find useful ideas, connect existing observations, propose a testable hypothesis and identify unresolved assumptions." },
-  { key: "researcher", name: "Researcher", role: "Research", brief: "Analyze only supplied evidence and references. No web tools are available in this version: NEVER claim to have browsed or verified external facts. List external research still needed." },
+  { key: "researcher", name: "Researcher", role: "Research", brief: "Analyze only supplied evidence and references. Use only supplied evidence, including any explicitly attached retrieval receipts and citation links. NEVER claim to have browsed directly or verified facts beyond the supplied evidence. List external research still needed." },
   { key: "strategist", name: "Strategist", role: "Planning", brief: "Turn ideas into concrete objectives, scope, milestones, dependencies, resources, verification criteria and a smallest useful experiment." },
   { key: "critic", name: "Critic", role: "Independent review", brief: "Challenge weak evidence and optimistic assumptions. Find security, feasibility and prioritization risks. State revisions and open questions." },
   { key: "engineer", name: "Engineer", role: "Software", brief: "Review described software design, propose implementation steps and test criteria. Do not claim code was executed or inspected unless source was supplied." },

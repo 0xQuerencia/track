@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getDb } from "@/lib/db";
+import { exportResearch } from "@/lib/dreamer/research";
 import { exportMemory } from "@/lib/dreamer/memory";
 import { exportSchedules } from "@/lib/dreamer/schedules";
 import { exportStudio } from "@/lib/dreamer/studio";
@@ -23,7 +24,7 @@ export async function GET() {
   const db = getDb();
   const data: Record<string, unknown[]> = {};
   for (const table of TABLES) data[table] = db.prepare(`SELECT * FROM ${table}`).all() as unknown[];
-  Object.assign(data,exportMissionData(db),exportStudio(db),exportSchedules(db),exportMemory(db));
+  Object.assign(data,exportMissionData(db),exportStudio(db),exportSchedules(db),exportMemory(db),exportResearch(db));
   return Response.json({ exported_at: new Date().toISOString(), data }, {
     headers: {
       "cache-control": "no-store, private",
