@@ -16,6 +16,10 @@ function formatDuration(seconds: number): string {
   return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
+const sessionTime = new Intl.DateTimeFormat("en", {
+  dateStyle: "medium", timeStyle: "short", timeZone: process.env.TRACK_TZ ?? "UTC",
+});
+
 export default function FocusPage() {
   const nanny = recentCompletedSessions(getDb());
   const today = focusTotals(1);
@@ -43,7 +47,7 @@ export default function FocusPage() {
           <ul>
             {nanny.map((session, index) => (
               <li key={`${session.ended_at}-${session.session_id}-${index}`}>
-                <time dateTime={session.ended_at}>{session.ended_at.slice(0, 16).replace("T", " ")} UTC</time>
+                <time dateTime={session.ended_at}>{sessionTime.format(new Date(session.ended_at))}</time>
                 {" · "}{formatDuration(session.focus_seconds)} verified focus
                 {" · "}{formatDuration(session.distraction_seconds)} distracted
                 {" · "}{formatDuration(session.idle_seconds)} idle
