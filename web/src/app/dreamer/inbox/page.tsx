@@ -12,7 +12,7 @@ export default async function InboxPage({searchParams}:{searchParams:Promise<{jo
  if(!token||!await verifySessionToken(token))redirect("/login");
  const {job}=await searchParams;
  return <Page kicker="Dreamer / Action review" title="Inbox & approvals" lede="Review exact local record proposals. No record is created until you approve it individually.">
- <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio">Studio</Link><Link href="/dreamer/schedules">Schedules</Link><Link href="/dreamer/inbox" aria-current="page">Inbox</Link></nav>
+ <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio">Studio</Link><Link href="/dreamer/schedules">Schedules</Link><Link href="/dreamer/inbox" aria-current="page">Inbox</Link><Link href="/dreamer/memory">Memory</Link></nav>
  <ActionInbox initialJob={typeof job==="string"&&/^[a-zA-Z0-9_-]{1,80}$/.test(job)?job:""}/>
  </Page>;
 }
