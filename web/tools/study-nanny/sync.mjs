@@ -58,7 +58,7 @@ async function cappedJson(response) {
 export async function syncSession({ id, nanny, nannyToken, track, trackToken, send = false }) {
   id = positiveId(id);
   const nannyOrigin = origin(nanny, true);
-  const trackOrigin = send ? origin(track, false) : null;
+  if (send) origin(track, false);
   const headers = (token) => {
     if (!token || !/^[A-Za-z0-9_-]{24,160}$/.test(token)) throw new Error("A valid scoped token is required.");
     return { Authorization: `Bearer ${token}` };
@@ -67,29 +67,70 @@ export async function syncSession({ id, nanny, nannyToken, track, trackToken, se
   const response = await fetch(`${nannyOrigin}/v1/sessions/${id}`, { ...request, headers: headers(nannyToken) });
   if (!response.ok) throw new Error(`Nanny returned ${response.status}.`);
   const summary = toSummary(await cappedJson(response), id);
-  if (send) {
-    const stored = await fetch(`${trackOrigin}/api/integrations/study-nanny`, {
-      redirect: "error", signal: AbortSignal.timeout(7000), method: "POST",
-      headers: { ...headers(trackToken), "content-type": "application/json" },
-      body: JSON.stringify(summary),
-    });
-    const status = stored.status;
-    await stored.body?.cancel();
-    if (status !== 200) throw new Error(`Track returned ${status}.`);
-  }
+  if (send) await postSummary({ summary, track, trackToken });
   return summary;
+}
+
+// Import only IDs the user explicitly supplied. Fetch every preview first so
+// malformed or unavailable sessions cannot cause a partially confirmed send.
+export async function syncSessions({ ids, nanny, nannyToken, track, trackToken, send = false }) {
+  if (!Array.isArray(ids) || ids.length < 1 || ids.length > 10) {
+    throw new Error("Choose between 1 and 10 session IDs.");
+  }
+  const uniqueIds = [...new Set(ids.map(positiveId))];
+  if (uniqueIds.length !== ids.length) throw new Error("Session IDs must be unique.");
+  const summaries = [];
+  for (const id of uniqueIds) {
+    summaries.push(await syncSession({ id, nanny, nannyToken, track, trackToken, send: false }));
+  }
+  const outcomes = [];
+  for (const summary of summaries) {
+    if (!send) {
+      outcomes.push({ session_id: summary.session_id, status: "preview" });
+      continue;
+    }
+    try {
+      await postSummary({ summary, track, trackToken });
+      outcomes.push({ session_id: summary.session_id, status: "sent" });
+    } catch (error) {
+      outcomes.push({ session_id: summary.session_id, status: "failed", error: safeError(error) });
+    }
+  }
+  return { previews: summaries, outcomes };
+}
+
+async function postSummary({ summary, track, trackToken }) {
+  const trackOrigin = origin(track, false);
+  if (!trackToken || !/^[A-Za-z0-9_-]{24,160}$/.test(trackToken)) throw new Error("A valid scoped token is required.");
+  const stored = await fetch(`${trackOrigin}/api/integrations/study-nanny`, {
+    redirect: "error", signal: AbortSignal.timeout(7000), method: "POST",
+    headers: { Authorization: `Bearer ${trackToken}`, "content-type": "application/json" },
+    body: JSON.stringify(summary),
+  });
+  const status = stored.status;
+  await stored.body?.cancel();
+  if (status !== 200) throw new Error(`Track returned ${status}.`);
+}
+
+function safeError(error) {
+  const message = error instanceof Error ? error.message : "Import failed.";
+  return message.replace(/https?:\/\/[^\s]+/g, "[endpoint]").slice(0, 160);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const [id, flag, ...extra] = process.argv.slice(2);
-    if (!id || extra.length || (flag && flag !== "--send")) throw new Error("Usage: node sync.mjs SESSION_ID [--send]");
+    const args = process.argv.slice(2);
+    const send = args.includes("--send");
+    if (args.filter((arg) => arg === "--send").length > 1) throw new Error("Use --send once after reviewing the preview.");
+    const ids = send ? args.slice(0, -1) : args;
+    if (ids.length < 1 || ids.length > 10 || (send && args.at(-1) !== "--send") || ids.includes("--send")) throw new Error("Usage: node sync.mjs SESSION_ID [SESSION_ID ...] [--send] (up to 10 IDs)");
     const nannyToken = (await readFile(process.env.NANNY_READ_TOKEN_FILE, "utf8")).trim();
-    const trackToken = flag === "--send" ? (await readFile(process.env.TRACK_NANNY_TOKEN_FILE, "utf8")).trim() : undefined;
-    const summary = await syncSession({ id, nanny: process.env.NANNY_ORIGIN ?? "http://127.0.0.1:24351",
-      nannyToken, track: process.env.TRACK_ORIGIN, trackToken, send: flag === "--send" });
-    console.log(JSON.stringify(summary, null, 2));
-    console.error(flag ? "Track accepted the summary." : "Preview only; no upload.");
+    const trackToken = send ? (await readFile(process.env.TRACK_NANNY_TOKEN_FILE, "utf8")).trim() : undefined;
+    const result = await syncSessions({ ids, nanny: process.env.NANNY_ORIGIN ?? "http://127.0.0.1:24351",
+      nannyToken, track: process.env.TRACK_ORIGIN, trackToken, send });
+    console.log(JSON.stringify(result, null, 2));
+    console.error(send ? "Transmission requested; review per-session outcomes." : "Preview only; no upload.");
+    if (result.outcomes.some(({ status }) => status === "failed")) process.exitCode = 1;
   } catch (error) {
     console.error(error instanceof Error && error.name === "TypeError" ? "Invalid configuration or connection failed." : error.message);
     process.exitCode = 1;
