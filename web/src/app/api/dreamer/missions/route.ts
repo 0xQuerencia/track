@@ -8,6 +8,7 @@ import {getJob,listJobs} from "@/lib/dreamer/jobs";
 import {attemptReceipts} from "@/lib/dreamer/job-leases";
 import {currentMissionDisclosure,missionPolicyError} from "@/lib/dreamer/job-executor";
 import {listAIPods} from "@/lib/dreamer/studio";
+import {ciConfig} from "@/lib/dreamer/ci-specialist";
 import {workerHealth} from "@/lib/dreamer/worker";
 export const dynamic="force-dynamic";
 async function authorized(){const token=(await cookies()).get(SESSION_COOKIE)?.value;return !!token&&await verifySessionToken(token);}
@@ -20,7 +21,7 @@ export async function GET(request:Request){
    const job=getJob(db,id);if(!job)return errorResponse(404,"Mission not found");
    return jsonResponse({ok:true,job,receipts:attemptReceipts(db,id)});
   }
-  return jsonResponse({ok:true,jobs:listJobs(db),pods:listAIPods(db).map(p=>({id:p.id,name:p.name,enabled:p.enabled})),worker:workerHealth(db),policy:missionPolicyError(db),...(query.get("preview")==="1"?{disclosure:currentMissionDisclosure(db)}:{})});
+  return jsonResponse({ok:true,jobs:listJobs(db),pods:listAIPods(db).map(p=>({id:p.id,name:p.name,enabled:p.enabled})),worker:workerHealth(db),ci:ciConfig(),policy:missionPolicyError(db),...(query.get("preview")==="1"?{disclosure:currentMissionDisclosure(db)}:{})});
  }catch{return errorResponse(500,"Mission data unavailable");}
 }
 export async function POST(request:Request){

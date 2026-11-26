@@ -4,11 +4,13 @@ import {MemoryPicker} from "./memory-picker";
 import type {MemorySelection} from "@/lib/dreamer/memory";
 import {useEffect,useState,useRef,type FormEvent} from "react";
 import {Panel} from "@/components/track/page";
+import {Markdown} from "@/components/track/markdown";
+import type {ciConfig} from "@/lib/dreamer/ci-specialist";
 import type {DurableJob,listJobs} from "@/lib/dreamer/jobs";
 import type {attemptReceipts} from "@/lib/dreamer/job-leases";
 import type {workerHealth} from "@/lib/dreamer/worker";
 import type {currentMissionDisclosure} from "@/lib/dreamer/job-executor";
-type Snapshot={pods:{id:string;name:string;enabled:boolean}[];jobs:ReturnType<typeof listJobs>;worker:ReturnType<typeof workerHealth>;policy:string|null};
+type Snapshot={pods:{id:string;name:string;enabled:boolean}[];jobs:ReturnType<typeof listJobs>;worker:ReturnType<typeof workerHealth>;policy:string|null;ci:ReturnType<typeof ciConfig>};
 type Detail={job:DurableJob;receipts:ReturnType<typeof attemptReceipts>};
 type Disclosure=ReturnType<typeof currentMissionDisclosure>;
 const url="/api/dreamer/missions";
@@ -23,6 +25,8 @@ const active=(state:string)=>state==="queued"||state==="running";
 function State({state}:{state:string}){return <span className="dm-state" data-state={state}>{state.replaceAll("_"," ")}</span>;}
 export function MissionControl({initialPod="",initialJob=null}:{initialPod?:string;initialJob?:string|null}){
  const [podId,setPodId]=useState(initialPod);
+ const [repo,setRepo]=useState("");
+ const [ciNotice,setCiNotice]=useState("");
  const [memory,setMemory]=useState<MemorySelection|null>(null);
  const [memoryVersion,setMemoryVersion]=useState(0);
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
@@ -36,6 +40,7 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
  const [detailError,setDetailError]=useState("");
  const [busy,setBusy]=useState(false);
  const [refresh,setRefresh]=useState(0);
+ const ciDraft=useRef<{id:string;repo:string}|null>(null);
  const draft=useRef<{id:string;key:string}|null>(null);
  useEffect(()=>{
   let done=false,running=false;const controller=new AbortController();
@@ -80,6 +85,18 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
   }catch(e){setNotice(e instanceof Error?e.message:"Could not queue mission");}
   finally{setBusy(false);}
  }
+ async function queueCi(event:FormEvent<HTMLFormElement>){
+  event.preventDefault();
+  if(busy||!snapshot?.ci.enabled||!snapshot.ci.repos.includes(repo))return;
+  if(ciDraft.current?.repo!==repo)ciDraft.current={id:crypto.randomUUID(),repo};
+  const id=ciDraft.current.id;
+  setBusy(true);setCiNotice("");
+  try{
+   await api("",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({command:"enqueue_ci",id,repo,confirm:true})});
+   ciDraft.current=null;setSelected(id);setRefresh(v=>v+1);setDetailError("");setCiNotice("GitHub check queued.");
+  }catch(e){setCiNotice(e instanceof Error?e.message:"Could not queue GitHub check");}
+  finally{setBusy(false);}
+ }
  async function cancel(id:string){
   if(!window.confirm("Cancel this mission? An already-sent provider request cannot be recalled."))return;
   setBusy(true);setNotice("");
@@ -98,6 +115,16 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
  <Panel title="Worker &amp; consent"><div className="dm-status-grid"><div><small>Worker</small><strong>{!snapshot?"Loading":snapshot.worker.online===0?"Offline":snapshot.worker.working>0?"Working":snapshot.worker.paused>0?"Paused":"Online"}</strong><span>{snapshot?time(snapshot.worker.lastSeenMs):"—"}</span></div><div><small>AI policy</small><strong>{!snapshot?"Loading":snapshot.policy?snapshot.policy.replaceAll("_"," "):"Available"}</strong><span>Shared Dreamer consent and provider</span></div><div><small>Queue</small><strong>{snapshot?snapshot.jobs.filter(j=>active(j.state)).length:"—"}</strong><span>Active recent missions</span></div></div>
  {snapshot?.worker.online===0?<p className="dreamer-notice">No worker heartbeat received. Queued missions will remain pending until an explicitly enabled worker is running.</p>:null}
  {connection?<p className="dreamer-notice" role="status">{connection}</p>:null}</Panel>
+ <section id="github-ci" aria-label="GitHub Actions specialist">
+ <Panel title="Check GitHub Actions" description="Send only this repository name to GitHub. The worker reads its five most recent runs; it never downloads logs, uses an AI provider or changes GitHub.">
+ {!snapshot?<p className="tk-empty">Loading specialist configuration…</p>:!snapshot.ci.enabled?<p className="tk-empty">The GitHub Actions specialist is off. Set TRACK_DREAMER_CI_ENABLED=1 and configure the repository allowlist on your server.</p>:snapshot.ci.repos.length===0?<p className="tk-empty">No allowlisted repositories are configured.</p>:<>
+ <p>{snapshot.ci.githubAuthenticated?"A server-side GitHub credential will be used.":"Only public GitHub repositories can be read without a credential."}</p>
+ <form className="dm-form" onSubmit={queueCi}><label>Allowlisted repository<select value={repo} required disabled={busy} onChange={e=>setRepo(e.target.value)}><option value="">Choose repository</option>{snapshot.ci.repos.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+ <button type="submit" className="tk-button" disabled={busy||!repo}>Queue read-only check</button></form>
+ </>}
+ <p role="status" className="dm-notice">{ciNotice}</p>
+ </Panel>
+ </section>
  <Panel title="New mission" description="Only your typed objective is sent by default. Optional evidence requires a fresh preview and confirmation.">
  <form className="dm-form" onSubmit={submit}>
  <label>Mission team<select value={podId} disabled={busy} onChange={e=>{setPodId(e.target.value);setMemory(null);setContext(false);setPreview(null);}}><option value="">Chief selects built-in specialists</option>{snapshot?.pods.filter(p=>p.enabled).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
@@ -113,13 +140,13 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
  </Panel>
  {selected?<Panel title="Mission detail">{!current?<p role="status">{detailError||"Loading mission…"}</p>:<>
  <div className="dm-heading"><h3>{current.job.objective}</h3><State state={current.job.state}/></div>
- <p>{current.job.attemptsReserved}/{current.job.attemptBudget} attempts · {current.job.tokensReserved}/{current.job.tokenBudget} requested output tokens reserved (not actual billing)</p>
+ <p>{current.job.attemptsReserved}/{current.job.attemptBudget} attempts{current.job.ciRepository?" · GitHub read-only, no AI":` · ${current.job.tokensReserved}/${current.job.tokenBudget} requested output tokens reserved (not actual billing)`}</p>
  {active(current.job.state)?<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void cancel(current.job.id)}>Cancel mission</button>:<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void erase(current.job.id)}>Delete mission</button>}
  {current.job.state==="complete"?<div className="dreamer-actions">{(["md","txt","json"] as const).map(format=><a key={format} className="tk-button tk-ghost" download href={"/api/dreamer/artifacts?id="+encodeURIComponent(current.job.id)+"&format="+format}>Download {format.toUpperCase()}</a>)}</div>:null}
- {current.job.state==="complete"?<Link className="tk-button" href={"/dreamer/inbox?job="+encodeURIComponent(current.job.id)}>Propose local actions from this report</Link>:null}
- {current.job.state==="complete"?<Link className="tk-button tk-ghost" href={"/dreamer/handoff?job="+encodeURIComponent(current.job.id)}>Prepare unsent email</Link>:null}
+ {current.job.state==="complete"&&!current.job.ciRepository?<Link className="tk-button" href={"/dreamer/inbox?job="+encodeURIComponent(current.job.id)}>Propose local actions from this report</Link>:null}
+ {current.job.state==="complete"&&!current.job.ciRepository?<Link className="tk-button tk-ghost" href={"/dreamer/handoff?job="+encodeURIComponent(current.job.id)}>Prepare unsent email</Link>:null}
  {current.job.state==="complete"?<Link className="tk-button tk-ghost" href={"/dreamer/memory?job="+encodeURIComponent(current.job.id)+(current.job.podId?"&pod="+encodeURIComponent(current.job.podId):"")}>Create a memory linked to this report</Link>:null}
- <ol className="dm-steps">{current.job.steps.map(s=><li key={s.id}><div className="dm-heading"><strong>{s.agentKey}</strong><State state={s.state}/></div><small>{s.dependsOn.length?"After "+s.dependsOn.join(", "):"No dependencies"} · attempt {s.attempt}/{s.maxAttempts}{s.errorCode?" · "+s.errorCode.replaceAll("_"," "):""}</small>{s.outputMd?<details open={s.agentKey==="chief"}><summary>Saved analysis</summary><pre>{s.outputMd}</pre></details>:null}</li>)}</ol>
+ <ol className="dm-steps">{current.job.steps.map(s=><li key={s.id}><div className="dm-heading"><strong>{current.job.ciRepository?"GitHub Actions specialist":s.agentKey}</strong><State state={s.state}/></div><small>{s.dependsOn.length?"After "+s.dependsOn.join(", "):"No dependencies"} · attempt {s.attempt}/{s.maxAttempts}{s.errorCode?" · "+s.errorCode.replaceAll("_"," "):""}</small>{s.outputMd?<details open={s.agentKey==="chief"}><summary>{current.job.ciRepository?"Saved GitHub evidence":"Saved analysis"}</summary>{current.job.ciRepository?<Markdown source={s.outputMd}/>:<pre>{s.outputMd}</pre>}</details>:null}</li>)}</ol>
  <details><summary>Execution receipts ({current.receipts.length})</summary><ul className="dm-receipts">{current.receipts.map(r=><li key={r.stepId+":"+r.attempt}>{r.stepId} · attempt {r.attempt} · {r.status} · {time(r.startedMs)}{r.errorCode?" · "+r.errorCode:""}{r.outputSha256?<code>SHA-256: {r.outputSha256}</code>:null}</li>)}</ul></details>
  </>}</Panel>:null}
  </div>;

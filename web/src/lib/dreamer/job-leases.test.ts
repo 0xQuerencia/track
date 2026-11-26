@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import {DatabaseSync} from "node:sqlite";
 import {migration as legacy} from "../migrations/m160_dreamer_collective";
 import {migration as durable} from "../migrations/m190_dreamer_jobs";
+import {migration as ci} from "../migrations/m200_dreamer_ci";
 import {migration as studio} from "../migrations/m193_dreamer_studio";
 import {createJob,getJob,planChiefJob} from "./jobs";
 import {claimStep,completeStep,renewLease,failStep,recoverExpired,cancelJob,attemptReceipts} from "./job-leases";
 const t=1800000000000;
-function fixture(){const db=new DatabaseSync(":memory:");legacy.up(db);durable.up(db);studio.up(db);return db;}
+function fixture(){const db=new DatabaseSync(":memory:");legacy.up(db);durable.up(db);studio.up(db);ci.up(db);return db;}
 test("parallel claims respect dependencies; only authoritative lease can write a receipt",()=>{
  const db=fixture();try{
   createJob(db,"job",planChiefJob(db,"Review code"),t);

@@ -8,8 +8,8 @@ const MAX_ACTIVE=10;
 export type StepPlan=Readonly<{id:string;agentKey:string;dependsOn:readonly string[];maxTokens:number;maxAttempts:number}>;
 export type JobPlan=Readonly<{objective:string;includeContext:boolean;steps:readonly StepPlan[];attemptBudget:number;tokenBudget:number;podId?:string}>;
 export type DurableStep=StepPlan&{state:StepState;attempt:number;availableMs:number;outputMd:string|null;errorCode:string|null};
-export type DurableJob={id:string;objective:string;includeContext:boolean;state:StepState;attemptBudget:number;tokenBudget:number;attemptsReserved:number;tokensReserved:number;createdMs:number;updatedMs:number;finishedMs:number|null;podId?:string;steps:DurableStep[]};
-type JobRow={id:string;objective:string;include_context:number;state:StepState;attempt_budget:number;token_budget:number;attempts_reserved:number;tokens_reserved:number;created_ms:number;updated_ms:number;finished_ms:number|null};
+export type DurableJob={id:string;objective:string;includeContext:boolean;state:StepState;attemptBudget:number;tokenBudget:number;attemptsReserved:number;tokensReserved:number;createdMs:number;updatedMs:number;finishedMs:number|null;podId?:string;ciRepository?:string;steps:DurableStep[]};
+type JobRow={id:string;objective:string;include_context:number;state:StepState;attempt_budget:number;token_budget:number;attempts_reserved:number;tokens_reserved:number;created_ms:number;updated_ms:number;finished_ms:number|null;ci_repository:string|null};
 type StepRow={step_id:string;agent_key:string;depends_json:string;max_tokens:number;max_attempts:number;state:StepState;attempt:number;available_ms:number;output_md:string|null;error_code:string|null};
 export function jobTransaction<T>(db:DatabaseSync,work:()=>T):T{
  db.exec("BEGIN IMMEDIATE");
@@ -49,15 +49,15 @@ export function planPodJob(db:DatabaseSync,podId:string,objective:string):JobPla
  return normalizedPlan({objective,includeContext:false,steps:all,attemptBudget:all.length*2,tokenBudget:pod.tokenBudget,podId});
 }
 export function getJob(db:DatabaseSync,id:string):DurableJob|null{
- const row=db.prepare("SELECT id,objective,include_context,state,attempt_budget,token_budget,attempts_reserved,tokens_reserved,created_ms,updated_ms,finished_ms FROM dreamer_jobs WHERE id=?").get(id) as JobRow|undefined;
+ const row=db.prepare("SELECT id,objective,include_context,state,attempt_budget,token_budget,attempts_reserved,tokens_reserved,created_ms,updated_ms,finished_ms,ci_repository FROM dreamer_jobs WHERE id=?").get(id) as JobRow|undefined;
  if(!row)return null;
  const steps=(db.prepare("SELECT step_id,agent_key,depends_json,max_tokens,max_attempts,state,attempt,available_ms,output_md,error_code FROM dreamer_job_steps WHERE job_id=? ORDER BY ordinal").all(id) as StepRow[]).map(s=>({id:s.step_id,agentKey:s.agent_key,dependsOn:JSON.parse(s.depends_json) as string[],maxTokens:s.max_tokens,maxAttempts:s.max_attempts,state:s.state,attempt:s.attempt,availableMs:s.available_ms,outputMd:s.output_md,errorCode:s.error_code}));
  const podId=db.prepare("SELECT pod_id FROM dreamer_job_pods WHERE job_id=?").get(id)?.pod_id;
- return {id:row.id,...(typeof podId==="string"?{podId}:{}),objective:row.objective,includeContext:!!row.include_context,state:row.state,attemptBudget:row.attempt_budget,tokenBudget:row.token_budget,attemptsReserved:row.attempts_reserved,tokensReserved:row.tokens_reserved,createdMs:row.created_ms,updatedMs:row.updated_ms,finishedMs:row.finished_ms,steps};
+ return {id:row.id,...(typeof podId==="string"?{podId}:{}),...(row.ci_repository?{ciRepository:row.ci_repository}:{}),objective:row.objective,includeContext:!!row.include_context,state:row.state,attemptBudget:row.attempt_budget,tokenBudget:row.token_budget,attemptsReserved:row.attempts_reserved,tokensReserved:row.tokens_reserved,createdMs:row.created_ms,updatedMs:row.updated_ms,finishedMs:row.finished_ms,steps};
 }
 export function listJobs(db:DatabaseSync){
- const rows=db.prepare("SELECT id,objective,state,attempts_reserved,attempt_budget,created_ms,updated_ms,finished_ms FROM dreamer_jobs ORDER BY created_ms DESC,id LIMIT 30").all();
- return rows.map(r=>({id:String(r.id),objective:String(r.objective),state:String(r.state) as StepState,attemptsReserved:Number(r.attempts_reserved),attemptBudget:Number(r.attempt_budget),createdMs:Number(r.created_ms),updatedMs:Number(r.updated_ms),finishedMs:r.finished_ms===null?null:Number(r.finished_ms)}));
+ const rows=db.prepare("SELECT id,objective,state,attempts_reserved,attempt_budget,created_ms,updated_ms,finished_ms,ci_repository FROM dreamer_jobs ORDER BY created_ms DESC,id LIMIT 30").all();
+ return rows.map(r=>({id:String(r.id),objective:String(r.objective),...(typeof r.ci_repository==="string"?{ciRepository:r.ci_repository}:{}),state:String(r.state) as StepState,attemptsReserved:Number(r.attempts_reserved),attemptBudget:Number(r.attempt_budget),createdMs:Number(r.created_ms),updatedMs:Number(r.updated_ms),finishedMs:r.finished_ms===null?null:Number(r.finished_ms)}));
 }
 export function createJob(db:DatabaseSync,id:string,input:JobPlan,now=Date.now(),approvalSha256?:string):DurableJob{
  return jobTransaction(db,()=>createJobWithinTransaction(db,id,input,now,approvalSha256));

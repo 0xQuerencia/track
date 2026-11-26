@@ -1,8 +1,10 @@
 import type {DatabaseSync} from "node:sqlite";
 import {runSentinelTick} from "./sentinel";
 import {runDueSchedules} from "./schedules";
-import {claimStep,recoverExpired,type StepLease} from "./job-leases";
+import {claimStep,DEFAULT_LEASE_MS,recoverExpired,type StepLease} from "./job-leases";
 import {executeMissionStep,missionPolicyError} from "./job-executor";
+import {getJob} from "./jobs";
+import {executeCiStep} from "./ci-specialist";
 export type WorkerState="idle"|"working"|"paused"|"stopped"|"error";
 export function workerHeartbeat(db:DatabaseSync,id:string,state:WorkerState,now=Date.now()){
  if(!/^[a-zA-Z0-9_-]{1,80}$/.test(id)||!Number.isSafeInteger(now)||now<0)throw new Error("Invalid worker heartbeat");
@@ -13,7 +15,7 @@ export function workerHealth(db:DatabaseSync,now=Date.now()){
  const rows=db.prepare("SELECT state,seen_ms FROM dreamer_worker_heartbeats WHERE seen_ms>? AND seen_ms<=? AND state<>'stopped' ORDER BY seen_ms DESC").all(now-90000,now);
  return {online:rows.length,working:rows.filter(r=>r.state==="working").length,paused:rows.filter(r=>r.state==="paused").length,errors:rows.filter(r=>r.state==="error").length,lastSeenMs:rows.length?Number(rows[0].seen_ms):null};
 }
-type TickDeps={now?:()=>number;execute?:(db:DatabaseSync,lease:StepLease)=>Promise<unknown>;concurrency?:number};
+type TickDeps={now?:()=>number;execute?:(db:DatabaseSync,lease:StepLease)=>Promise<unknown>;concurrency?:number;ci?:Parameters<typeof executeCiStep>[2]};
 export async function runWorkerTick(db:DatabaseSync,id:string,deps:TickDeps={}){
  const now=deps.now??Date.now;
  const count=deps.concurrency??3;
@@ -21,15 +23,17 @@ export async function runWorkerTick(db:DatabaseSync,id:string,deps:TickDeps={}){
  recoverExpired(db,now());
  runDueSchedules(db,now());
  await runSentinelTick(db,{now});
- if(missionPolicyError(db)){workerHeartbeat(db,id,"paused",now());return 0;}
+ const aiPaused=!!missionPolicyError(db);
  const leases:StepLease[]=[];
- for(let i=0;i<count;i++){const lease=claimStep(db,id,now());if(!lease)break;leases.push(lease);}
- if(!leases.length){workerHeartbeat(db,id,"idle",now());return 0;}
+ for(let i=0;i<count;i++){const lease=claimStep(db,id,now(),DEFAULT_LEASE_MS,aiPaused);if(!lease)break;leases.push(lease);}
+ if(!leases.length){workerHeartbeat(db,id,aiPaused?"paused":"idle",now());return 0;}
  workerHeartbeat(db,id,"working",now());
  const timer=setInterval(()=>{try{workerHeartbeat(db,id,"working",now());}catch{/* A stale heartbeat is not proof of worker health. */}},15000);
  try{
-  const settled=await Promise.allSettled(leases.map(lease=>(deps.execute??executeMissionStep)(db,lease)));
-  workerHeartbeat(db,id,settled.some(r=>r.status==="rejected")?"error":"idle",now());
+  const settled=await Promise.allSettled(leases.map(lease=>getJob(db,lease.jobId)?.ciRepository
+   ?executeCiStep(db,lease,{...deps.ci,now})
+   :(deps.execute??executeMissionStep)(db,lease)));
+  workerHeartbeat(db,id,settled.some(r=>r.status==="rejected")?"error":aiPaused?"paused":"idle",now());
   return leases.length;
  }finally{clearInterval(timer);}
 }
