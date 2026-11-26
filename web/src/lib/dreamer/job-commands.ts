@@ -2,15 +2,22 @@ import type {DatabaseSync} from "node:sqlite";
 import {z} from "zod";
 import {createJob,getJob,planChiefJob} from "./jobs";
 import {cancelJob} from "./job-leases";
+import {deleteFinishedMission} from "./job-privacy";
 import {currentMissionDisclosure,missionPolicyError} from "./job-executor";
 const id=z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/);
 const enqueue=z.object({command:z.literal("enqueue"),id,objective:z.string().trim().min(3).max(2200),includeContext:z.boolean(),approvalSha256:z.string().regex(/^[a-f0-9]{64}$/).optional()}).strict().refine(v=>v.includeContext===!!v.approvalSha256);
 const cancel=z.object({command:z.literal("cancel"),id}).strict();
-const command=z.union([enqueue,cancel]);
+const remove=z.object({command:z.literal("delete"),id,confirm:z.literal(true)}).strict();
+const command=z.union([enqueue,cancel,remove]);
 export type JobCommand=z.infer<typeof command>;
 export function parseJobCommand(value:unknown){const parsed=command.safeParse(value);return parsed.success?parsed.data:null;}
 export class MissionCommandError extends Error{constructor(readonly status:number,message:string){super(message);}}
 export function applyJobCommand(db:DatabaseSync,c:JobCommand,now=Date.now()){
+ if(c.command==="delete"){
+  const result=deleteFinishedMission(db,c.id);
+  if(result==="active")throw new MissionCommandError(409,"Cancel the mission before deleting it");
+  return null;
+ }
  const existing=getJob(db,c.id);
  if(c.command==="cancel"){
   if(!existing)throw new MissionCommandError(404,"Mission not found");

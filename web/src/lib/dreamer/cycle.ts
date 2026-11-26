@@ -1,3 +1,6 @@
+import {jobTransaction} from "./jobs";
+import {eraseAllMissionRows} from "./job-privacy";
+import {setConsent} from "@/lib/ai";
 import type { DatabaseSync } from "node:sqlite";
 import { getAiStatus, getConsent } from "@/lib/ai";
 import type { AiDisclosure } from "@/lib/ai";
@@ -200,6 +203,9 @@ export function runWeeklyReflection(db: DatabaseSync, weekStart: string, now = n
 }
 
 export function deleteAllDreamerData(db: DatabaseSync): void {
+  jobTransaction(db,()=>{
+  eraseAllMissionRows(db);
+  setConsent(db,"dreamer",false);
   for (const table of [
     "dreamer_skills", "dreamer_workflow_candidates", "dreamer_agent_steps", "dreamer_chief_messages", "dreamer_missions", "dreamer_agent_config",
     "dreamer_feedback", "dreamer_suggestion_projects", "dreamer_suggestion_evidence", "dreamer_suggestions",
@@ -210,4 +216,5 @@ export function deleteAllDreamerData(db: DatabaseSync): void {
   for (const source of ["journal", "note", "idea"] as const) {
     db.prepare("INSERT INTO dreamer_settings (key, value) VALUES (?, '0')").run(`source:${source}`);
   }
+  });
 }

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getDb } from "@/lib/db";
+import { exportMissionData } from "@/lib/dreamer/job-privacy";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export async function GET() {
   const db = getDb();
   const data: Record<string, unknown[]> = {};
   for (const table of TABLES) data[table] = db.prepare(`SELECT * FROM ${table}`).all() as unknown[];
+  Object.assign(data,exportMissionData(db));
   return Response.json({ exported_at: new Date().toISOString(), data }, {
     headers: {
       "cache-control": "no-store, private",

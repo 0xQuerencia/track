@@ -1,0 +1,5 @@
+# Mission data lifecycle
+
+A finished, failed or cancelled mission may be explicitly deleted. Active missions must be cancelled first. Existing Dreamer export includes objectives, steps, reports, sanitized receipts and approval hashes without worker lease tokens. Delete All Dreamer Data now atomically erases durable mission data as well as legacy analysis and revokes feature AI consent; late worker output cannot be stored after deletion. Worker heartbeat rows are operational state and may remain while the worker process is alive. The worker checks consent before claiming work.
+
+Revoking source context or changing an approved preview stops further transport or result storage for the affected queued job. Previously saved reports are local derived data and require separate explicit mission deletion or delete-all. Deletion cannot undo a request already received by a provider or erase independent backups. Do not replay a deleted mission's submission ID; its idempotency record has been erased.
