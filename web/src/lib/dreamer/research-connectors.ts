@@ -13,11 +13,11 @@ type Json=Record<string,unknown>;
 const object=(v:unknown):Json=>v&&typeof v==="object"&&!Array.isArray(v)?v as Json:{};
 const array=(v:unknown):unknown[]=>Array.isArray(v)?v:[];
 const plain=(v:unknown,max:number)=>typeof v==="string"?v.replace(/<[^>]*>/g," ").replace(/&(?:amp|quot|apos|lt|gt|nbsp);/g," ").replace(/[\u0000-\u001f\u007f]/g," ").replace(/\s+/g," ").trim().slice(0,max):"";
-export function researchConfig(env:NodeJS.ProcessEnv=process.env){
+export function researchConfig(env:Record<string,string|undefined>=process.env){
  const repos=(env.TRACK_DREAMER_GITHUB_REPOS??"").split(",").map(s=>s.trim()).filter(s=>repoName.safeParse(s).success).slice(0,30);
  return {enabled:env.TRACK_DREAMER_RESEARCH_ENABLED==="1",repos:[...new Set(repos)],githubAuthenticated:!!env.TRACK_DREAMER_GITHUB_TOKEN};
 }
-function requestFor(input:ResearchInput,env:NodeJS.ProcessEnv){
+function requestFor(input:ResearchInput,env:Record<string,string|undefined>){
  const config=researchConfig(env);
  if(!config.enabled)throw Error("Research connectors are disabled");
  const headers:Record<string,string>={accept:"application/json","user-agent":"Track-Dreamer-Research/1.0"};
@@ -76,7 +76,7 @@ async function boundedJson(response:Response){
  finally{reader.releaseLock();}
 }
 /** No arbitrary URLs, DNS targets, redirects, model-supplied credentials or executable content. */
-export async function fetchResearch(raw:ResearchInput,deps:{env?:NodeJS.ProcessEnv;fetch?:typeof fetch}={}){
+export async function fetchResearch(raw:ResearchInput,deps:{env?:Record<string,string|undefined>;fetch?:typeof fetch}={}){
  const input=researchInput.parse(raw),{url,headers}=requestFor(input,deps.env??process.env);
  if(inFlight>=2)throw Error("Research connector busy");
  inFlight++;
