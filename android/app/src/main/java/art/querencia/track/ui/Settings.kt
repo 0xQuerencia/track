@@ -34,6 +34,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import art.querencia.track.data.AppEntry
 import art.querencia.track.data.Prefs
+import art.querencia.track.data.PulseStore
+import art.querencia.track.data.PulseWorker
+import art.querencia.track.data.UsageAccess
 import kotlinx.coroutines.launch
 
 @Composable
@@ -53,6 +56,11 @@ fun SettingsScreen(
     var token by remember { mutableStateOf(prefs.token.orEmpty()) }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    val pulse = remember { PulseStore(context.applicationContext) }
+    var pulseStatus by remember { mutableStateOf(pulse.status()) }
+    var pulseServer by remember { mutableStateOf(pulseStatus.server.ifBlank { prefs.serverUrl }) }
+    var pulseToken by remember { mutableStateOf("") }
+    var pulseNotice by remember { mutableStateOf("") }
 
     LazyColumn(
         Modifier.fillMaxSize().background(TrackColors.Background),
@@ -89,6 +97,40 @@ fun SettingsScreen(
                     }
                 }
                 status?.let { Text(it, TrackType.Small.copy(color = if (it.startsWith("Connected")) TrackColors.Ring else TrackColors.Destructive)) }
+            }
+        }
+        item {
+            TrackCard {
+                Text("PULSE ACTIVITY", TrackType.Label)
+                Text("Optional Android usage intervals. Only timestamps are sent; package names stay on-device. Android may delay background jobs.", TrackType.Small)
+                Text(if (pulseStatus.enabled) "Enabled · " + pulseStatus.pending + " queued · " + pulseStatus.dropped + " dropped" else "Disabled", TrackType.BodyMedium)
+                Button("Grant or manage Android usage access") { runCatching { UsageAccess.openSettings(context) } }
+                if (!pulseStatus.enabled) {
+                    Field("Pulse server", pulseServer, { pulseServer = it }, "https://your-track-server")
+                    Field("Activity-only token", pulseToken, { pulseToken = it }, "Create activity:write token in Track", secret = true)
+                    Button("Enable activity collection", primary = true) {
+                        pulseNotice = runCatching {
+                            require(UsageAccess.granted(context)) { "Grant usage access in Android Settings first." }
+                            pulse.enable(pulseServer, pulseToken)
+                            PulseWorker.schedule(context)
+                            PulseWorker.syncNow(context)
+                            pulseToken = ""
+                            pulseStatus = pulse.status()
+                            "Pulse enabled. Collection starts now."
+                        }.getOrElse { it.message ?: "Could not enable Pulse." }
+                    }
+                } else {
+                    Button("Sync activity now") { PulseWorker.syncNow(context); pulseNotice = "Sync requested." }
+                    Button("Disable and erase unsent activity") {
+                        if (pulse.disable()) {
+                            PulseWorker.cancel(context)
+                            pulseStatus = pulse.status()
+                            pulseNotice = "Collection disabled. Revoke the server token and erase uploaded data in Track if desired."
+                        } else pulseNotice = "Could not disable Pulse."
+                    }
+                }
+                Button("Refresh Pulse status") { pulseStatus = pulse.status(); pulseNotice = pulseStatus.notice }
+                if (pulseNotice.isNotBlank()) Text(pulseNotice, TrackType.Small)
             }
         }
         item {
