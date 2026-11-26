@@ -12,7 +12,7 @@ export default async function MissionsPage({searchParams}:{searchParams:Promise<
  const token=(await cookies()).get(SESSION_COOKIE)?.value;
  if(!token||!await verifySessionToken(token))redirect("/login");
  return <Page kicker="Dreamer · durable queue" title="Mission Control" lede="Delegate an explicit objective, inspect each specialist's progress, and review the resulting analysis. No external actions are executed.">
- <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer?tab=sources">Sources &amp; Privacy</Link><Link href="/dreamer/missions" aria-current="page">Mission Control</Link><Link href="/dreamer/studio">Studio</Link><Link href="/dreamer/schedules">Schedules</Link><Link href="/dreamer/inbox">Inbox</Link><Link href="/dreamer/memory">Memory</Link><Link href="/dreamer/research">Research</Link></nav>
+ <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer?tab=sources">Sources &amp; Privacy</Link><Link href="/dreamer/missions" aria-current="page">Mission Control</Link><Link href="/dreamer/studio">Studio</Link><Link href="/dreamer/schedules">Schedules</Link><Link href="/dreamer/inbox">Inbox</Link><Link href="/dreamer/memory">Memory</Link><Link href="/dreamer/research">Research</Link><Link href="/dreamer/sentinel">Sentinel</Link></nav>
  <MissionControl initialPod={typeof pod==="string"?pod:""} initialJob={typeof job==="string"&&/^[a-zA-Z0-9_-]{1,80}$/.test(job)?job:null}/>
  </Page>;
 }
