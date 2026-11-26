@@ -1,0 +1,5 @@
+# Recurring read-only missions
+
+Schedules explicitly opt into a fixed objective, private team (optional), IANA timezone, wall-clock time and daily/weekly cadence. They never include personal source excerpts, tools, external actions or automatic sharing. Worker scheduling requires both TRACK_DREAMER_WORKER_ENABLED=1 and TRACK_DREAMER_SCHEDULER_ENABLED=1. An enabled schedule captures current AI consent and Pod configuration; changes invalidate its approval. Editing/disabling/deleting a schedule or turning off the scheduler prevents its queued or running jobs from sending further requests or storing new output. Already-sent requests cannot be recalled.
+
+The worker checks a five-minute recent wall-clock window; one local-date receipt prevents duplicate runs even at repeated DST hours. Nonexistent DST times and longer downtime are skipped, not replayed. Job and receipt commit atomically; capacity/consent skips are recorded. Up to three schedules are processed per tick, 20 schedules total, and 90 days of receipts retained on schedule processing. No background process is started by merging this code.

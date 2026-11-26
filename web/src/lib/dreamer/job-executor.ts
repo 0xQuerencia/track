@@ -4,6 +4,7 @@ import {chatText,getAiStatus,getConsent,redactForAi,type AiErrorCode,type ChatTe
 import {studioAgents,podConfiguration} from "./studio";
 import {getAiDisclosurePreview} from "./queries";
 import {currentDisclosureEvidenceIds} from "./engine";
+import {scheduledJobAllowed} from "./schedules";
 import {getJob} from "./jobs";
 import {completeStep,failStep,leaseActive,renewLease,type StepLease,type JobErrorCode} from "./job-leases";
 
@@ -28,6 +29,7 @@ function gate(db:DatabaseSync,lease:StepLease,now:number){
  if(!agent?.enabled)return {ok:false as const,code:"agent_disabled" as const};
  const job=getJob(db,lease.jobId),step=job?.steps.find(s=>s.id===lease.stepId);
  if(!job||!step||step.agentKey!==lease.agentKey||step.maxTokens!==lease.maxTokens)return {ok:false as const,code:null};
+ if(!scheduledJobAllowed(db,job.id))return {ok:false as const,code:"policy_disabled" as const};
  if(job.podId){
   try{const configuration=podConfiguration(db,job.podId);const approved=db.prepare("SELECT configuration_sha256 FROM dreamer_job_pods WHERE job_id=?").get(job.id)?.configuration_sha256;
    if(approved!==configuration.digest||job.includeContext||agent.key!=="chief"&&!configuration.team.some(a=>a.key===agent.key))return {ok:false as const,code:"policy_disabled" as const};
