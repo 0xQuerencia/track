@@ -20,6 +20,7 @@ export const INTEGRATION_SCOPES = [
   "activity:write",
   "activity:maintenance",
   "focus:read",
+  "study-nanny:write",
 ] as const;
 export type IntegrationScope = (typeof INTEGRATION_SCOPES)[number];
 
