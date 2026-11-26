@@ -1,0 +1,3 @@
+# Agent Studio
+
+Owner-only /dreamer/studio creates and edits read-only custom specialists and AI Pods. Revisions prevent lost edits. The mission team selector submits a Pod ID; the server builds and fences the actual plan. Custom agents and Pods are disabled by default in the UI, enabling them does not run work, and no tool grants are accepted. The provider model remains server-pinned; effort and reserved output tokens are configurable. Studio does not import configs, schedule work or share personal records. UI browser smoke and model integration remain release gates.
