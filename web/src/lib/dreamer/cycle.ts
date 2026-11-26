@@ -1,3 +1,4 @@
+import {eraseStudio} from "./studio";
 import {jobTransaction} from "./jobs";
 import {eraseAllMissionRows} from "./job-privacy";
 import {setConsent} from "@/lib/ai";
@@ -205,6 +206,7 @@ export function runWeeklyReflection(db: DatabaseSync, weekStart: string, now = n
 export function deleteAllDreamerData(db: DatabaseSync): void {
   jobTransaction(db,()=>{
   eraseAllMissionRows(db);
+  eraseStudio(db);
   setConsent(db,"dreamer",false);
   for (const table of [
     "dreamer_skills", "dreamer_workflow_candidates", "dreamer_agent_steps", "dreamer_chief_messages", "dreamer_missions", "dreamer_agent_config",
