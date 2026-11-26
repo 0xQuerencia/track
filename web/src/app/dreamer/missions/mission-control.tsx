@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {useEffect,useState,useRef,type FormEvent} from "react";
 import {Panel} from "@/components/track/page";
 import type {DurableJob,listJobs} from "@/lib/dreamer/jobs";
@@ -109,6 +110,7 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
  <div className="dm-heading"><h3>{current.job.objective}</h3><State state={current.job.state}/></div>
  <p>{current.job.attemptsReserved}/{current.job.attemptBudget} attempts · {current.job.tokensReserved}/{current.job.tokenBudget} requested output tokens reserved (not actual billing)</p>
  {active(current.job.state)?<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void cancel(current.job.id)}>Cancel mission</button>:<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void erase(current.job.id)}>Delete mission</button>}
+ {current.job.state==="complete"?<Link className="tk-button" href={"/dreamer/inbox?job="+encodeURIComponent(current.job.id)}>Propose local actions from this report</Link>:null}
  <ol className="dm-steps">{current.job.steps.map(s=><li key={s.id}><div className="dm-heading"><strong>{s.agentKey}</strong><State state={s.state}/></div><small>{s.dependsOn.length?"After "+s.dependsOn.join(", "):"No dependencies"} · attempt {s.attempt}/{s.maxAttempts}{s.errorCode?" · "+s.errorCode.replaceAll("_"," "):""}</small>{s.outputMd?<details open={s.agentKey==="chief"}><summary>Saved analysis</summary><pre>{s.outputMd}</pre></details>:null}</li>)}</ol>
  <details><summary>Execution receipts ({current.receipts.length})</summary><ul className="dm-receipts">{current.receipts.map(r=><li key={r.stepId+":"+r.attempt}>{r.stepId} · attempt {r.attempt} · {r.status} · {time(r.startedMs)}{r.errorCode?" · "+r.errorCode:""}{r.outputSha256?<code>SHA-256: {r.outputSha256}</code>:null}</li>)}</ul></details>
  </>}</Panel>:null}
