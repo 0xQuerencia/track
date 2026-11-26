@@ -16,6 +16,8 @@ export function AssistantPanel() {
   const status = getAiStatus(db);
   const consent = getConsent(db, "assistant").enabled;
   const ready = status.keyConfigured && !status.killSwitch;
+  const activeJobs = Number(db.prepare("SELECT COUNT(*) AS n FROM dreamer_jobs WHERE state IN ('queued','running')").get()?.n);
+  const approvals = Number(db.prepare("SELECT COUNT(*) AS n FROM dreamer_action_drafts WHERE state='pending' AND expires_ms>unixepoch('subsec')*1000").get()?.n);
 
   return (
     <div className="asst">
@@ -34,6 +36,14 @@ export function AssistantPanel() {
             ))}
           </div>
         )}
+      </section>
+      <section className="asst-brief" aria-label="Delegate work">
+        <header className="asst-brief-head"><h3>Delegate work</h3></header>
+        <div className="asst-work-links">
+          <Link className="tk-button tk-ghost" href="/dreamer/missions#github-ci">Check GitHub Actions</Link>
+          <Link className="tk-button tk-ghost" href="/dreamer/missions">Mission Control ({activeJobs} active)</Link>
+          <Link className="tk-button tk-ghost" href="/dreamer/inbox">Approvals ({approvals} pending)</Link>
+        </div>
       </section>
       {!ready ? (
         <p className="tk-empty">The assistant needs the AI provider key on the server and AI not disabled. The brief above works without it.</p>

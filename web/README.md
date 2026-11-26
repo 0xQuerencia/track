@@ -74,6 +74,10 @@ All modules share one SQLite database, one record-link table (`record_links`) an
 
 **GitHub sync.** Optional and read-only: set `GITHUB_TOKEN` and a "Sync from GitHub" button appears on `/integrations`. It only calls `api.github.com` for projects whose repo URL is a plain `https://github.com/owner/repo`. Antigravity has no documented local format, so it is reported as unsupported.
 
+### Study Nanny
+
+Import a completed local Study Nanny session into Focus using the [summary-only connector](tools/study-nanny/README.md).
+
 ## Sync API
 
 Used by the Android launcher; all routes need `Authorization: Bearer $TRACK_API_TOKEN`.

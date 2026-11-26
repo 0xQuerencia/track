@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import {DatabaseSync} from "node:sqlite";
 import {migration as legacy} from "../migrations/m160_dreamer_collective";
 import {migration as durable} from "../migrations/m190_dreamer_jobs";
+import {migration as ci} from "../migrations/m200_dreamer_ci";
 import {migration as studio} from "../migrations/m193_dreamer_studio";
 import {createJob,getJob,listJobs,planChiefJob} from "./jobs";
 const t=1800000000000;
-function fixture(){const db=new DatabaseSync(":memory:");legacy.up(db);durable.up(db);studio.up(db);return db;}
+function fixture(){const db=new DatabaseSync(":memory:");legacy.up(db);durable.up(db);studio.up(db);ci.up(db);return db;}
 test("durable queue is additive, bounded, dependency-checked and idempotent",()=>{
  const db=fixture();try{
   db.prepare("INSERT INTO dreamer_missions(objective,state) VALUES('Legacy','complete')").run();

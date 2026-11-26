@@ -23,7 +23,7 @@ export function exportMissionData(db:DatabaseSync){
  return {
   dreamer_job_memory:db.prepare("SELECT * FROM dreamer_job_memory").all(),
   dreamer_action_drafts:db.prepare("SELECT id,job_id,tool,params_json,state,created_ms,expires_ms,handled_ms,receipt_json FROM dreamer_action_drafts").all(),
-  dreamer_jobs:db.prepare("SELECT id,objective,include_context,state,attempt_budget,token_budget,attempts_reserved,tokens_reserved,created_ms,updated_ms,finished_ms FROM dreamer_jobs ORDER BY created_ms,id").all(),
+  dreamer_jobs:db.prepare("SELECT id,objective,ci_repository,include_context,state,attempt_budget,token_budget,attempts_reserved,tokens_reserved,created_ms,updated_ms,finished_ms FROM dreamer_jobs ORDER BY created_ms,id").all(),
   dreamer_job_steps:db.prepare("SELECT job_id,step_id,ordinal,agent_key,depends_json,max_tokens,max_attempts,state,attempt,available_ms,output_md,error_code,updated_ms FROM dreamer_job_steps ORDER BY job_id,ordinal").all(),
   dreamer_job_attempts:db.prepare("SELECT job_id,step_id,attempt,started_ms,finished_ms,status,error_code,output_sha256 FROM dreamer_job_attempts ORDER BY job_id,step_id,attempt").all(),
   dreamer_job_schedules:db.prepare("SELECT job_id,schedule_id,revision,approval_sha256 FROM dreamer_job_schedules").all(),

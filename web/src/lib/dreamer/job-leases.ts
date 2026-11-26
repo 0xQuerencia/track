@@ -38,12 +38,12 @@ function recoverInside(db:DatabaseSync,now:number){
 export function recoverExpired(db:DatabaseSync,now=Date.now()){
  validNow(now);return jobTransaction(db,()=>recoverInside(db,now));
 }
-export function claimStep(db:DatabaseSync,workerId:string,now=Date.now(),leaseMs=DEFAULT_LEASE_MS):StepLease|null{
+export function claimStep(db:DatabaseSync,workerId:string,now=Date.now(),leaseMs=DEFAULT_LEASE_MS,onlyCi=false):StepLease|null{
  if(!ID.test(workerId))throw new Error("Invalid worker ID");validNow(now);validLease(leaseMs);
  return jobTransaction(db,()=>{
   recoverInside(db,now);
   if(Number(db.prepare("SELECT COUNT(*) AS n FROM dreamer_job_steps WHERE state='running'").get()?.n)>=GLOBAL_CONCURRENCY)return null;
-  const jobs=db.prepare("SELECT id FROM dreamer_jobs WHERE state IN ('queued','running') ORDER BY created_ms,id LIMIT 10").all();
+  const jobs=db.prepare("SELECT id FROM dreamer_jobs WHERE state IN ('queued','running') AND (?=0 OR ci_repository IS NOT NULL) ORDER BY created_ms,id LIMIT 10").all(onlyCi?1:0);
   for(const row of jobs){
    const job=getJob(db,String(row.id))!;
    if(job.steps.some(s=>s.state==="failed")||job.steps.filter(s=>s.state==="running").length>=JOB_CONCURRENCY)continue;

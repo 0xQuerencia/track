@@ -7,7 +7,7 @@
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" tools/study-nanny/sync.test.mjs",
     "dreamer:worker": "node --import tsx tools/dreamer-worker.ts"
   },
   "dependencies": {
