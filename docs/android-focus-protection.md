@@ -1,0 +1,3 @@
+# Android local focus protection
+
+From Track Launcher, long-press an app in the drawer or favorites and add it to focus protection. In Settings, start a 25- or 50-minute voluntary protection window. Selected apps open a choice dialog when launched from Track, including **Open once anyway** and **End protection and open**. Other launch paths (notifications, links, another launcher) are not intercepted. No accessibility service, device administrator or privileged OS control is requested. The selection and timer live only in the launcher process and reset on process restart. Emergency access is always available. This local mode is not yet synchronized to web focus phases, and must be tested on a real Android device.

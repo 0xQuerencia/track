@@ -49,6 +49,10 @@ fun SettingsScreen(
     mono: Boolean,
     onMono: (Boolean) -> Unit,
     onClose: () -> Unit,
+    protectedApps: Int = 0,
+    focusActive: Boolean = false,
+    onStartProtection: (Int) -> Unit = {},
+    onStopProtection: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -131,6 +135,19 @@ fun SettingsScreen(
                 }
                 Button("Refresh Pulse status") { pulseStatus = pulse.status(); pulseNotice = pulseStatus.notice }
                 if (pulseNotice.isNotBlank()) Text(pulseNotice, TrackType.Small)
+            }
+        }
+        item {
+            TrackCard {
+                Text("LOCAL FOCUS PROTECTION", TrackType.Label)
+                Text("Long-press apps in the drawer or favorites to select them. Only launches from this launcher are protected. App links and notifications can bypass it. You can open any app once or end protection immediately.", TrackType.Small)
+                Text("$protectedApps selected apps", TrackType.BodyMedium)
+                if (focusActive) Button("End protection now") { onStopProtection() }
+                else if (protectedApps > 0) {
+                    Button("Protect for 25 min", primary = true) { onStartProtection(25) }
+                    Button("Protect for 50 min") { onStartProtection(50) }
+                }
+                Text("Selection and protection reset when the launcher process restarts. This does not follow the web timer yet.", TrackType.Small)
             }
         }
         item {

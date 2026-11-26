@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -48,6 +49,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import art.querencia.track.data.AppEntry
+import art.querencia.track.data.FocusGuard
 import art.querencia.track.ui.AppDrawer
 import art.querencia.track.ui.AppIcon
 import art.querencia.track.ui.GridIcon
@@ -123,6 +125,20 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
     var overlay by remember { mutableStateOf(Overlay.None) }
     var mono by remember { mutableStateOf(app.prefs.monoIcons) }
     var menuFor by remember { mutableStateOf<AppEntry?>(null) }
+    var focusGuard by remember { mutableStateOf(FocusGuard()) }
+    var focusNow by remember { mutableStateOf(SystemClock.elapsedRealtime()) }
+    var blockedLaunch by remember { mutableStateOf<AppEntry?>(null) }
+    LaunchedEffect(focusGuard.untilElapsedMs) {
+        focusNow = SystemClock.elapsedRealtime()
+        while (focusGuard.active(focusNow)) {
+            kotlinx.coroutines.delay(1000)
+            focusNow = SystemClock.elapsedRealtime()
+        }
+    }
+    fun launch(entry: AppEntry) {
+        if (focusGuard.blocks(entry.packageName, SystemClock.elapsedRealtime())) blockedLaunch = entry
+        else app.apps.launch(entry)
+    }
 
     LaunchedEffect(packagesVersion) { apps = app.apps.load() }
     LaunchedEffect(homePresses) { overlay = Overlay.None }
@@ -146,7 +162,7 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
             onToggleTask = { t -> vm.change { e, _ -> e.setTaskStatus(t.id, "Done") } },
             onAddTask = { title -> vm.change { e, _ -> e.addTask(title, "Medium", null, null) } },
             onToggleHabit = { h -> vm.change { e, date -> e.toggleHabit(h.id, date) } },
-            footer = { Favorites(favorites, app, mono, onLaunch = app.apps::launch, onMenu = { menuFor = it }) },
+            footer = { Favorites(favorites, app, mono, onLaunch = ::launch, onMenu = { menuFor = it }) },
         )
 
         SwipeUpHandle(onOpen = { overlay = Overlay.Drawer }, modifier = Modifier.align(Alignment.BottomCenter))
@@ -180,7 +196,9 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
                 dock = dock,
                 contentPadding = insets,
                 taskMatches = vm::searchTasks,
-                onLaunch = { overlay = Overlay.None; app.apps.launch(it) },
+                onLaunch = { overlay = Overlay.None; launch(it) },
+                protectedApps = focusGuard.packages,
+                onToggleProtection = { focusGuard = focusGuard.toggle(it.packageName) },
                 onHide = { a -> hidden = hidden + a.packageName; app.prefs.hidden = hidden },
                 onToggleDock = { a ->
                     saveDock(if (a.packageName in dock) dock - a.packageName else (dock + a.packageName).takeLast(7))
@@ -201,11 +219,26 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
                 onUnhide = { a -> hidden = hidden - a.packageName; app.prefs.hidden = hidden },
                 mono = mono,
                 onMono = { mono = it; app.prefs.monoIcons = it },
+                protectedApps = focusGuard.packages.size,
+                focusActive = focusGuard.active(focusNow),
+                onStartProtection = { minutes -> focusGuard = focusGuard.start(minutes, SystemClock.elapsedRealtime()) },
+                onStopProtection = { focusGuard = focusGuard.stop() },
                 onClose = { overlay = Overlay.None },
             )
         }
     }
 
+    blockedLaunch?.let { entry ->
+        ActionSheet(
+            title = entry.label + " — focus protection",
+            actions = listOf(
+                "Return to focus" to {},
+                "Open once anyway" to { app.apps.launch(entry) },
+                "End protection and open" to { focusGuard = focusGuard.stop(); app.apps.launch(entry) },
+            ),
+            onDismiss = { blockedLaunch = null },
+        )
+    }
     menuFor?.let { a ->
         ActionSheet(
             title = a.label,
@@ -213,6 +246,7 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
                 (if (a.packageName in dock) "Remove from favorites" else "Add to favorites") to {
                     saveDock(if (a.packageName in dock) dock - a.packageName else (dock + a.packageName).takeLast(7))
                 },
+                (if (a.packageName in focusGuard.packages) "Remove from focus protection" else "Add to focus protection") to { focusGuard = focusGuard.toggle(a.packageName) },
                 "Hide from drawer" to { hidden = hidden + a.packageName; app.prefs.hidden = hidden },
                 "App info" to { app.apps.appInfo(a.packageName) },
                 "Uninstall" to { app.apps.uninstall(a.packageName) },
