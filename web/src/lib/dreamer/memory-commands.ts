@@ -13,9 +13,9 @@ export function parseMemoryCommand(raw:unknown){const v=command.safeParse(raw);r
 export function applyMemoryCommand(db:DatabaseSync,c:MemoryCommand){
  if(c.command==="preview")return {preview:memoryPreview(db,c.namespace,c.ids)};
  if(c.command==="delete"){
-  if(!listMemory(db,c.namespace).some(m=>m.id===c.id&&m.revision===c.revision))throw Error("Memory changed or not found");
-  removeMemory(db,c.id,c.revision);return {notes:listMemory(db,c.namespace)};
+  if(!listMemory(db,c.namespace,Date.now(),true).some(m=>m.id===c.id&&m.revision===c.revision))throw Error("Memory changed or not found");
+  removeMemory(db,c.id,c.revision);return {notes:listMemory(db,c.namespace,Date.now(),true)};
  }
  saveMemory(db,c.input,c.command==="edit"?c.id:undefined,c.command==="edit"?c.revision:undefined);
- return {notes:listMemory(db,c.input.namespace)};
+ return {notes:listMemory(db,c.input.namespace,Date.now(),true)};
 }

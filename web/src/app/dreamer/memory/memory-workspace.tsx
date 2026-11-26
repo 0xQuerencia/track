@@ -7,7 +7,7 @@ import type {MemoryCommand} from "@/lib/dreamer/memory-commands";
 export function MemoryWorkspace({pods,initialNamespace,sourceJobId}:{pods:{id:string;name:string}[];initialNamespace:string;sourceJobId:string}){
  const [namespace,setNamespace]=useState(initialNamespace),[notes,setNotes]=useState<MemoryNote[]>([]),[title,setTitle]=useState(""),[body,setBody]=useState(""),[source,setSource]=useState(sourceJobId),[expiry,setExpiry]=useState(""),[edit,setEdit]=useState<{id:string;revision:number}|null>(null),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false);
  const [revision,setRevision]=useState(0);
- useEffect(()=>{let stop=false;fetch("/api/dreamer/memory?namespace="+encodeURIComponent(namespace),{cache:"no-store"}).then(async r=>{const data=await r.json();if(!r.ok||!data.ok)throw Error(data.error||"Memory unavailable");if(!stop)setNotes(data.notes);}).catch(e=>{if(!stop){setNotes([]);setNotice(e.message);}});return()=>{stop=true;};},[namespace,revision]);
+ useEffect(()=>{let stop=false;fetch("/api/dreamer/memory?namespace="+encodeURIComponent(namespace)+"&includeExpired=1",{cache:"no-store"}).then(async r=>{const data=await r.json();if(!r.ok||!data.ok)throw Error(data.error||"Memory unavailable");if(!stop)setNotes(data.notes);}).catch(e=>{if(!stop){setNotes([]);setNotice(e.message);}});return()=>{stop=true;};},[namespace,revision]);
  function reset(){setTitle("");setBody("");setSource("");setExpiry("");setEdit(null);}
  async function save(c:MemoryCommand){
   setBusy(true);setNotice("");
