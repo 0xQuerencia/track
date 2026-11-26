@@ -46,7 +46,7 @@ export default async function DreamerPage({ searchParams }: { searchParams: Prom
     <Page kicker="Journal intelligence · local first" title="Dreamer" lede="A reviewable layer over your journal, notes, ideas, projects and goals. Local analysis is always available; external AI is optional and gated by your consent.">
       <nav className="dreamer-tabs" aria-label="Dreamer sections">
         {TABS.map((tab) => <Link key={tab} href={`/dreamer?tab=${tab}`} aria-current={activeTab === tab ? "page" : undefined}>{LABELS[tab]}</Link>)}
-        <Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio">Studio</Link>
+        <Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio">Studio</Link><Link href="/dreamer/schedules">Schedules</Link>
       </nav>
       {activeTab === "chief" ? <ChiefPanel /> : null}
       {activeTab === "brief" ? <BriefSection date={date} body={briefs[0]?.period_key === date ? briefs[0].body_md : null} run={latestDaily} disclosure={disclosure} aiEnabled={consentView.consent.enabled} sourcesEnabled={consentView.sources.some((source) => source.enabled)} /> : null}
