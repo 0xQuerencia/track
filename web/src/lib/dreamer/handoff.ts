@@ -18,7 +18,7 @@ export function calendarDraft(draft:ActionDraft):Artifact{
  return {filename:"track-event-"+draft.id.slice(0,12)+".ics",contentType:"text/calendar; charset=utf-8",body:lines.map(fold).join("\r\n")+"\r\n"};
 }
 function subjectWords(subject:string){
- let chunk="",parts:string[]=[];
+ let chunk="";const parts:string[]=[];
  for(const c of subject){if(Buffer.byteLength(chunk+c)>36){parts.push(chunk);chunk="";}chunk+=c;}if(chunk)parts.push(chunk);
  return parts.map(p=>"=?UTF-8?B?"+Buffer.from(p).toString("base64")+"?=").join("\r\n ");
 }
