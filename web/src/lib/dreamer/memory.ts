@@ -29,6 +29,7 @@ export function saveMemory(db:DatabaseSync,input:MemoryInput,id?:string,revision
  }
  return jobTransaction(db,()=>{
   if(id===undefined){
+   db.prepare("DELETE FROM dreamer_memory WHERE expires_ms IS NOT NULL AND expires_ms<=?").run(now);
    if(Number(db.prepare("SELECT COUNT(*) AS n FROM dreamer_memory WHERE namespace=?").get(v.namespace)?.n)>=200)throw Error("Memory limit reached");
    id="memory-"+randomUUID();
    db.prepare("INSERT INTO dreamer_memory VALUES(?,?,?,?,?,0,?,?,?)").run(id,v.namespace,v.title,v.body,v.sourceJobId,now,now,v.expiresMs);
