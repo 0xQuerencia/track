@@ -20,7 +20,24 @@ jobs:
           packages: 'platform-tools'
           log-accepted-android-sdk-licenses: 'false'
       - run: |
-          sdkmanager "platforms;android-37" "ndk;27.2.12479018"
+          # API 37 packages may use the major.minor SDK identifier.
+          sdkmanager --install "cmdline-tools;latest"
+          manager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          "$manager" --list --channel=3 --include_obsolete > /tmp/track-sdk-packages.txt
+          platform=""
+          for candidate in "platforms;android-37.0" "platforms;android-37"; do
+            if awk -F "|" -v wanted="$candidate" '{gsub(/^[ \t]+|[ \t]+$/, "", $1); if ($1 == wanted) found=1} END {exit !found}' /tmp/track-sdk-packages.txt; then
+              platform="$candidate"
+              break
+            fi
+          done
+          if [ -z "$platform" ]; then
+            grep -E "platforms;android-(37|Cinnamon)" /tmp/track-sdk-packages.txt || true
+            echo "::error::Android API 37 is absent from the SDK package index"
+            exit 1
+          fi
+          echo "Installing $platform"
+          "$manager" --channel=3 --install "$platform" "ndk;27.2.12479018"
           rustup target add aarch64-linux-android armv7-linux-androideabi
           cargo install cargo-ndk --locked
       - working-directory: android
