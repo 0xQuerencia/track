@@ -17,8 +17,15 @@ const SCOPE_TEXT: Record<IntegrationScope, string> = {
   "study:jobs": "Run the due Study jobs (plan, reminders, weekly review) from a scheduler",
 };
 
+export function scopeDefaultChecked(scope: IntegrationScope, studyNannyPreset: boolean): boolean {
+  if (studyNannyPreset) return scope === "study-nanny:write";
+  if (scope === "study-nanny:write") return false;
+  return scope !== "projects:write" && scope !== "dreamer:run" && scope !== "study:jobs"
+    && scope !== "activity:write" && scope !== "activity:maintenance" && scope !== "focus:read";
+}
+
 /** Creates a token and shows it once, with a copy button. Closing the page loses it for good. */
-export function TokenForm() {
+export function TokenForm({ studyNannyPreset = false }: { studyNannyPreset?: boolean }) {
   const [state, action, pending] = useActionState<TokenActionState, FormData>(
     createIntegrationTokenAction,
     null,
@@ -46,7 +53,7 @@ export function TokenForm() {
           <legend>Scopes</legend>
           {INTEGRATION_SCOPES.map((scope) => (
             <label key={scope} className="set-scope">
-              <input type="checkbox" name="scope" value={scope} defaultChecked={scope !== "projects:write" && scope !== "dreamer:run" && scope !== "study:jobs" && scope !== "activity:write" && scope !== "activity:maintenance" && scope !== "focus:read" && scope !== "study-nanny:write"} disabled={pending} />
+              <input type="checkbox" name="scope" value={scope} defaultChecked={scopeDefaultChecked(scope, studyNannyPreset)} disabled={pending} />
               <span>
                 <code>{scope}</code> {SCOPE_TEXT[scope]}
               </span>

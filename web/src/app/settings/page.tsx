@@ -11,7 +11,9 @@ import "./ai-settings.css";
 
 export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ scopePreset?: string | string[] }> }) {
+  const params = await searchParams;
+  const studyNannyPreset = params.scopePreset === "study-nanny";
   const db = getDb();
   const tokens = listTokens(db);
   const aiStatus = getAiStatus(db);
@@ -25,8 +27,8 @@ export default function SettingsPage() {
       lede="Integration tokens for the Linux connector, and what to back up. Tokens are shown once and stored only as hashes."
     >
       <SplitPanels>
-        <Panel title="Create a token" description="Choose only the scopes the machine needs. A token that is no longer needed should be revoked.">
-          <TokenForm />
+        <Panel id="integration-tokens" title="Create a token" description="Choose only the scopes the machine needs. A token that is no longer needed should be revoked.">
+          <TokenForm key={studyNannyPreset ? "study-nanny" : "standard"} studyNannyPreset={studyNannyPreset} />
         </Panel>
 
         <Panel title="Tokens" description={`${active.length} active of ${tokens.length} listed.`}>
