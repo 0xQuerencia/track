@@ -1,3 +1,4 @@
+import {eraseSentinel} from "./sentinel";
 import {eraseResearch} from "./research";
 import {eraseMemory} from "./memory";
 import {eraseSchedules} from "./schedules";
@@ -209,6 +210,7 @@ export function runWeeklyReflection(db: DatabaseSync, weekStart: string, now = n
 export function deleteAllDreamerData(db: DatabaseSync): void {
   jobTransaction(db,()=>{
   eraseAllMissionRows(db);
+  eraseSentinel(db);
   eraseResearch(db);
   eraseMemory(db);
   eraseSchedules(db);

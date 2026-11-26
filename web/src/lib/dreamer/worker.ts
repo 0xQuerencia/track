@@ -1,4 +1,5 @@
 import type {DatabaseSync} from "node:sqlite";
+import {runSentinelTick} from "./sentinel";
 import {runDueSchedules} from "./schedules";
 import {claimStep,recoverExpired,type StepLease} from "./job-leases";
 import {executeMissionStep,missionPolicyError} from "./job-executor";
@@ -19,6 +20,7 @@ export async function runWorkerTick(db:DatabaseSync,id:string,deps:TickDeps={}){
  if(!Number.isInteger(count)||count<1||count>3)throw new Error("Invalid worker concurrency");
  recoverExpired(db,now());
  runDueSchedules(db,now());
+ await runSentinelTick(db,{now});
  if(missionPolicyError(db)){workerHeartbeat(db,id,"paused",now());return 0;}
  const leases:StepLease[]=[];
  for(let i=0;i<count;i++){const lease=claimStep(db,id,now());if(!lease)break;leases.push(lease);}
