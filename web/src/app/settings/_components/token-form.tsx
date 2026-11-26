@@ -6,6 +6,7 @@ import { INTEGRATION_SCOPES, type IntegrationScope } from "@/lib/security/integr
 import { createIntegrationTokenAction, type TokenActionState } from "../actions";
 
 const SCOPE_TEXT: Record<IntegrationScope, string> = {
+  "study-nanny:write": "Import completed Study Nanny totals (one token per profile)",
   "focus:read": "Read only the active focus phase for optional collector blocking",
   "activity:maintenance": "Prune expired activity intervals only (scheduled job)",
   "activity:write": "Send coarse, opt-in activity intervals (one token per device)",
@@ -45,7 +46,7 @@ export function TokenForm() {
           <legend>Scopes</legend>
           {INTEGRATION_SCOPES.map((scope) => (
             <label key={scope} className="set-scope">
-              <input type="checkbox" name="scope" value={scope} defaultChecked={scope !== "projects:write" && scope !== "dreamer:run" && scope !== "study:jobs" && scope !== "activity:write" && scope !== "activity:maintenance" && scope !== "focus:read"} disabled={pending} />
+              <input type="checkbox" name="scope" value={scope} defaultChecked={scope !== "projects:write" && scope !== "dreamer:run" && scope !== "study:jobs" && scope !== "activity:write" && scope !== "activity:maintenance" && scope !== "focus:read" && scope !== "study-nanny:write"} disabled={pending} />
               <span>
                 <code>{scope}</code> {SCOPE_TEXT[scope]}
               </span>
