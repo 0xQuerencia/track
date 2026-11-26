@@ -43,7 +43,12 @@ export default function FocusPage() {
         title="Study Nanny"
         description="Completed desktop sessions only. Measured focus is separate from your Track timer and is not added to it."
       >
-        {nanny.length === 0 ? <p>No Study Nanny sessions imported yet.</p> : (
+        {nanny.length === 0 ? (
+          <div className="tk-stack">
+            <p>No sessions imported yet. Use <code>nanny sessions</code> on your laptop to pick completed sessions. The Track connector previews totals locally and only sends them when you run it with <code>--send</code>.</p>
+            <Link className="tk-button tk-primary" href="/settings?scopePreset=study-nanny#integration-tokens">Set up a Study Nanny token</Link>
+          </div>
+        ) : (
           <ul>
             {nanny.map((session, index) => (
               <li key={`${session.ended_at}-${session.session_id}-${index}`}>

@@ -33,13 +33,15 @@ export function Panel({
   title,
   description,
   children,
+  id,
 }: {
   title: string;
   description?: string;
   children: ReactNode;
+  id?: string;
 }) {
   return (
-    <section className="tk-panel" aria-label={title}>
+    <section id={id} className="tk-panel" aria-label={title}>
       <header className="tk-panel-head">
         <div>
           <h2>{title}</h2>
