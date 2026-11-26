@@ -1,0 +1,5 @@
+# Sentinel GitHub sample monitoring
+
+Explicitly configure one allowlisted repository and open issues or pull requests, with 1-hour, 6-hour or daily cadence. Requires the opt-in worker, TRACK_DREAMER_RESEARCH_ENABLED=1, TRACK_DREAMER_SENTINEL_ENABLED=1 and the exact GitHub repository allowlist. The optional dedicated read-only token is never stored or exported. Changing the credential, scope or configuration requires reapproval. The worker fetches the same bounded ten-item sample as the research connector, records the initial baseline and later differences in a private local inbox. It is not a complete GitHub event feed and cannot guarantee detection of all issues, releases or changes outside the sample.
+
+Leases limit concurrency; deleted, disabled or revised watches cannot emit late results. No AI request or external write occurs. No push, email or Discord delivery is enabled. Up to 20 watches and 200 retained events, no catch-up flood. Export and delete-all include monitor data. Live upstream credentials and a running deployment are still required.

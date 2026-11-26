@@ -2,6 +2,7 @@ import {DatabaseSync} from "node:sqlite";
 import {randomUUID} from "node:crypto";
 import {existsSync} from "node:fs";
 import {setTimeout as sleep} from "node:timers/promises";
+import {MIGRATIONS} from "../src/lib/migrations";
 import {trackDbPath} from "../src/lib/db";
 import {runWorkerTick,workerHeartbeat} from "../src/lib/dreamer/worker";
 
@@ -17,7 +18,7 @@ async function main(){
  process.on("SIGTERM",shutdown);process.on("SIGINT",shutdown);
  try{
   db.exec("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON");
-  if(!db.prepare("SELECT version FROM schema_migrations WHERE version=194").get())throw new Error("Start the updated Track web app first to migrate the database");
+  if(!db.prepare("SELECT version FROM schema_migrations WHERE version=?").get(MIGRATIONS.at(-1)!.version))throw new Error("Start the updated Track web app first to migrate the database");
   workerHeartbeat(db,id,"idle");
   do{
    try{await runWorkerTick(db,id);}catch{workerHeartbeat(db,id,"error");console.error("Dreamer worker tick failed; leased work expires safely.");if(process.argv.includes("--once"))process.exitCode=1;}
