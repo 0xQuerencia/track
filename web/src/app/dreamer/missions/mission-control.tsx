@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import {MemoryPicker} from "./memory-picker";
+import type {MemorySelection} from "@/lib/dreamer/memory";
 import {useEffect,useState,useRef,type FormEvent} from "react";
 import {Panel} from "@/components/track/page";
 import type {DurableJob,listJobs} from "@/lib/dreamer/jobs";
@@ -21,6 +23,8 @@ const active=(state:string)=>state==="queued"||state==="running";
 function State({state}:{state:string}){return <span className="dm-state" data-state={state}>{state.replaceAll("_"," ")}</span>;}
 export function MissionControl({initialPod="",initialJob=null}:{initialPod?:string;initialJob?:string|null}){
  const [podId,setPodId]=useState(initialPod);
+ const [memory,setMemory]=useState<MemorySelection|null>(null);
+ const [memoryVersion,setMemoryVersion]=useState(0);
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
  const [detail,setDetail]=useState<Detail|null>(null);
  const [selected,setSelected]=useState<string|null>(initialJob);
@@ -67,12 +71,12 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
   const value=objective.trim();if(value.length<3)return;
   const approvalSha256=context&&!podId?preview?.sha256:undefined;
   if(context&&!podId&&!approvalSha256){setNotice("Review the disclosure preview first.");return;}
-  const key=JSON.stringify({value,context:context&&!podId,approvalSha256,podId});
+  const key=JSON.stringify({value,context:context&&!podId,approvalSha256,podId,memory});
   if(draft.current?.key!==key)draft.current={key,id:crypto.randomUUID()};
   const id=draft.current.id;setBusy(true);setNotice("");
   try{
-   await api("",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({command:"enqueue",id,objective:value,includeContext:context&&!podId,...(podId?{podId}:{}),...(approvalSha256?{approvalSha256}:{})})});
-   draft.current=null;setObjective("");setContext(false);setPreview(null);setSelected(id);setRefresh(v=>v+1);setNotice("Mission queued. An enabled worker must claim it before execution starts.");
+   await api("",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({command:"enqueue",id,objective:value,includeContext:context&&!podId,...(podId?{podId}:{}),...(memory?{memory}:{}),...(approvalSha256?{approvalSha256}:{})})});
+   draft.current=null;setObjective("");setMemory(null);setMemoryVersion(v=>v+1);setContext(false);setPreview(null);setSelected(id);setRefresh(v=>v+1);setNotice("Mission queued. An enabled worker must claim it before execution starts.");
   }catch(e){setNotice(e instanceof Error?e.message:"Could not queue mission");}
   finally{setBusy(false);}
  }
@@ -96,11 +100,12 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
  {connection?<p className="dreamer-notice" role="status">{connection}</p>:null}</Panel>
  <Panel title="New mission" description="Only your typed objective is sent by default. Optional evidence requires a fresh preview and confirmation.">
  <form className="dm-form" onSubmit={submit}>
- <label>Mission team<select value={podId} disabled={busy} onChange={e=>{setPodId(e.target.value);setContext(false);setPreview(null);}}><option value="">Chief selects built-in specialists</option>{snapshot?.pods.filter(p=>p.enabled).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+ <label>Mission team<select value={podId} disabled={busy} onChange={e=>{setPodId(e.target.value);setMemory(null);setContext(false);setPreview(null);}}><option value="">Chief selects built-in specialists</option>{snapshot?.pods.filter(p=>p.enabled).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
  {podId?<p>AI Pod missions do not include personal source excerpts. The selected team configuration will be locked at submission.</p>:null}
  <label>Objective<textarea value={objective} onChange={e=>setObjective(e.target.value)} minLength={3} maxLength={2200} required rows={5} placeholder="Review the architecture of my project and propose testable next steps." disabled={busy}/></label>
  <div className="dreamer-actions"><button type="button" className="tk-button tk-ghost" onClick={()=>void loadPreview()} disabled={busy||!!podId}>Review optional context</button></div>
  {preview?<div className="dm-disclosure"><strong>{preview.items.length} approved-source excerpts</strong>{preview.items.length?<ol>{preview.items.map(i=><li key={i.id}><small>{i.label}</small><p>{i.text}</p></li>)}</ol>:<p>No current permitted evidence is available.</p>}<label className="dm-check"><input type="checkbox" checked={context} onChange={e=>setContext(e.target.checked)} disabled={busy||preview.items.length===0}/> Include exactly this preview; if it changes, stop the mission.</label></div>:null}
+ <MemoryPicker key={podId+":"+memoryVersion} namespace={podId||"personal"} disabled={busy} onApprove={setMemory}/>
  <button className="tk-button" disabled={busy||!snapshot||!!snapshot.policy||objective.trim().length<3||!!podId&&!snapshot.pods.some(p=>p.id===podId&&p.enabled)} type="submit">{busy?"Working…":"Queue mission"}</button>
  </form><p role="status" className="dm-notice">{notice}</p></Panel>
  <Panel title="Mission history" description="Select a mission to inspect dependencies, attempts and saved reports.">
@@ -111,6 +116,7 @@ export function MissionControl({initialPod="",initialJob=null}:{initialPod?:stri
  <p>{current.job.attemptsReserved}/{current.job.attemptBudget} attempts · {current.job.tokensReserved}/{current.job.tokenBudget} requested output tokens reserved (not actual billing)</p>
  {active(current.job.state)?<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void cancel(current.job.id)}>Cancel mission</button>:<button className="tk-button tk-danger" disabled={busy} type="button" onClick={()=>void erase(current.job.id)}>Delete mission</button>}
  {current.job.state==="complete"?<Link className="tk-button" href={"/dreamer/inbox?job="+encodeURIComponent(current.job.id)}>Propose local actions from this report</Link>:null}
+ {current.job.state==="complete"?<Link className="tk-button tk-ghost" href={"/dreamer/memory?job="+encodeURIComponent(current.job.id)+(current.job.podId?"&pod="+encodeURIComponent(current.job.podId):"")}>Create a memory linked to this report</Link>:null}
  <ol className="dm-steps">{current.job.steps.map(s=><li key={s.id}><div className="dm-heading"><strong>{s.agentKey}</strong><State state={s.state}/></div><small>{s.dependsOn.length?"After "+s.dependsOn.join(", "):"No dependencies"} · attempt {s.attempt}/{s.maxAttempts}{s.errorCode?" · "+s.errorCode.replaceAll("_"," "):""}</small>{s.outputMd?<details open={s.agentKey==="chief"}><summary>Saved analysis</summary><pre>{s.outputMd}</pre></details>:null}</li>)}</ol>
  <details><summary>Execution receipts ({current.receipts.length})</summary><ul className="dm-receipts">{current.receipts.map(r=><li key={r.stepId+":"+r.attempt}>{r.stepId} · attempt {r.attempt} · {r.status} · {time(r.startedMs)}{r.errorCode?" · "+r.errorCode:""}{r.outputSha256?<code>SHA-256: {r.outputSha256}</code>:null}</li>)}</ul></details>
  </>}</Panel>:null}

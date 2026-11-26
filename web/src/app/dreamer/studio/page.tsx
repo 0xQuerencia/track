@@ -13,7 +13,7 @@ export default async function StudioPage(){
  const token=(await cookies()).get(SESSION_COOKIE)?.value;
  if(!token||!await verifySessionToken(token))redirect("/login");
  return <Page kicker="Dreamer / Studio" title="Your AI workforce" lede="Build private specialist teams with bounded responsibilities. Teams analyze only the objective you explicitly submit. No tool permissions or personal records are granted here.">
- <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio" aria-current="page">Studio</Link><Link href="/dreamer/schedules">Schedules</Link><Link href="/dreamer/inbox">Inbox</Link></nav>
+ <nav className="dreamer-tabs" aria-label="Dreamer navigation"><Link href="/dreamer">Dreamer</Link><Link href="/dreamer/missions">Mission Control</Link><Link href="/dreamer/studio" aria-current="page">Studio</Link><Link href="/dreamer/schedules">Schedules</Link><Link href="/dreamer/inbox">Inbox</Link><Link href="/dreamer/memory">Memory</Link></nav>
  <Studio initial={studioSnapshot(getDb())}/>
  </Page>;
 }
