@@ -33,9 +33,11 @@ internal fun drainOutbox(
 internal fun verifyAndSave(
     candidate: TrackConnection,
     fetch: (TrackConnection) -> String,
-    apply: (String) -> Unit,
+    validate: (String) -> Unit,
     save: (TrackConnection) -> Unit,
-) {
-    apply(fetch(candidate))
+): String {
+    val snapshot = fetch(candidate)
+    validate(snapshot)
     save(candidate)
+    return snapshot
 }

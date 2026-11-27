@@ -30,7 +30,10 @@ impl Store {
              CREATE TABLE IF NOT EXISTS outbox (
                seq INTEGER PRIMARY KEY AUTOINCREMENT,
                op_id TEXT NOT NULL UNIQUE, json TEXT NOT NULL);
-             CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);",
+             CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS task_aliases (
+               temporary_id INTEGER PRIMARY KEY CHECK(temporary_id < 0),
+               server_id INTEGER NOT NULL CHECK(server_id > 0));",
         )?;
         Ok(Self { conn })
     }
@@ -161,6 +164,68 @@ impl Store {
             .filter_map(|(seq, json)| serde_json::from_str(&json).ok().map(|op| Pending { seq, op }))
             .collect();
         Ok(out)
+    }
+
+    /// Task-local negative IDs cannot be sent before the corresponding create ACK.
+    pub fn ready_pending(&self, limit: i64) -> Result<Vec<Pending>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT seq, json FROM outbox
+             WHERE NOT (json_extract(json, '$.entity') = 'tasks'
+               AND COALESCE(json_extract(json, '$.id'), 0) < 0)
+             ORDER BY seq LIMIT ?",
+        )?;
+        let rows = stmt.query_map([limit], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        Ok(rows.filter_map(|r| r.ok())
+            .filter_map(|(seq, value)| serde_json::from_str(&value).ok().map(|op| Pending { seq, op }))
+            .collect())
+    }
+
+    pub fn pending_by_id(&self, op_id: &str) -> Result<Option<Pending>> {
+        let row: Option<(i64, String)> = self.conn.query_row(
+            "SELECT seq, json FROM outbox WHERE op_id=?", [op_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        ).optional()?;
+        Ok(row.and_then(|(seq, value)| serde_json::from_str(&value).ok().map(|op| Pending { seq, op })))
+    }
+
+    pub fn waiting_task_ops(&self, temporary_id: i64) -> Result<Vec<Pending>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT seq,json FROM outbox WHERE json_extract(json, '$.entity')='tasks'
+               AND json_extract(json, '$.id')=? ORDER BY seq",
+        )?;
+        let rows = stmt.query_map([temporary_id], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        Ok(rows.filter_map(|r| r.ok())
+            .filter_map(|(seq, value)| serde_json::from_str(&value).ok().map(|op| Pending { seq, op }))
+            .collect())
+    }
+
+    pub fn pending_task_create_exists(&self, temporary_id: i64) -> Result<bool> {
+        let Some(seq) = temporary_id.checked_neg() else { return Ok(false) };
+        self.conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM outbox WHERE seq=? AND json_extract(json, '$.op')='create'
+              AND json_extract(json, '$.entity')='tasks')", [seq], |r| r.get(0),
+        )
+    }
+
+    pub fn update_pending(&self, seq: i64, op: &Value) -> Result<()> {
+        self.conn.execute("UPDATE outbox SET json=? WHERE seq=?", params![op.to_string(), seq])?;
+        Ok(())
+    }
+
+    pub fn remove_pending_seq(&self, seq: i64) -> Result<()> {
+        self.conn.execute("DELETE FROM outbox WHERE seq=?", [seq])?;
+        Ok(())
+    }
+
+    pub fn task_alias(&self, temporary_id: i64) -> Result<Option<i64>> {
+        self.conn.query_row("SELECT server_id FROM task_aliases WHERE temporary_id=?",
+            [temporary_id], |r| r.get(0)).optional()
+    }
+
+    pub fn put_task_alias(&self, temporary_id: i64, server_id: i64) -> Result<()> {
+        self.conn.execute("INSERT INTO task_aliases(temporary_id,server_id) VALUES (?,?)",
+            params![temporary_id, server_id])?;
+        Ok(())
     }
 
     pub fn pending_count(&self) -> Result<i64> {

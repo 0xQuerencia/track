@@ -40,15 +40,15 @@ class SyncProtocolTest {
         val steps = mutableListOf<String>()
         assertThrows(ApiException::class.java) {
             verifyAndSave(candidate, fetch = { throw ApiException("Token rejected.", 401) },
-                apply = { steps.add("apply") }, save = { steps.add("save") })
+                validate = { steps.add("apply") }, save = { steps.add("save") })
         }
         assertThrows(IllegalArgumentException::class.java) {
             verifyAndSave(candidate, fetch = { "partial" },
-                apply = { throw IllegalArgumentException("Not a snapshot") }, save = { steps.add("save") })
+                validate = { throw IllegalArgumentException("Not a snapshot") }, save = { steps.add("save") })
         }
         assertTrue(steps.isEmpty())
         verifyAndSave(candidate, fetch = { steps.add("read"); "complete" },
-            apply = { steps.add("validate") }, save = { steps.add("save") })
+            validate = { steps.add("validate") }, save = { steps.add("save") })
         assertEquals(listOf("read", "validate", "save"), steps)
     }
 

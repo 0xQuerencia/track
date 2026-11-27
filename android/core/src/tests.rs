@@ -141,8 +141,66 @@ fn pull_and_ack_reject_partial_data_without_erasing_cache_or_outbox() {
     let mut partial: serde_json::Value = serde_json::from_str(&snapshot()).unwrap();
     partial["data"].as_object_mut().unwrap().remove("chapters");
     assert!(e.apply_pull(partial.to_string()).is_err());
+    let mut empty_valid: serde_json::Value = serde_json::from_str(&snapshot()).unwrap();
+    empty_valid["data"]["tasks"] = json!([]);
+    e.validate_pull(empty_valid.to_string()).unwrap();
+
     assert!(!e.tasks(TODAY.into(), false).unwrap().is_empty());
     assert_eq!(e.pending_count().unwrap(), 2);
+}
+
+#[test]
+fn task_completion_waits_for_create_id_and_keeps_server_identity() {
+    let e = engine();
+    e.apply_pull(snapshot()).unwrap();
+    e.add_task("Offline then done".into(), "Medium".into(), None, None).unwrap();
+    let temporary = e.tasks(TODAY.into(), true).unwrap().into_iter()
+        .find(|task| task.title == "Offline then done").unwrap().id;
+    assert!(temporary < 0);
+    e.set_task_status(temporary, "Done".into()).unwrap();
+    assert_eq!(e.pending_count().unwrap(), 2);
+
+    let create = e.pending_ops(50).unwrap();
+    let batch: serde_json::Value = serde_json::from_str(&create).unwrap();
+    let ops = batch["ops"].as_array().unwrap();
+    assert_eq!(ops.len(), 1);
+    assert_eq!(ops[0]["op"], "create");
+    let id = ops[0]["opId"].as_str().unwrap();
+    let missing_id = json!({"results": [{"opId": id, "ok": true}]}).to_string();
+    assert!(e.ack(create.clone(), missing_id).is_err());
+    assert_eq!(e.pending_count().unwrap(), 2);
+
+    let canonical = 50;
+    assert_eq!(e.ack(create, json!({"results": [{"opId": id, "ok": true, "id": canonical}]}).to_string()).unwrap().applied, 1);
+    let row = e.tasks(TODAY.into(), true).unwrap().into_iter().find(|task| task.title == "Offline then done").unwrap();
+    assert_eq!(row.id, canonical);
+    assert_eq!(row.status, "Done");
+    // A tap from a stale view takes the same durable alias.
+    e.set_task_status(temporary, "Doing".into()).unwrap();
+    let ready: serde_json::Value = serde_json::from_str(&e.pending_ops(50).unwrap()).unwrap();
+    let ops = ready["ops"].as_array().unwrap();
+    assert_eq!(ops.len(), 2);
+    assert!(ops.iter().all(|op| op["id"] == canonical));
+    assert_eq!(ops[0]["value"], "Done");
+    assert_eq!(ops[1]["value"], "Doing");
+}
+
+#[test]
+fn unsynced_task_delete_is_deferred_and_create_refusal_counts_dependents() {
+    let e = engine();
+    e.apply_pull(snapshot()).unwrap();
+    e.add_task("Cancelled offline".into(), "Low".into(), None, None).unwrap();
+    let temporary = e.tasks(TODAY.into(), true).unwrap().into_iter()
+        .find(|task| task.title == "Cancelled offline").unwrap().id;
+    e.delete_task(temporary).unwrap();
+    let create = e.pending_ops(50).unwrap();
+    let batch: serde_json::Value = serde_json::from_str(&create).unwrap();
+    assert_eq!(batch["ops"].as_array().unwrap().len(), 1);
+    let id = batch["ops"][0]["opId"].as_str().unwrap();
+    let reply = json!({"results": [{"opId": id, "ok": false, "error":"Not allowed."}]});
+    assert_eq!(e.ack(create, reply.to_string()).unwrap().rejected, 2);
+    assert_eq!(e.pending_count().unwrap(), 0);
+    assert!(e.tasks(TODAY.into(), true).unwrap().iter().all(|task| task.title != "Cancelled offline"));
 }
 
 #[test]

@@ -2,7 +2,7 @@ import { getDb } from "./db";
 import { addDays, daysUntil, greeting, isoDate, longToday, todayStr } from "./dates";
 import { getEntity } from "./entities";
 import { coerceValue, type Value } from "./form";
-import { deleteRow, insertRow, listRows, updateField } from "./crud";
+import { deleteRowInTransaction, insertRow, listRows, updateField } from "./crud";
 import {
   focusMinutesByDay,
   focusTotals,
@@ -30,15 +30,6 @@ type Raw = Record<string, unknown>;
 
 export type Op = { opId: string; op: string } & Raw;
 export type OpResult = { opId: string; ok: boolean; id?: number; error?: string };
-
-function ensureOpsTable(): void {
-  getDb().exec(
-    `CREATE TABLE IF NOT EXISTS api_ops (
-       op_id TEXT PRIMARY KEY,
-       at TEXT NOT NULL DEFAULT (datetime('now'))
-     )`,
-  );
-}
 
 const asRaw = (value: unknown): string | null =>
   typeof value === "string" || typeof value === "number" || typeof value === "boolean"
@@ -119,7 +110,7 @@ function runOp(op: Op): OpResult {
         return { ...base, ok: false, error: "Not allowed." };
       const id = Number(op.id);
       const def = getEntity(entity)?.fields.find((f) => f.name === field);
-      if (!Number.isInteger(id) || !def) return { ...base, ok: false, error: "Bad target." };
+      if (!Number.isSafeInteger(id) || id <= 0 || !def) return { ...base, ok: false, error: "Bad target." };
       const result = coerceValue(def, asRaw(op.value));
       if ("error" in result) return { ...base, ok: false, error: result.error };
       updateField(entity, id, field, result.value);
@@ -127,9 +118,9 @@ function runOp(op: Op): OpResult {
     }
     case "delete": {
       const id = Number(op.id);
-      if (!DELETABLE.has(entity) || !Number.isInteger(id))
+      if (!DELETABLE.has(entity) || !Number.isSafeInteger(id) || id <= 0)
         return { ...base, ok: false, error: "Not allowed." };
-      deleteRow(entity, id);
+      deleteRowInTransaction(entity, id);
       return { ...base, ok: true, id };
     }
     case "habit": {
@@ -161,24 +152,30 @@ export function applyOps(ops: unknown): OpResult[] | { error: string } {
   if (!Array.isArray(ops)) return { error: "ops must be a list." };
   if (ops.length > MAX_OPS) return { error: `At most ${MAX_OPS} ops per request.` };
 
-  ensureOpsTable();
   const db = getDb();
-  const seen = db.prepare("SELECT 1 FROM api_ops WHERE op_id = ?");
-  const mark = db.prepare("INSERT INTO api_ops (op_id) VALUES (?)");
+  const seen = db.prepare("SELECT resource_id FROM api_ops WHERE op_id = ?");
+  const mark = db.prepare("INSERT INTO api_ops (op_id,resource_id) VALUES (?,?)");
 
   return ops.map((item): OpResult => {
     const op = item as Op;
     if (!op || typeof op.opId !== "string" || op.opId.length < 8 || op.opId.length > 64)
       return { opId: String(op?.opId ?? ""), ok: false, error: "Bad opId." };
-    if (seen.get(op.opId)) return { opId: op.opId, ok: true };
+    let transaction = false;
     try {
-      db.exec("BEGIN");
-      const result = runOp(op);
-      if (result.ok) mark.run(op.opId);
+      // Check for replay inside the same write transaction as the operation.
+      // A dropped response must return the same canonical row ID on retry.
+      db.exec("BEGIN IMMEDIATE");
+      transaction = true;
+      const prior = seen.get(op.opId);
+      const id = prior?.resource_id;
+      const result: OpResult = prior
+        ? { opId: op.opId, ok: true, ...(typeof id === "number" ? { id } : {}) }
+        : runOp(op);
+      if (!prior && result.ok) mark.run(op.opId, result.id ?? null);
       db.exec("COMMIT");
       return result;
     } catch (error) {
-      db.exec("ROLLBACK");
+      if (transaction) db.exec("ROLLBACK");
       console.error("api op failed", op.op, error);
       return { opId: op.opId, ok: false, error: "Server error." };
     }

@@ -36,7 +36,7 @@ Track checks an authenticated server snapshot before saving the connection or se
 
 The app uses one local cache and outbox for its server. To move to a different origin, first sync and back up any local work you want to keep, then deliberately clear Track's app storage from Android Settings and pair again. This also clears launcher and Pulse settings. Track never automatically resends that cache or outbox to another server.
 
-If you're offline, changes remain queued. A transient response leaves them queued for the next sync. Track reports permanent refusals instead of labeling them synced. A malformed snapshot or acknowledgement cannot clear cached records or silently remove queued work.
+If you're offline, changes remain queued. A transient response leaves them queued for the next sync. Track reports permanent refusals instead of labeling them synced. A malformed snapshot or acknowledgement cannot clear cached records or silently remove queued work. You can create a task and mark it Done while offline. Track holds the status edit until the server confirms the task ID. Update the web server alongside the APK for reliable ID recovery when the first create reply is lost.
 
 ## Layout
 

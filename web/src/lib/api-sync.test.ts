@@ -36,9 +36,11 @@ describe("api sync core", () => {
       entity: "tasks",
       values: { title: "Retried", status: "To do", priority: "Low" },
     };
-    applyOps([op]);
-    const replay = applyOps([op]) as { ok: boolean }[];
+    const original = applyOps([op]) as { ok: boolean; id?: number }[];
+    const replay = applyOps([op]) as { ok: boolean; id?: number }[];
     assert.equal(replay[0].ok, true);
+    assert.ok(original[0].id && original[0].id > 0);
+    assert.deepEqual(replay, original);
     const count = listRows("tasks").filter((row) => row.title === "Retried").length;
     assert.equal(count, 1);
   });
@@ -56,6 +58,21 @@ describe("api sync core", () => {
       { opId: opId("field"), op: "set", entity: "tasks", id, field: "created_at", value: "x" },
     ]) as { ok: boolean }[];
     assert.equal(badField.ok, false);
+  });
+
+  it("rejects temporary row IDs and applies and acknowledges a canonical delete once", () => {
+    const [created] = applyOps([
+      { opId: opId("canonical"), op: "create", entity: "tasks", values: { title: "Temporary identity", status: "To do", priority: "High" } },
+    ]) as { id: number }[];
+    const temporaryEdit = { opId: opId("temp-edit"), op: "set", entity: "tasks", id: -1, field: "status", value: "Done" };
+    assert.deepEqual(applyOps([temporaryEdit]), [{ opId: temporaryEdit.opId, ok: false, error: "Bad target." }]);
+    assert.equal(listRows("tasks").find(row => row.id === created.id)?.status, "To do");
+
+    const clear = { opId: opId("canonical-delete"), op: "delete", entity: "tasks", id: created.id };
+    const committed = [{ opId: clear.opId, ok: true, id: created.id }];
+    assert.deepEqual(applyOps([clear]), committed);
+    assert.deepEqual(applyOps([clear]), committed);
+    assert.equal(listRows("tasks").some(row => row.id === created.id), false);
   });
 
   it("rejects a non-list body and an oversized batch", () => {

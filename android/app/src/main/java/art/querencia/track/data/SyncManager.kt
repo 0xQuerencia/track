@@ -52,15 +52,14 @@ class SyncManager(private val engine: Engine, private val prefs: Prefs) {
         // Never send any outbox entries or replace the stored credential until
         // this connection returns a complete authenticated Track snapshot.
         val context = coroutineContext
-        verifyAndSave(
+        val verifiedSnapshot = verifyAndSave(
             candidate,
             fetch = { TrackApi.get(it.origin, "/api/v1/pull", it.token) },
-            apply = { context.ensureActive(); engine.applyPull(it) },
+            validate = { context.ensureActive(); engine.validatePull(it) },
             save = prefs::saveConnection,
         )
-        _version.value += 1
         try {
-            transfer(candidate, alreadyPulled = true)
+            transfer(candidate, verifiedSnapshot)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
@@ -68,12 +67,13 @@ class SyncManager(private val engine: Engine, private val prefs: Prefs) {
         }
     }
 
-    private suspend fun transfer(connection: TrackConnection, alreadyPulled: Boolean = false): SyncReport {
+    private suspend fun transfer(connection: TrackConnection, verifiedSnapshot: String? = null): SyncReport {
         val context = coroutineContext
         var sent = false
         val report = drainOutbox(engine::pendingCount, sendBatch = {
             context.ensureActive()
             val batch = engine.pendingOps(100u)
+            if (batch == "{\"ops\":[]}") return@drainOutbox BatchProgress(0u, 0u)
             val reply = TrackApi.post(connection.origin, "/api/v1/push", connection.token, batch)
             context.ensureActive()
             val summary = engine.ack(batch, reply)
@@ -81,11 +81,10 @@ class SyncManager(private val engine: Engine, private val prefs: Prefs) {
             BatchProgress(summary.applied, summary.rejected)
         })
         context.ensureActive()
-        if (!alreadyPulled || sent) {
-            val snapshot = TrackApi.get(connection.origin, "/api/v1/pull", connection.token)
-            context.ensureActive()
-            engine.applyPull(snapshot)
-        }
+        val snapshot = if (verifiedSnapshot != null && !sent) verifiedSnapshot
+            else TrackApi.get(connection.origin, "/api/v1/pull", connection.token)
+        context.ensureActive()
+        engine.applyPull(snapshot)
         return report
     }
 
@@ -111,7 +110,9 @@ class SyncManager(private val engine: Engine, private val prefs: Prefs) {
         internal fun messageFor(error: Throwable): String = when (error) {
             is ManualSyncRequired, is ApiException, is IllegalArgumentException ->
                 error.message ?: "Check your Track connection settings."
-            is CoreException.Payload -> "Track returned an incomplete or invalid reply. Local data was kept."
+            is CoreException.Payload -> if (error.message?.contains("server did not return the task id") == true) {
+                "Track did not return the new task ID. Update your server before retrying. Local changes were kept."
+            } else "Track returned an incomplete or invalid reply. Local data was kept."
             is IOException -> "Couldn't reach Track. Check your connection and try again."
             else -> "Sync failed. Try again from Settings."
         }
