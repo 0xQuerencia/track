@@ -62,16 +62,22 @@ export function updateField(
     .run(value, id);
 }
 
+/** Internal deletion path for callers already holding a transaction. */
+export function deleteRowInTransaction(key: string, id: number): void {
+  const entity = mustGet(key);
+  const db = getDb();
+  db.prepare(`DELETE FROM "${entity.key}" WHERE id = ?`).run(id);
+  if (entity.key === "habits")
+    db.prepare("DELETE FROM habit_logs WHERE habit_id = ?").run(id);
+  unlinkAllFor(entity.key, String(id));
+}
+
 /** Deletes one record and its links. Other records are never touched. */
 export function deleteRow(key: string, id: number): void {
-  const entity = mustGet(key);
   const db = getDb();
   db.exec("BEGIN");
   try {
-    db.prepare(`DELETE FROM "${entity.key}" WHERE id = ?`).run(id);
-    if (entity.key === "habits")
-      db.prepare("DELETE FROM habit_logs WHERE habit_id = ?").run(id);
-    unlinkAllFor(entity.key, String(id));
+    deleteRowInTransaction(key, id);
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");

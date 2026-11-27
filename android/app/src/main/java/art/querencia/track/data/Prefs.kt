@@ -6,15 +6,19 @@ import androidx.core.content.edit
 class Prefs(context: Context) {
     private val sp = context.getSharedPreferences("track", Context.MODE_PRIVATE)
 
-    var serverUrl: String
+    val serverUrl: String
         get() = sp.getString("server", DEFAULT_SERVER) ?: DEFAULT_SERVER
-        set(v) = sp.edit { putString("server", v.trim().trimEnd('/')) }
 
-    var token: String?
+    val token: String?
         get() = sp.getString("token", null)?.let(SecretStore::decrypt)
-        set(v) = sp.edit {
-            if (v.isNullOrBlank()) remove("token") else putString("token", SecretStore.encrypt(v.trim()))
+
+    /** Write the verified origin and encrypted credential in one preference transaction. */
+    internal fun saveConnection(connection: TrackConnection) {
+        val encrypted = SecretStore.encrypt(connection.token)
+        check(sp.edit().putString("server", connection.origin).putString("token", encrypted).commit()) {
+            "Couldn't save this connection."
         }
+    }
 
     /** Line-style (monochrome) icons instead of the app's coloured ones. */
     var monoIcons: Boolean

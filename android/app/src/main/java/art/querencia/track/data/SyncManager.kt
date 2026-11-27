@@ -8,69 +8,129 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import uniffi.track_core.CoreException
 import uniffi.track_core.Engine
+import kotlin.coroutines.coroutineContext
 
 sealed interface SyncState {
     data object Idle : SyncState
     data object Running : SyncState
+    data class Waiting(val report: SyncReport) : SyncState
     data class Failed(val message: String) : SyncState
 }
 
-/** Moves JSON between the server and the Rust engine: push the queue, then pull. */
+internal class ManualSyncRequired(message: String) : Exception(message)
+
+/** The same mutex protects foreground, background and connection edits. */
 class SyncManager(private val engine: Engine, private val prefs: Prefs) {
     private val mutex = Mutex()
     private val _state = MutableStateFlow<SyncState>(SyncState.Idle)
     val state: StateFlow<SyncState> = _state
-
-    /** Bumps after each successful sync so screens know to reload. */
     private val _version = MutableStateFlow(0)
     val version: StateFlow<Int> = _version
 
-    suspend fun sync(): Result<Unit> = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            val token = prefs.token
-            if (token.isNullOrBlank()) {
-                return@withContext fail("Add your API token in Settings.")
-            }
-            _state.value = SyncState.Running
-            runCatching {
-                val base = prefs.serverUrl
-                // A batch is at most 100 ops; stop if the server makes no progress.
-                repeat(20) {
-                    if (engine.pendingCount() == 0u) return@repeat
-                    val reply = TrackApi.post(base, "/api/v1/push", token, engine.pendingOps(100u))
-                    val summary = engine.ack(reply)
-                    if (summary.applied + summary.rejected == 0u) return@repeat
-                }
-                engine.applyPull(TrackApi.get(base, "/api/v1/pull", token))
-            }.fold(
-                onSuccess = {
-                    _state.value = SyncState.Idle
-                    _version.value += 1
-                    Result.success(Unit)
-                },
-                onFailure = { fail(it.message ?: "Sync failed.") },
-            )
+    suspend fun sync(): Result<SyncReport> = runSync {
+        val server = prefs.serverUrl
+        val saved = prefs.token
+        if (server.isBlank() || saved.isNullOrBlank()) throw ManualSyncRequired("Connect to Track in Settings.")
+        val connection = TrackConnection.forPairing(server, "", server, saved)
+        transfer(connection)
+    }
+
+    suspend fun pairAndSync(server: String, typedToken: String): Result<SyncReport> = runSync {
+        val candidate = TrackConnection.forPairing(server, typedToken, prefs.serverUrl, prefs.token)
+        // Never send any outbox entries or replace the stored credential until
+        // this connection returns a complete authenticated Track snapshot.
+        val context = coroutineContext
+        val verifiedSnapshot = verifyAndSave(
+            candidate,
+            fetch = { TrackApi.get(it.origin, "/api/v1/pull", it.token) },
+            validate = { context.ensureActive(); engine.validatePull(it) },
+            save = prefs::saveConnection,
+        )
+        try {
+            transfer(candidate, verifiedSnapshot)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            throw ManualSyncRequired("Connection verified, but sync did not finish. " + messageFor(error))
         }
     }
 
-    private fun fail(message: String): Result<Unit> {
-        _state.value = SyncState.Failed(message)
-        return Result.failure(ApiException(message))
+    private suspend fun transfer(connection: TrackConnection, verifiedSnapshot: String? = null): SyncReport {
+        val context = coroutineContext
+        var sent = false
+        val report = drainOutbox(engine::pendingCount, sendBatch = {
+            context.ensureActive()
+            val batch = engine.pendingOps(100u)
+            if (batch == "{\"ops\":[]}") return@drainOutbox BatchProgress(0u, 0u)
+            val reply = TrackApi.post(connection.origin, "/api/v1/push", connection.token, batch)
+            context.ensureActive()
+            val summary = engine.ack(batch, reply)
+            sent = true
+            BatchProgress(summary.applied, summary.rejected)
+        })
+        context.ensureActive()
+        val snapshot = if (verifiedSnapshot != null && !sent) verifiedSnapshot
+            else TrackApi.get(connection.origin, "/api/v1/pull", connection.token)
+        context.ensureActive()
+        engine.applyPull(snapshot)
+        return report
+    }
+
+    private suspend fun runSync(block: suspend () -> SyncReport): Result<SyncReport> = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            _state.value = SyncState.Running
+            try {
+                val report = block()
+                _state.value = if (report.pending == 0u && report.rejected == 0u) SyncState.Idle else SyncState.Waiting(report)
+                _version.value += 1
+                Result.success(report)
+            } catch (cancelled: CancellationException) {
+                _state.value = SyncState.Idle
+                throw cancelled
+            } catch (error: Exception) {
+                _state.value = SyncState.Failed(messageFor(error))
+                Result.failure(error)
+            }
+        }
+    }
+
+    companion object {
+        internal fun messageFor(error: Throwable): String = when (error) {
+            is ManualSyncRequired, is ApiException, is IllegalArgumentException ->
+                error.message ?: "Check your Track connection settings."
+            is CoreException.Payload -> if (error.message?.contains("server did not return the task id") == true) {
+                "Track did not return the new task ID. Update your server before retrying. Local changes were kept."
+            } else "Track returned an incomplete or invalid reply. Local data was kept."
+            is IOException -> "Couldn't reach Track. Check your connection and try again."
+            else -> "Sync failed. Try again from Settings."
+        }
     }
 }
 
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as art.querencia.track.TrackApp
-        return if (app.sync.sync().isSuccess) Result.success() else Result.retry()
+        return app.sync.sync().fold(
+            onSuccess = { if (it.pending > 0u) Result.retry() else Result.success() },
+            onFailure = { error ->
+                if (error is IOException || error is ApiException &&
+                    (error.code == 408 || error.code == 429 || error.code in listOf(500, 502, 504))) {
+                    Result.retry()
+                } else Result.success() // Settings/auth/config errors need a person, not a retry loop.
+            },
+        )
     }
 
     companion object {

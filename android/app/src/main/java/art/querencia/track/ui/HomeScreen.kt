@@ -41,6 +41,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.os.SystemClock
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import art.querencia.track.data.LocalFocus
 import art.querencia.track.data.SyncState
 import java.time.Duration
 import java.time.Instant
@@ -54,9 +58,13 @@ import uniffi.track_core.TaskItem
 import uniffi.track_core.TodayView
 
 @Composable
-fun HomeScreen(
+internal fun HomeScreen(
     today: TodayView?,
     syncState: SyncState,
+    localFocus: LocalFocus?,
+    onStartFocus: (Int) -> Unit,
+    onSaveFocus: () -> Unit,
+    onDiscardFocus: () -> Unit,
     contentPadding: PaddingValues,
     onSettings: () -> Unit,
     onToggleTask: (TaskItem) -> Unit,
@@ -75,6 +83,7 @@ fun HomeScreen(
         item { Reveal(2) { PrioritiesCard(today, onToggleTask, onAddTask) } }
         if (today.habits.isNotEmpty()) item { Reveal(3) { HabitsCard(today, onToggleHabit) } }
         item { Reveal(4) { StudyCard(today.studyChapter, today.focusMinutes.toInt()) } }
+        item(key = "phone-focus") { FocusTimerCard(localFocus, onStartFocus, onSaveFocus, onDiscardFocus) }
         item { Reveal(5) { footer() } }
     }
 }
@@ -98,7 +107,7 @@ private fun Header(today: TodayView?, sync: SyncState, onSettings: () -> Unit) {
     Column(Modifier.padding(top = 8.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(today?.dateLabel?.uppercase() ?: "", TrackType.Label, Modifier.weight(1f))
-            Box(Modifier.pressable(onClick = onSettings).padding(8.dp)) { SlidersIcon(TrackColors.MutedForeground) }
+            Box(Modifier.semantics { contentDescription = "Open Track settings" }.pressable(onClick = onSettings).padding(12.dp)) { SlidersIcon(TrackColors.MutedForeground) }
         }
         val name = today?.name?.let { ", $it" }.orEmpty()
         Text("${today?.greeting ?: "Hello"}$name", TrackType.Display)
@@ -110,6 +119,7 @@ private fun Header(today: TodayView?, sync: SyncState, onSettings: () -> Unit) {
 private fun SyncLine(today: TodayView, sync: SyncState) {
     val (text, color) = when {
         sync is SyncState.Failed -> sync.message to TrackColors.Destructive
+        sync is SyncState.Waiting -> sync.report.message to TrackColors.MutedForeground
         sync is SyncState.Running -> "Syncing…" to TrackColors.MutedForeground
         today.lastSync == null -> "Not synced yet" to TrackColors.MutedForeground
         else -> {
@@ -250,7 +260,7 @@ private fun StudyCard(chapter: ChapterItem?, focusMinutes: Int) {
             Text("$focusMinutes min focus today", TrackType.Small)
         }
         if (chapter == null) {
-            Text("Syncing your syllabus…", TrackType.Small)
+            Text("No next chapter in the local cache.", TrackType.Small)
         } else {
             Text("${chapter.subject.uppercase()} · UP NEXT", TrackType.Label.copy(color = TrackColors.Ring))
             Text(chapter.name, TrackType.Title)
@@ -259,6 +269,48 @@ private fun StudyCard(chapter: ChapterItem?, focusMinutes: Int) {
                 Box(Modifier.fillMaxWidth(mastery).height(4.dp).background(TrackColors.Ring))
             }
             Text("Mastery ${chapter.mastery.toInt()}%", TrackType.Small)
+        }
+    }
+}
+
+@Composable
+private fun FocusTimerCard(
+    run: LocalFocus?,
+    onStart: (Int) -> Unit,
+    onSave: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    var now by remember(run) { mutableStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(run) {
+        if (run != null) {
+            while (run.remainingSeconds(now) > 0L) {
+                delay(500)
+                now = SystemClock.elapsedRealtime()
+            }
+        }
+    }
+    TrackCard {
+        Text("PHONE FOCUS TIMER", TrackType.Label)
+        if (run == null) {
+            Text("Self-timed. No app-use or screen monitoring.", TrackType.Small)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button("Start 25 min", primary = true) { onStart(25) }
+                Button("Start 50 min") { onStart(50) }
+            }
+        } else {
+            val remaining = run.remainingSeconds(now)
+            val minutes = run.completedMinutes(now)
+            val clock = (remaining / 60L).toString().padStart(2, '0') + ":" +
+                (remaining % 60L).toString().padStart(2, '0')
+            Text(run.label, TrackType.BodyMedium)
+            Text(if (remaining == 0L) "Timer complete" else clock, TrackType.Title)
+            if (run.saving) {
+                Text("Saving locally…", TrackType.Small)
+            } else {
+                if (minutes == 0u) Text("Log at least one whole minute.", TrackType.Small)
+                else Button("Save $minutes min", primary = true, onClick = onSave)
+                Button("Discard timer", onClick = onDiscard)
+            }
         }
     }
 }

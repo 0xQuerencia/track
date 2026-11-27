@@ -36,6 +36,8 @@ import art.querencia.track.data.AppEntry
 import art.querencia.track.data.Prefs
 import art.querencia.track.data.PulseStore
 import art.querencia.track.data.PulseWorker
+import art.querencia.track.data.SyncManager
+import art.querencia.track.data.SyncReport
 import art.querencia.track.data.UsageAccess
 import kotlinx.coroutines.launch
 
@@ -44,7 +46,7 @@ fun SettingsScreen(
     prefs: Prefs,
     hiddenApps: List<AppEntry>,
     contentPadding: PaddingValues,
-    onSyncNow: suspend () -> Result<Unit>,
+    onPairAndSync: suspend (String, String) -> Result<SyncReport>,
     onUnhide: (AppEntry) -> Unit,
     mono: Boolean,
     onMono: (Boolean) -> Unit,
@@ -57,8 +59,9 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var server by remember { mutableStateOf(prefs.serverUrl) }
-    var token by remember { mutableStateOf(prefs.token.orEmpty()) }
+    var token by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
+    var statusError by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     val pulse = remember { PulseStore(context.applicationContext) }
     var pulseStatus by remember { mutableStateOf(pulse.status()) }
@@ -85,22 +88,31 @@ fun SettingsScreen(
             TrackCard {
                 Text("TRACK SERVER", TrackType.Label)
                 Field("Address", server, { server = it }, "https://your-track-server")
-                Field("API token", token, { token = it }, "Paste your token", secret = true)
+                Field("API token", token, { token = it }, if (prefs.serverUrl.isBlank()) "Paste your phone API token" else "Leave blank to keep the saved token", secret = true)
+                Text("From the self-hosted server’s TRACK_API_TOKEN setting. This connection is verified before local changes are uploaded.", TrackType.Small)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(if (busy) "Syncing…" else "Save and sync", primary = true) {
+                    Button(if (busy) "Connecting…" else "Verify connection and sync", primary = true) {
                         if (busy) return@Button
-                        prefs.serverUrl = server
-                        prefs.token = token
+                        val address = server
+                        val credential = token
                         busy = true
                         status = null
                         scope.launch {
-                            val r = onSyncNow()
-                            busy = false
-                            status = r.fold({ "Connected. Data synced." }, { it.message ?: "Sync failed." })
+                            try {
+                                val outcome = onPairAndSync(address, credential)
+                                statusError = outcome.isFailure
+                                status = outcome.fold({
+                                    token = ""
+                                    server = prefs.serverUrl
+                                    "Connected. " + it.message
+                                }, { SyncManager.messageFor(it) })
+                            } finally {
+                                busy = false
+                            }
                         }
                     }
                 }
-                status?.let { Text(it, TrackType.Small.copy(color = if (it.startsWith("Connected")) TrackColors.Ring else TrackColors.Destructive)) }
+                status?.let { Text(it, TrackType.Small.copy(color = if (statusError) TrackColors.Destructive else TrackColors.Ring)) }
             }
         }
         item {

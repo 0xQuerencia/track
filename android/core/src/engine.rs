@@ -2,6 +2,7 @@
 //! and builds the home-screen view. It does no networking; the Android shell
 //! moves JSON between the server and `apply_pull` / `pending_ops` / `ack`.
 
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde_json::{json, Map, Value};
@@ -207,6 +208,30 @@ fn apply_local(store: &Store, op: &Value, seq: i64) -> Res<()> {
     Ok(())
 }
 
+fn decode_pull(raw: &str) -> Res<Value> {
+    let body: Value = serde_json::from_str(raw).map_err(|e| CoreError::Payload(e.to_string()))?;
+    let data = body.get("data").and_then(Value::as_object)
+        .ok_or_else(|| CoreError::Payload("missing data".into()))?;
+    for entity in PULLED {
+        let rows = data.get(entity).and_then(Value::as_array)
+            .ok_or_else(|| CoreError::Payload(format!("missing {entity} rows")))?;
+        let mut ids = HashSet::new();
+        for row in rows {
+            match row["id"].as_i64() {
+                Some(id) if id > 0 && ids.insert(id) => {}
+                _ => return Err(CoreError::Payload(format!("invalid {entity} row id"))),
+            }
+        }
+    }
+    let habit_logs = data.get("habitLogs").and_then(Value::as_array)
+        .ok_or_else(|| CoreError::Payload("missing habit logs".into()))?;
+    if habit_logs.iter().any(|row| !row["habitId"].as_i64().is_some_and(|id| id > 0)
+        || !row["date"].as_str().is_some_and(dates::is_valid)) {
+        return Err(CoreError::Payload("invalid habit log".into()));
+    }
+    Ok(body)
+}
+
 fn invalid(msg: &str) -> CoreError {
     CoreError::Invalid(msg.into())
 }
@@ -252,6 +277,15 @@ impl Engine {
     fn submit(&self, mut op: Value) -> Res<()> {
         let mut store = self.lock();
         store.transaction::<(), CoreError>(|s| {
+            if op["entity"] == "tasks" {
+                if let Some(id) = op["id"].as_i64().filter(|id| *id < 0) {
+                    if let Some(server_id) = s.task_alias(id)? {
+                        op["id"] = json!(server_id);
+                    } else if !s.pending_task_create_exists(id)? {
+                        return Err(invalid("Refresh this task before changing it."));
+                    }
+                }
+            }
             let op_id = Self::new_op_id(s)?;
             op["opId"] = json!(op_id);
             let seq = s.enqueue(&op_id, &op)?;
@@ -269,11 +303,17 @@ impl Engine {
 
     // ---- sync ---------------------------------------------------------
 
+    /// Check pairing evidence without refreshing totals before outbox ACKs.
+    pub fn validate_pull(&self, json: String) -> Res<()> {
+        decode_pull(&json).map(|_| ())
+    }
+
     /// Replaces the cache with a server snapshot, then re-applies any changes
     /// the server hasn't confirmed yet so nothing made offline disappears.
     pub fn apply_pull(&self, json: String) -> Res<()> {
-        let body: Value = serde_json::from_str(&json).map_err(|e| CoreError::Payload(e.to_string()))?;
-        let data = body.get("data").ok_or_else(|| CoreError::Payload("missing data".into()))?;
+        let body = decode_pull(&json)?;
+        let data = &body["data"];
+        // Validate the whole envelope before clearing cached rows.
         let mut store = self.lock();
         store.transaction::<(), CoreError>(|s| {
             for entity in PULLED {
@@ -311,31 +351,93 @@ impl Engine {
 
     /// The next batch of queued changes as a ready-to-POST JSON body.
     pub fn pending_ops(&self, limit: u32) -> Res<String> {
-        let ops: Vec<Value> = self.lock().pending(i64::from(limit.clamp(1, 200)))?.into_iter().map(|p| p.op).collect();
+        let ops: Vec<Value> = self.lock().ready_pending(i64::from(limit.clamp(1, 200)))?.into_iter().map(|p| p.op).collect();
         Ok(json!({ "ops": ops }).to_string())
     }
 
-    /// Reads the server's reply to a push: confirmed and rejected changes
-    /// leave the queue; ones that hit a transient server error stay.
-    pub fn ack(&self, response_json: String) -> Res<AckSummary> {
-        let body: Value =
-            serde_json::from_str(&response_json).map_err(|e| CoreError::Payload(e.to_string()))?;
-        let results = body["results"].as_array().ok_or_else(|| CoreError::Payload("missing results".into()))?;
-        let mut summary = AckSummary { applied: 0, rejected: 0, will_retry: 0 };
-        let store = self.lock();
-        for r in results {
-            let Some(op_id) = r["opId"].as_str() else { continue };
-            if r["ok"].as_bool() == Some(true) {
-                store.remove_pending(op_id)?;
-                summary.applied += 1;
-            } else if r["error"].as_str() == Some(RETRYABLE) {
-                summary.will_retry += 1;
-            } else {
-                store.remove_pending(op_id)?;
-                summary.rejected += 1;
+    /// Accept a complete reply for exactly the batch sent. Confirmed and rejected
+    /// operations leave the queue; transient ones and malformed replies do not.
+    pub fn ack(&self, request_json: String, response_json: String) -> Res<AckSummary> {
+        let request: Value =
+            serde_json::from_str(&request_json).map_err(|_| CoreError::Payload("invalid sent batch".into()))?;
+        let expected = request["ops"].as_array()
+            .ok_or_else(|| CoreError::Payload("missing sent batch".into()))?;
+        if expected.is_empty() || expected.len() > 200 {
+            return Err(CoreError::Payload("invalid sent batch size".into()));
+        }
+        let mut ids = HashSet::new();
+        for op in expected {
+            let id = op["opId"].as_str().filter(|id| !id.is_empty())
+                .ok_or_else(|| CoreError::Payload("missing sent operation id".into()))?;
+            if !ids.insert(id) {
+                return Err(CoreError::Payload("duplicate sent operation id".into()));
             }
         }
-        Ok(summary)
+        let body: Value =
+            serde_json::from_str(&response_json).map_err(|_| CoreError::Payload("invalid push reply".into()))?;
+        let results = body["results"].as_array().filter(|rows| rows.len() == expected.len())
+            .ok_or_else(|| CoreError::Payload("incomplete push reply".into()))?;
+        let mut dispositions = Vec::with_capacity(results.len());
+        for r in results {
+            let id = r["opId"].as_str().filter(|id| ids.remove(id))
+                .ok_or_else(|| CoreError::Payload("unknown or duplicate operation id".into()))?;
+            let ok = r["ok"].as_bool()
+                .ok_or_else(|| CoreError::Payload("missing operation status".into()))?;
+            let error = if ok { None } else {
+                Some(r["error"].as_str().filter(|error| !error.is_empty())
+                    .ok_or_else(|| CoreError::Payload("missing operation error".into()))?)
+            };
+            dispositions.push((id, error, r["id"].as_i64().filter(|id| *id > 0)));
+        }
+
+        let mut store = self.lock();
+        store.transaction::<AckSummary, CoreError>(|store| {
+            let mut summary = AckSummary { applied: 0, rejected: 0, will_retry: 0 };
+            for (id, error, resource_id) in dispositions {
+                if error != Some(RETRYABLE) {
+                    if let Some(pending) = store.pending_by_id(id)?.filter(|p| p.op["op"] == "create" && p.op["entity"] == "tasks") {
+                        let temporary_id = -pending.seq;
+                        let edits = store.waiting_task_ops(temporary_id)?;
+                        if error.is_some() {
+                            // A permanent create refusal leaves no server task to edit.
+                            for edit in edits {
+                                store.remove_pending_seq(edit.seq)?;
+                                summary.rejected += 1;
+                            }
+                            store.delete_row("tasks", temporary_id)?;
+                        } else if let Some(server_id) = resource_id {
+                            store.put_task_alias(temporary_id, server_id)?;
+                            if let Some(mut row) = store.get_row("tasks", temporary_id)? {
+                                row["id"] = json!(server_id);
+                                store.put_row("tasks", server_id, &row)?;
+                            }
+                            store.delete_row("tasks", temporary_id)?;
+                            for edit in edits {
+                                let mut op = edit.op;
+                                op["id"] = json!(server_id);
+                                store.update_pending(edit.seq, &op)?;
+                            }
+                        } else if !edits.is_empty() {
+                            // A legacy duplicate reply may omit the ID. Keep every
+                            // operation intact rather than guess the canonical row.
+                            return Err(CoreError::Payload("server did not return the task id".into()));
+                        }
+                    }
+                }
+                match error {
+                    None => {
+                        store.remove_pending(id)?;
+                        summary.applied += 1;
+                    }
+                    Some(RETRYABLE) => summary.will_retry += 1,
+                    Some(_) => {
+                        store.remove_pending(id)?;
+                        summary.rejected += 1;
+                    }
+                }
+            }
+            Ok(summary)
+        })
     }
 
     pub fn pending_count(&self) -> Res<u32> {
