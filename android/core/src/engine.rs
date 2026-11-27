@@ -2,6 +2,7 @@
 //! and builds the home-screen view. It does no networking; the Android shell
 //! moves JSON between the server and `apply_pull` / `pending_ops` / `ack`.
 
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde_json::{json, Map, Value};
@@ -273,17 +274,37 @@ impl Engine {
     /// the server hasn't confirmed yet so nothing made offline disappears.
     pub fn apply_pull(&self, json: String) -> Res<()> {
         let body: Value = serde_json::from_str(&json).map_err(|e| CoreError::Payload(e.to_string()))?;
-        let data = body.get("data").ok_or_else(|| CoreError::Payload("missing data".into()))?;
+        let data = body.get("data").and_then(Value::as_object)
+            .ok_or_else(|| CoreError::Payload("missing data".into()))?;
+        let row_groups: Vec<(&str, &Vec<Value>)> = PULLED.iter().map(|&entity| {
+            let rows = data.get(entity).and_then(Value::as_array)
+                .ok_or_else(|| CoreError::Payload(format!("missing {entity} rows")))?;
+            let mut ids = HashSet::new();
+            for row in rows {
+                match row["id"].as_i64() {
+                    Some(id) if id > 0 && ids.insert(id) => {}
+                    _ => return Err(CoreError::Payload(format!("invalid {entity} row id"))),
+                }
+            }
+            Ok((entity, rows))
+        }).collect::<Res<_>>()?;
+        let habit_logs = data.get("habitLogs").and_then(Value::as_array)
+            .ok_or_else(|| CoreError::Payload("missing habit logs".into()))?;
+        if habit_logs.iter().any(|row| !row["habitId"].as_i64().is_some_and(|id| id > 0)
+            || !row["date"].as_str().is_some_and(dates::is_valid)) {
+            return Err(CoreError::Payload("invalid habit log".into()));
+        }
+        // Validate the whole envelope before clearing cached rows.
         let mut store = self.lock();
         store.transaction::<(), CoreError>(|s| {
-            for entity in PULLED {
+            for (entity, rows) in row_groups {
                 s.clear_entity(entity)?;
-                for row in data[entity].as_array().into_iter().flatten() {
+                for row in rows {
                     s.put_row(entity, int(row, "id"), row)?;
                 }
             }
             s.clear_habit_logs()?;
-            for log in data["habitLogs"].as_array().into_iter().flatten() {
+            for log in habit_logs {
                 if let Some(date) = log["date"].as_str() {
                     s.set_habit_log(int(log, "habitId"), date, true)?;
                 }
@@ -315,27 +336,59 @@ impl Engine {
         Ok(json!({ "ops": ops }).to_string())
     }
 
-    /// Reads the server's reply to a push: confirmed and rejected changes
-    /// leave the queue; ones that hit a transient server error stay.
-    pub fn ack(&self, response_json: String) -> Res<AckSummary> {
-        let body: Value =
-            serde_json::from_str(&response_json).map_err(|e| CoreError::Payload(e.to_string()))?;
-        let results = body["results"].as_array().ok_or_else(|| CoreError::Payload("missing results".into()))?;
-        let mut summary = AckSummary { applied: 0, rejected: 0, will_retry: 0 };
-        let store = self.lock();
-        for r in results {
-            let Some(op_id) = r["opId"].as_str() else { continue };
-            if r["ok"].as_bool() == Some(true) {
-                store.remove_pending(op_id)?;
-                summary.applied += 1;
-            } else if r["error"].as_str() == Some(RETRYABLE) {
-                summary.will_retry += 1;
-            } else {
-                store.remove_pending(op_id)?;
-                summary.rejected += 1;
+    /// Accept a complete reply for exactly the batch sent. Confirmed and rejected
+    /// operations leave the queue; transient ones and malformed replies do not.
+    pub fn ack(&self, request_json: String, response_json: String) -> Res<AckSummary> {
+        let request: Value =
+            serde_json::from_str(&request_json).map_err(|_| CoreError::Payload("invalid sent batch".into()))?;
+        let expected = request["ops"].as_array()
+            .ok_or_else(|| CoreError::Payload("missing sent batch".into()))?;
+        if expected.is_empty() || expected.len() > 200 {
+            return Err(CoreError::Payload("invalid sent batch size".into()));
+        }
+        let mut ids = HashSet::new();
+        for op in expected {
+            let id = op["opId"].as_str().filter(|id| !id.is_empty())
+                .ok_or_else(|| CoreError::Payload("missing sent operation id".into()))?;
+            if !ids.insert(id) {
+                return Err(CoreError::Payload("duplicate sent operation id".into()));
             }
         }
-        Ok(summary)
+        let body: Value =
+            serde_json::from_str(&response_json).map_err(|_| CoreError::Payload("invalid push reply".into()))?;
+        let results = body["results"].as_array().filter(|rows| rows.len() == expected.len())
+            .ok_or_else(|| CoreError::Payload("incomplete push reply".into()))?;
+        let mut dispositions = Vec::with_capacity(results.len());
+        for r in results {
+            let id = r["opId"].as_str().filter(|id| ids.remove(id))
+                .ok_or_else(|| CoreError::Payload("unknown or duplicate operation id".into()))?;
+            let ok = r["ok"].as_bool()
+                .ok_or_else(|| CoreError::Payload("missing operation status".into()))?;
+            let error = if ok { None } else {
+                Some(r["error"].as_str().filter(|error| !error.is_empty())
+                    .ok_or_else(|| CoreError::Payload("missing operation error".into()))?)
+            };
+            dispositions.push((id, error));
+        }
+
+        let mut store = self.lock();
+        store.transaction::<AckSummary, CoreError>(|store| {
+            let mut summary = AckSummary { applied: 0, rejected: 0, will_retry: 0 };
+            for (id, error) in dispositions {
+                match error {
+                    None => {
+                        store.remove_pending(id)?;
+                        summary.applied += 1;
+                    }
+                    Some(RETRYABLE) => summary.will_retry += 1,
+                    Some(_) => {
+                        store.remove_pending(id)?;
+                        summary.rejected += 1;
+                    }
+                }
+            }
+            Ok(summary)
+        })
     }
 
     pub fn pending_count(&self) -> Res<u32> {

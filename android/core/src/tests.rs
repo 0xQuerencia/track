@@ -114,9 +114,35 @@ fn ack_clears_confirmed_and_rejected_but_keeps_retryable() {
         {"opId": ids[1], "ok": false, "error": "Not allowed."},
         {"opId": ids[2], "ok": false, "error": "Server error."}
     ]});
-    let s = e.ack(reply.to_string()).unwrap();
+    let s = e.ack(pending.to_string(), reply.to_string()).unwrap();
     assert_eq!((s.applied, s.rejected, s.will_retry), (1, 1, 1));
     assert_eq!(e.pending_count().unwrap(), 1);
+}
+
+#[test]
+fn pull_and_ack_reject_partial_data_without_erasing_cache_or_outbox() {
+    let e = engine();
+    e.apply_pull(snapshot()).unwrap();
+    e.set_task_status(1, "Doing".into()).unwrap();
+    e.set_task_status(2, "Doing".into()).unwrap();
+    let batch = e.pending_ops(50).unwrap();
+    let ops: serde_json::Value = serde_json::from_str(&batch).unwrap();
+    let id = ops["ops"][0]["opId"].as_str().unwrap();
+    let other = ops["ops"][1]["opId"].as_str().unwrap();
+    for reply in [
+        json!({"results":[{"opId":id,"ok":true}]}),
+        json!({"results":[{"opId":id,"ok":true},{"opId":id,"ok":false,"error":"bad"}]}),
+        json!({"results":[{"opId":id,"ok":true},{"opId":"foreign","ok":true}]}),
+        json!({"results":[{"opId":id,"ok":true},{"opId":other}]}),
+    ] {
+        assert!(e.ack(batch.clone(), reply.to_string()).is_err());
+        assert_eq!(e.pending_count().unwrap(), 2);
+    }
+    let mut partial: serde_json::Value = serde_json::from_str(&snapshot()).unwrap();
+    partial["data"].as_object_mut().unwrap().remove("chapters");
+    assert!(e.apply_pull(partial.to_string()).is_err());
+    assert!(!e.tasks(TODAY.into(), false).unwrap().is_empty());
+    assert_eq!(e.pending_count().unwrap(), 2);
 }
 
 #[test]
@@ -124,8 +150,9 @@ fn queued_focus_isnt_double_counted_after_confirmation() {
     let e = engine();
     e.apply_pull(snapshot()).unwrap();
     e.log_focus(TODAY.into(), None, 20, 0).unwrap();
-    let id = serde_json::from_str::<serde_json::Value>(&e.pending_ops(5).unwrap()).unwrap()["ops"][0]["opId"].as_str().unwrap().to_string();
-    e.ack(json!({"results": [{"opId": id, "ok": true}]}).to_string()).unwrap();
+    let pending = e.pending_ops(5).unwrap();
+    let id = serde_json::from_str::<serde_json::Value>(&pending).unwrap()["ops"][0]["opId"].as_str().unwrap().to_string();
+    e.ack(pending, json!({"results": [{"opId": id, "ok": true}]}).to_string()).unwrap();
 
     // The next pull reports the server's updated total.
     let mut snap: serde_json::Value = serde_json::from_str(&snapshot()).unwrap();

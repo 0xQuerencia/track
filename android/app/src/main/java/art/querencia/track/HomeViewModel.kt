@@ -1,6 +1,7 @@
 package art.querencia.track
 
 import android.app.Application
+import art.querencia.track.data.SyncReport
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import java.time.LocalDate
@@ -62,7 +63,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Immediate sync that reports the outcome, for the Settings button. */
-    suspend fun syncNow(): Result<Unit> = app.sync.sync()
+    suspend fun pairAndSync(server: String, token: String): Result<SyncReport> = app.sync.pairAndSync(server, token)
 
     suspend fun searchTasks(query: String): List<TaskItem> = kotlinx.coroutines.withContext(Dispatchers.Default) {
         if (query.length < 2) emptyList()

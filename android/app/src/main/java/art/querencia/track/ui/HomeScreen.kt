@@ -110,6 +110,7 @@ private fun Header(today: TodayView?, sync: SyncState, onSettings: () -> Unit) {
 private fun SyncLine(today: TodayView, sync: SyncState) {
     val (text, color) = when {
         sync is SyncState.Failed -> sync.message to TrackColors.Destructive
+        sync is SyncState.Waiting -> sync.report.message to TrackColors.MutedForeground
         sync is SyncState.Running -> "Syncing…" to TrackColors.MutedForeground
         today.lastSync == null -> "Not synced yet" to TrackColors.MutedForeground
         else -> {

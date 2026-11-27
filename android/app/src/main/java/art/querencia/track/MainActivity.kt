@@ -215,7 +215,7 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
                 prefs = app.prefs,
                 hiddenApps = apps.filter { it.packageName in hidden },
                 contentPadding = insets,
-                onSyncNow = vm::syncNow,
+                onPairAndSync = vm::pairAndSync,
                 onUnhide = { a -> hidden = hidden - a.packageName; app.prefs.hidden = hidden },
                 mono = mono,
                 onMono = { mono = it; app.prefs.monoIcons = it },

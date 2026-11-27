@@ -29,10 +29,14 @@ The release build is signed with your local debug key, which is fine for sideloa
 ## Connect it to Track
 
 1. On your Track server set `TRACK_API_TOKEN` (24+ characters) and serve Track over HTTPS.
-2. In the launcher, open Settings (the sliders icon), enter the server address and the token, tap **Save and sync**.
+2. In the launcher, open Settings (the sliders icon), enter the bare HTTPS server address (no path) and the phone API token, and tap **Verify connection and sync**.
 3. Settings → **Choose default home app** to make it your launcher. To go back, pick your old launcher in the same place.
 
-The token is stored encrypted with a key held in the Android Keystore.
+Track checks an authenticated server snapshot before saving the connection or sending any offline edits. It stores the token encrypted with a key held in Android Keystore. Leave the token field blank to use the saved token, or enter a replacement after you rotate it on the same server.
+
+The app uses one local cache and outbox for its server. To move to a different origin, first sync and back up any local work you want to keep, then deliberately clear Track's app storage from Android Settings and pair again. This also clears launcher and Pulse settings. Track never automatically resends that cache or outbox to another server.
+
+If you're offline, changes remain queued. A transient response leaves them queued for the next sync. Track reports permanent refusals instead of labeling them synced. A malformed snapshot or acknowledgement cannot clear cached records or silently remove queued work.
 
 ## Layout
 
