@@ -45,3 +45,18 @@ jobs:
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
           bash scripts/build-core.sh
           bash gradlew :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Stage sideload test APK and checksum
+        working-directory: android
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/debug/app-debug.apk out/track-android-debug.apk
+          printf '%s\n' "$GITHUB_SHA" > out/SOURCE_COMMIT
+          (cd out && sha256sum track-android-debug.apk > SHA256SUMS)
+      - name: Keep the debug APK for device smoke
+        uses: actions/upload-artifact@v4
+        with:
+          name: track-android-debug
+          path: android/out/
+          retention-days: 7
+          if-no-files-found: error

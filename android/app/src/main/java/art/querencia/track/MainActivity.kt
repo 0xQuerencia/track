@@ -46,6 +46,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import art.querencia.track.data.AppEntry
@@ -118,6 +120,7 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
     val today by vm.today.collectAsStateWithLifecycle()
     val syncState by vm.syncState.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
+    val localFocus by vm.localFocus.collectAsStateWithLifecycle()
 
     var apps by remember { mutableStateOf<List<AppEntry>>(emptyList()) }
     var hidden by remember { mutableStateOf(app.prefs.hidden) }
@@ -142,7 +145,7 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
 
     LaunchedEffect(packagesVersion) { apps = app.apps.load() }
     LaunchedEffect(homePresses) { overlay = Overlay.None }
-    BackHandler { overlay = Overlay.None }
+    BackHandler(enabled = overlay != Overlay.None) { overlay = Overlay.None }
 
     val visible = apps.filter { it.packageName !in hidden }
     val dock = dockPins ?: app.apps.defaultDock(apps)
@@ -157,6 +160,10 @@ private fun TrackRoot(vm: HomeViewModel, app: TrackApp, packagesVersion: Int, ho
         HomeScreen(
             today = today,
             syncState = syncState,
+            localFocus = localFocus,
+            onStartFocus = vm::startLocalFocus,
+            onSaveFocus = vm::saveLocalFocus,
+            onDiscardFocus = vm::discardLocalFocus,
             contentPadding = PaddingValues(top = 56.dp, bottom = 96.dp),
             onSettings = { overlay = Overlay.Settings },
             onToggleTask = { t -> vm.change { e, _ -> e.setTaskStatus(t.id, "Done") } },
@@ -292,6 +299,7 @@ private fun SwipeUpHandle(onOpen: () -> Unit, modifier: Modifier = Modifier) {
                     },
                 )
             }
+            .semantics { contentDescription = "Open app drawer" }
             .pressable(scale = 1f, onClick = onOpen),
         contentAlignment = Alignment.Center,
     ) {

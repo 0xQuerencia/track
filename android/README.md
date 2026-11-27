@@ -8,7 +8,7 @@ A fast Android home-screen launcher that doubles as the phone side of [Track](..
 
 ## Status
 
-Early. Working: home screen, dock, drawer, offline-first sync of tasks, habits, chapters and focus/study logs. Planned: Study Mode with app blocking during sessions, per-app limits, reminders, Google Calendar sync, flashcards when you doomscroll.
+The launcher supports a home screen, dock, app drawer, and offline sync for tasks, habits, chapters and logged sessions. The phone timer is self-reported and does not monitor apps. A separate voluntary focus guard covers launches initiated from Track, not system-wide app use. Planned: reminders, per-app limits and Calendar sync.
 
 ## Build
 
@@ -53,3 +53,11 @@ MIT (see the repo root). See `NOTICE.md` for font licenses.
 ## Optional Pulse activity tracking
 
 Use a separate scoped activity:write token from web Settings, not the phone sync token. In launcher Settings, grant Android usage access, enter the HTTPS origin and activity token, then explicitly enable Pulse. Only closed observed activity intervals are uploaded; app/package names and content are never included. The WorkManager job samples recent usage history, persists a bounded offline queue and retries with stable IDs. No pre-enablement history is collected. Android may delay jobs, deny permission or omit events; missing time is unknown. Disabling clears local credentials and unsent data, not already-uploaded server records; revoke or erase those separately in Track. An in-flight request may finish before cancellation.
+
+## Phone focus timer
+
+Open **Phone focus timer** on the home screen and tap **Start 25 min** or **Start 50 min**. You can save completed whole minutes (capped at the planned duration) or discard the timer without logging anything. If offline, saving uses the local database and outbox; reconnecting syncs the same operation. The timer uses foreground-independent elapsed time for the lifetime of the launcher process and does not claim to measure task attention. Force-stopping the app or rebooting closes an unsaved timer. Already-saved offline entries persist.
+
+## Android readiness check
+
+The [CI workflow](../.github/workflows/android-verify.yml) runs Rust and Android JVM tests, assembles a debug APK and uploads an expiring `track-android-debug` artifact with a SHA-256 checksum. It's a sideload build, not a store release. Run the [Android device smoke checklist](../docs/android-launcher-smoke.md) before calling a build release-ready.

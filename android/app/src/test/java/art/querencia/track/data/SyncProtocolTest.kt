@@ -26,6 +26,9 @@ class SyncProtocolTest {
         val sameSite = TrackConnection.forPairing("https://TRACK.example:443/", "", "https://track.example", token)
         assertEquals("https://track.example", sameSite.origin)
         assertEquals(token, sameSite.token)
+        assertThrows(IllegalArgumentException::class.java) {
+            TrackConnection.forPairing("https://track.example", "", "", token)
+        }
         assertTrue(!sameSite.toString().contains(token))
         assertThrows(IllegalArgumentException::class.java) {
             TrackConnection.forPairing("https://track.example", token + "\r\nbad", "", null)

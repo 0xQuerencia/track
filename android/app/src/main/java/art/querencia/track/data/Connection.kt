@@ -28,7 +28,7 @@ internal class TrackConnection private constructor(val origin: String, val token
                     "This install is tied to its current server. Sync or back up your changes, then clear Track app storage before switching servers."
                 }
             }
-            val token = typedToken.trim().ifEmpty { savedToken.orEmpty() }
+            val token = typedToken.trim().ifEmpty { if (previousServer.isBlank()) "" else savedToken.orEmpty() }
             require(token.length in 24..300 && token.all { it in '!'..'~' }) {
                 "Enter your Track phone API token (at least 24 characters, no spaces)."
             }
